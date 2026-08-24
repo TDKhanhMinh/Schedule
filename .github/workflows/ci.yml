@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend quality gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check:frontend
+      - run: npm run lint:frontend
+      - run: npm run typecheck --workspace @schedule/frontend
+      - run: npm run test --workspace @schedule/frontend
+      - run: npm run build:frontend
+      - name: Upload frontend failure artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-failure
+          path: |
+            frontend/dist
+            outputs/ci
+          if-no-files-found: ignore
+
+  backend:
+    name: NestJS quality gate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: scheduler
+          POSTGRES_USER: scheduler
+          POSTGRES_PASSWORD: scheduler
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U scheduler -d scheduler"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check:backend
+      - run: npm run lint:backend
+      - run: npm run typecheck --workspace @schedule/backend
+      - run: npm run test --workspace @schedule/backend
+      - run: npm run check:migrations
+      - run: npm run build:backend
+        env:
+          NODE_ENV: test
+          API_PORT: 3000
+          DATABASE_URL: postgresql://scheduler:scheduler@localhost:55432/scheduler
+          REDIS_URL: redis://localhost:6379
+      - name: Upload backend failure artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-failure
+          path: |
+            backend/coverage
+            outputs/ci
+          if-no-files-found: ignore
+
+  solver:
+    name: Python solver quality gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/solver/pyproject.toml
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e backend/solver
+      - run: python -m unittest discover -s backend/solver/tests -v
+      - run: python -m timetable_solver.main --help
+      - name: Upload solver failure artifact
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: solver-failure
+          path: outputs/ci
+          if-no-files-found: ignore

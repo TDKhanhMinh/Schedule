@@ -27,6 +27,9 @@ class SolverTest(unittest.TestCase):
         self.assertEqual(result.status, "OPTIMAL")
         self.assertEqual(len(result.assignments), 2)
         self.assertEqual(len({assignment.slotId for assignment in result.assignments}), 2)
+        self.assertEqual(result.metadata.contractVersion, "1.0")
+        self.assertEqual(result.metadata.randomSeed, 0)
+        self.assertEqual(result.metadata.timeLimitSeconds, 10.0)
 
     def test_reports_infeasible_hard_teacher_conflict(self):
         request = SolveJobRequest.model_validate(
@@ -47,6 +50,7 @@ class SolverTest(unittest.TestCase):
         self.assertEqual(result.status, "INFEASIBLE")
         self.assertEqual(result.assignments, [])
         self.assertTrue(result.diagnostics.conflicts)
+        self.assertEqual(result.metadata.solverVersion, "0.1.0")
 
 
 if __name__ == "__main__":

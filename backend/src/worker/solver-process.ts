@@ -5,9 +5,10 @@ import type { SolveJobRequest, SolveJobResult } from "../contracts";
 
 function getSolverRuntime() {
   const solverRoot = resolve(process.env.SOLVER_ROOT ?? "backend/solver");
-  const defaultPython = process.platform === "win32"
-    ? resolve(solverRoot, ".venv", "Scripts", "python.exe")
-    : resolve(solverRoot, ".venv", "bin", "python");
+  const defaultPython =
+    process.platform === "win32"
+      ? resolve(solverRoot, ".venv", "Scripts", "python.exe")
+      : resolve(solverRoot, ".venv", "bin", "python");
   const python = process.env.SOLVER_PYTHON ?? defaultPython;
 
   if (!existsSync(python)) {
@@ -25,15 +26,19 @@ export function runPythonSolver(payload: SolveJobRequest): Promise<SolveJobResul
       cwd: solverRoot,
       env: {
         ...process.env,
-        PYTHONPATH: resolve(solverRoot, "src")
+        PYTHONPATH: resolve(solverRoot, "src"),
       },
-      stdio: ["pipe", "pipe", "pipe"]
+      stdio: ["pipe", "pipe", "pipe"],
     });
     let stdout = "";
     let stderr = "";
 
-    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
-    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
     child.on("error", reject);
     child.on("close", (code) => {
       if (code !== 0) {
@@ -51,4 +56,3 @@ export function runPythonSolver(payload: SolveJobRequest): Promise<SolveJobResul
     child.stdin.end(JSON.stringify(payload));
   });
 }
-

@@ -10,7 +10,10 @@ Nền tảng web-first cho trường THCS/THPT Việt Nam, với phạm vi MVP �
 - `docs/domain-glossary.md`: thuật ngữ canonical và mapping giữa nghiệp vụ, API, PostgreSQL và Python.
 - `docs/legal-rule-register.md`: legal/rule register có nguồn, hiệu lực, phân loại và trạng thái phê duyệt.
 - `docs/prd-mvp.md`: PRD MVP, user journeys, yêu cầu chức năng/phi chức năng và acceptance matrix có traceability.
+- `docs/architecture-decision-records/ADR-001-repository-and-module-boundaries.md`: ADR/cây module, data ownership, security boundary và quyết định FastAPI/Tauri.
+- `docs/api-error-envelope.md`: module map NestJS, request ID và canonical HTTP error envelope.
 - `docs/ux/p0.2-t04-user-journey-wireframes.md`: user journey và wireframe low-fidelity end-to-end, kèm state/feedback/API alignment.
+- `docs/solver-benchmark-rubric.md`: rubric pass/fail, runtime/optimality/seed stability và cách ghi report hồi quy cho solver.
 - `backend/database/migrations`: persistence contract PostgreSQL theo migration tiến về phía trước.
 - `backend/solver`: Python + OR-Tools CP-SAT, chạy độc lập theo contract JSON.
 - `docker-compose.yml`: PostgreSQL và Redis cho môi trường local.
@@ -31,6 +34,19 @@ MVP chỉ phục vụ THCS/THPT, web-first, bắt buộc có Excel và nhập ta
 6. Chạy solver worker ở terminal khác: `npm run worker --workspace @schedule/backend`.
 7. Chạy web ở terminal khác: `npm run dev:frontend`.
 8. Cài solver theo [`backend/solver/README.md`](backend/solver/README.md).
+
+Quality gate local:
+
+```powershell
+npm ci
+npm run ci:local
+```
+
+`ci:local` chạy format check, lint, typecheck, frontend/backend tests, migration
+sequence check, Python solver tests và build. Khi một bước fail, script ghi
+`outputs/ci/last-failure.json` để dùng làm artifact chẩn đoán. Hosted CI tách
+riêng frontend, NestJS/PostgreSQL/Redis và Python solver jobs trong
+`.github/workflows/ci.yml`.
 
 API health check: `GET http://localhost:3000/api/v1/health`.
 Optimization flow: `POST /api/v1/optimization-jobs` → `GET /api/v1/optimization-jobs/:jobId`.

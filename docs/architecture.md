@@ -1,5 +1,8 @@
 # Architecture Baseline
 
+The repository/module ownership decision is recorded in
+[`ADR-001 — Repository và module boundaries`](architecture-decision-records/ADR-001-repository-and-module-boundaries.md).
+
 ## Runtime topology
 
 ```mermaid
@@ -24,6 +27,19 @@ flowchart LR
 | Redis + BullMQ | Durable job state, retries and queue coordination | Canonical business data |
 | Python solver | Canonical payload validation, constraint model, diagnostics | User/session authorization |
 | OR-Tools CP-SAT | Feasibility and optimization search | Import, publishing or UI concerns |
+
+## Repository boundaries
+
+The two application folders are intentionally separate:
+
+- `frontend`: React + TypeScript + Vite presentation and API client boundary.
+- `backend`: NestJS API/core, PostgreSQL/Redis adapters, BullMQ bridge and
+  Python solver package.
+- `backend/contracts/schemas`: versioned JSON Schema shared by TypeScript and
+  Pydantic adapters.
+
+The detailed module tree, data ownership, security boundary and non-decisions
+are maintained in [ADR-001](architecture-decision-records/ADR-001-repository-and-module-boundaries.md).
 
 ## Contract boundary
 
@@ -50,7 +66,8 @@ enforce it consistently.
 1. API validates request shape and domain identifiers.
 2. API enqueues `optimization.solve` through BullMQ.
 3. NestJS worker bridge forwards the same canonical payload to the Python solver process.
-4. Python worker validates the payload, runs CP-SAT and returns status, assignments and diagnostics.
+4. Python worker validates the payload, runs CP-SAT and returns status, score,
+   assignments, diagnostics and versioned solver metadata.
 5. BullMQ stores the completed result and the API exposes job status to the web client.
 
 The local setup implements the API enqueue, BullMQ bridge and Python solver flow. Durable PostgreSQL persistence of the completed assignment set, authorization, retries/observability and production deployment remain follow-up work.

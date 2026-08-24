@@ -7,8 +7,7 @@ export class HealthController {
     return {
       status: "ok",
       service: "schedule-api",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 }
-

@@ -9,7 +9,7 @@ const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
 const worker = new Worker<SolveJobRequest, SolveJobResult>(
   OPTIMIZATION_QUEUE,
   async (job) => runPythonSolver(job.data),
-  { connection: parseRedisConnection(redisUrl) }
+  { connection: parseRedisConnection(redisUrl) },
 );
 
 worker.on("ready", () => console.log(`[solver-worker] listening on ${OPTIMIZATION_QUEUE}`));
@@ -21,6 +21,9 @@ const shutdown = async () => {
   process.exit(0);
 };
 
-process.once("SIGINT", () => { void shutdown(); });
-process.once("SIGTERM", () => { void shutdown(); });
-
+process.once("SIGINT", () => {
+  void shutdown();
+});
+process.once("SIGTERM", () => {
+  void shutdown();
+});

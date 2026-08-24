@@ -1,16 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import type { SolveStatus } from "@schedule/backend/contracts";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
-const DEMO_SCHOOL_ID = "00000000-0000-0000-0000-000000000001";
-
-const architecture = [
-  ["Web", "React + TypeScript + Vite"],
-  ["API/core", "NestJS + TypeScript"],
-  ["Nguồn dữ liệu", "PostgreSQL"],
-  ["Điều phối job", "Redis + BullMQ"],
-  ["Tối ưu", "Python + OR-Tools CP-SAT"]
-] as const;
+import { authHeaders, frontendConfig } from "./config";
+import { navigateTo, useAppRoute, type AppRoute } from "./routing";
 
 type ApiStatus = "checking" | "online" | "offline";
 
@@ -51,6 +42,24 @@ interface ConfirmResponse {
   } | null;
 }
 
+const architecture = [
+  ["Web", "React + TypeScript + Vite"],
+  ["API/core", "NestJS + TypeScript"],
+  ["Nguồn dữ liệu", "PostgreSQL"],
+  ["Điều phối job", "Redis + BullMQ"],
+  ["Tối ưu", "Python + OR-Tools CP-SAT"],
+] as const;
+
+const navigation: Array<{
+  route: AppRoute;
+  label: string;
+  shortLabel: string;
+}> = [
+  { route: "dashboard", label: "Tổng quan", shortLabel: "Home" },
+  { route: "imports", label: "Nhập dữ liệu", shortLabel: "Import" },
+  { route: "timetable", label: "Thời khóa biểu", shortLabel: "Schedule" },
+];
+
 function readApiMessage(payload: unknown) {
   if (typeof payload === "object" && payload !== null && "message" in payload) {
     const message = (payload as { message?: unknown }).message;
@@ -60,24 +69,209 @@ function readApiMessage(payload: unknown) {
   return "Có lỗi xảy ra. Vui lòng thử lại.";
 }
 
-export default function App() {
+function useApiStatus() {
   const [apiStatus, setApiStatus] = useState<ApiStatus>("checking");
-  const [exampleStatus] = useState<SolveStatus>("FEASIBLE");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(frontendConfig.apiBaseUrl + "/health", { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("API unavailable");
+        setApiStatus("online");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setApiStatus("offline");
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  return apiStatus;
+}
+
+function apiStatusLabel(apiStatus: ApiStatus) {
+  if (apiStatus === "checking") return "đang kiểm tra";
+  if (apiStatus === "online") return "đang hoạt động";
+  return "chưa kết nối";
+}
+
+function AppShell({ route, apiStatus, children }: { route: AppRoute; apiStatus: ApiStatus; children: ReactNode }) {
+  return (
+    <div className="app-frame">
+      <header className="topbar">
+        <button className="brand" type="button" onClick={() => navigateTo("dashboard")} aria-label="Về tổng quan">
+          <span className="brand-mark" aria-hidden="true">
+            ST
+          </span>
+          <span>
+            <strong>School Timetable</strong>
+            <small>Optimizer · MVP-0.1.0</small>
+          </span>
+        </button>
+        <div className="topbar-meta">
+          <span className={"status status-" + apiStatus}>
+            <span aria-hidden="true" /> API {apiStatusLabel(apiStatus)}
+          </span>
+          <span className="user-chip">QC local</span>
+        </div>
+      </header>
+
+      <div className="app-body">
+        <aside className="sidebar" aria-label="Điều hướng chính">
+          <p className="sidebar-label">Workspace</p>
+          <nav>
+            {navigation.map((item) => (
+              <a
+                className={route === item.route ? "nav-link active" : "nav-link"}
+                href={item.route === "dashboard" ? "/" : "/" + item.route}
+                aria-current={route === item.route ? "page" : undefined}
+                key={item.route}
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigateTo(item.route);
+                }}
+              >
+                <span className="nav-icon" aria-hidden="true">
+                  {item.shortLabel.slice(0, 1)}
+                </span>
+                {item.label}
+              </a>
+            ))}
+          </nav>
+          <div className="sidebar-footer">
+            <span className="eyebrow">Scope</span>
+            <strong>THCS / THPT</strong>
+            <small>Web-first · một trường pilot</small>
+          </div>
+        </aside>
+
+        <main className="content">{children}</main>
+      </div>
+    </div>
+  );
+}
+
+function PageHeader({
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="page-header">
+      <div>
+        <p className="eyebrow">{eyebrow}</p>
+        <h1>{title}</h1>
+        <p className="lead">{description}</p>
+      </div>
+      {action ? <div className="page-header-action">{action}</div> : null}
+    </div>
+  );
+}
+
+function DashboardScreen() {
+  return (
+    <>
+      <PageHeader
+        eyebrow="Workspace overview"
+        title="Bắt đầu một thời khóa biểu rõ ràng."
+        description="Chuẩn hóa dữ liệu, chạy solver và theo dõi bản draft từ một workspace duy nhất."
+        action={
+          <button type="button" onClick={() => navigateTo("imports")}>
+            + Nhập dữ liệu
+          </button>
+        }
+      />
+
+      <section className="dashboard-grid" aria-label="Tổng quan workspace">
+        <article className="stat-card featured-card">
+          <div className="card-kicker">Next step</div>
+          <h2>Đưa dữ liệu vào hệ thống</h2>
+          <p>Upload workbook theo template MVP hoặc bắt đầu với nhập tay.</p>
+          <button type="button" onClick={() => navigateTo("imports")}>
+            Upload & Preview <span aria-hidden="true">→</span>
+          </button>
+        </article>
+        <article className="stat-card">
+          <div className="stat-icon blue" aria-hidden="true">
+            01
+          </div>
+          <span className="card-kicker">Data input</span>
+          <strong>Chưa có batch</strong>
+          <small>0 dòng · 0 lỗi</small>
+        </article>
+        <article className="stat-card">
+          <div className="stat-icon amber" aria-hidden="true">
+            02
+          </div>
+          <span className="card-kicker">Latest solve</span>
+          <strong>Chưa chạy</strong>
+          <small>Chờ dataset và rule profile</small>
+        </article>
+        <article className="stat-card">
+          <div className="stat-icon green" aria-hidden="true">
+            03
+          </div>
+          <span className="card-kicker">Published version</span>
+          <strong>Chưa có</strong>
+          <small>Approve → Lock → Publish</small>
+        </article>
+      </section>
+
+      <section className="content-grid" aria-label="Architecture và hoạt động gần đây">
+        <article className="panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Recent activity</p>
+              <h2>Hoạt động gần đây</h2>
+            </div>
+            <span className="quiet-badge">Empty state</span>
+          </div>
+          <div className="empty-inline">
+            <span className="empty-icon" aria-hidden="true">
+              ◎
+            </span>
+            <strong>Chưa có hoạt động</strong>
+            <p>Upload hoặc nhập requirement đầu tiên để bắt đầu workflow.</p>
+            <button className="button-secondary" type="button" onClick={() => navigateTo("imports")}>
+              Mở import
+            </button>
+          </div>
+        </article>
+        <article className="panel dark-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Architecture baseline</p>
+              <h2>Các lớp đã chốt</h2>
+            </div>
+          </div>
+          <dl className="architecture-list">
+            {architecture.map(([label, value]) => (
+              <div className="architecture-row" key={label}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </article>
+      </section>
+    </>
+  );
+}
+
+function ImportScreen() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [confirmation, setConfirmation] = useState<ConfirmResponse | null>(null);
   const [error, setError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
-
-  useEffect(() => {
-    fetch(API_BASE + "/health")
-      .then((response) => {
-        if (!response.ok) throw new Error("API unavailable");
-        setApiStatus("online");
-      })
-      .catch(() => setApiStatus("offline"));
-  }, []);
 
   async function handlePreview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -92,14 +286,14 @@ export default function App() {
     setIsUploading(true);
     try {
       const formData = new FormData();
-      formData.append("schoolId", DEMO_SCHOOL_ID);
+      formData.append("schoolId", frontendConfig.schoolId);
       formData.append("file", file);
-      const response = await fetch(API_BASE + "/imports/preview", {
+      const response = await fetch(frontendConfig.apiBaseUrl + "/imports/preview", {
         method: "POST",
-        headers: { "x-user-id": "qc-demo-user" },
-        body: formData
+        headers: authHeaders(),
+        body: formData,
       });
-      const payload = await response.json();
+      const payload: unknown = await response.json();
       if (!response.ok) throw new Error(readApiMessage(payload));
       setPreview(payload as PreviewResponse);
     } catch (requestError) {
@@ -114,11 +308,11 @@ export default function App() {
     setError("");
     setIsConfirming(true);
     try {
-      const response = await fetch(API_BASE + "/imports/" + preview.importBatchId + "/confirm", {
+      const response = await fetch(frontendConfig.apiBaseUrl + "/imports/" + preview.importBatchId + "/confirm", {
         method: "POST",
-        headers: { "x-user-id": "qc-demo-user" }
+        headers: authHeaders(),
       });
-      const payload = await response.json();
+      const payload: unknown = await response.json();
       if (!response.ok) throw new Error(readApiMessage(payload));
       setConfirmation(payload as ConfirmResponse);
     } catch (requestError) {
@@ -129,29 +323,36 @@ export default function App() {
   }
 
   return (
-    <main className="shell">
-      <section className="hero">
-        <p className="eyebrow">V0.1 · Upload & Data Validation</p>
-        <h1>School Timetable Optimizer</h1>
-        <p className="lead">
-          Upload Excel, xem trước dữ liệu, phát hiện lỗi theo từng dòng và xác nhận import
-          trước khi ghi vào PostgreSQL.
-        </p>
-        <div className={"status status-" + apiStatus}>
-          <span aria-hidden="true" />
-          API {apiStatus === "checking" ? "đang kiểm tra" : apiStatus === "online" ? "đang hoạt động" : "chưa kết nối"}
-        </div>
-      </section>
+    <>
+      <PageHeader
+        eyebrow="Step 01 · Input"
+        title="Upload & Data Validation"
+        description="Preview trước, sửa lỗi theo dòng và chỉ Confirm khi dữ liệu đạt chuẩn contract MVP."
+        action={<span className="contract-pill">TC-IMP · TC-VAL · TC-CFM</span>}
+      />
+      <div className="stepper" aria-label="Tiến trình workflow">
+        <span className="step active">
+          <b>01</b> Input
+        </span>
+        <span className="step">
+          <b>02</b> Validate
+        </span>
+        <span className="step">
+          <b>03</b> Confirm
+        </span>
+        <span className="step">
+          <b>04</b> Solve
+        </span>
+      </div>
 
-      <section className="workflow" aria-labelledby="import-title">
-        <div className="workflow-heading">
+      <section className="panel import-panel" aria-labelledby="import-form-title">
+        <div className="panel-heading">
           <div>
-            <p className="eyebrow">QC workflow</p>
-            <h2 id="import-title">Upload & Data Validation</h2>
+            <p className="eyebrow">Template v1.0</p>
+            <h2 id="import-form-title">Chọn workbook để bắt đầu</h2>
           </div>
-          <span className="contract-pill">TC-IMP · TC-VAL · TC-CFM</span>
+          <span className="quiet-badge">Staging trước khi ghi domain</span>
         </div>
-
         <form className="upload-form" onSubmit={handlePreview}>
           <label htmlFor="excel-file">File Excel theo template MVP</label>
           <div className="upload-controls">
@@ -180,102 +381,173 @@ export default function App() {
           </div>
         ) : null}
 
-        {preview ? (
-          <section className="preview-panel" aria-live="polite">
-            <div className="preview-summary">
-              <div>
-                <p className="eyebrow">Preview</p>
-                <h3>{preview.filename}</h3>
-              </div>
-              <div className={preview.canConfirm ? "validation-badge valid" : "validation-badge invalid"}>
-                {preview.canConfirm ? "Sẵn sàng Confirm" : "Cần sửa lỗi"}
-              </div>
-            </div>
-            <div className="metrics">
-              <span><b>{preview.rowCount}</b> dòng</span>
-              <span><b>{preview.validRowCount}</b> hợp lệ</span>
-              <span><b>{preview.errorCount}</b> lỗi</span>
-            </div>
-
-            {preview.errors.length > 0 ? (
-              <div className="error-list">
-                {preview.errors.map((issue, index) => (
-                  <div className="row-error" key={issue.row + "-" + issue.field + "-" + index}>
-                    <b>Dòng {issue.row} · {issue.field}</b>
-                    <span>{issue.message}</span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Dòng</th>
-                    <th>Mã lớp</th>
-                    <th>Mã môn</th>
-                    <th>Mã giáo viên</th>
-                    <th>Số tiết</th>
-                    <th>Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.rows.map((row) => (
-                    <tr className={row.errors.length > 0 ? "has-error" : ""} key={row.rowNumber}>
-                      <td>{row.rowNumber}</td>
-                      <td>{row.values.classCode || "—"}</td>
-                      <td>{row.values.subjectCode || "—"}</td>
-                      <td>{row.values.teacherCode || "—"}</td>
-                      <td>{row.values.requiredSessions || "—"}</td>
-                      <td>{row.errors.length > 0 ? "Lỗi" : "Hợp lệ"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <button className="confirm-button" type="button" disabled={!preview.canConfirm || isConfirming} onClick={handleConfirm}>
-              {isConfirming ? "Đang import..." : "Confirm Import"}
-            </button>
-          </section>
-        ) : null}
+        {preview ? <PreviewPanel preview={preview} isConfirming={isConfirming} onConfirm={handleConfirm} /> : null}
 
         {confirmation ? (
           <div className="alert alert-success" role="status">
             <strong>{confirmation.message}</strong>
             <span>{confirmation.validRowCount} dòng đã được ghi nhận.</span>
             {confirmation.auditLog ? <span>{confirmation.auditLog.message}</span> : null}
+            <button className="button-secondary success-action" type="button" onClick={() => navigateTo("timetable")}>
+              Mở timetable skeleton →
+            </button>
           </div>
         ) : null}
       </section>
+    </>
+  );
+}
 
-      <section className="grid" aria-label="Architecture baseline">
-        <article className="card">
-          <p className="eyebrow">Architecture</p>
-          <h2>Các lớp đã chốt</h2>
-          <dl>
-            {architecture.map(([label, value]) => (
-              <div className="row" key={label}>
-                <dt>{label}</dt>
-                <dd>{value}</dd>
-              </div>
+function PreviewPanel({
+  preview,
+  isConfirming,
+  onConfirm,
+}: {
+  preview: PreviewResponse;
+  isConfirming: boolean;
+  onConfirm: () => void;
+}) {
+  return (
+    <section className="preview-panel" aria-live="polite">
+      <div className="preview-summary">
+        <div>
+          <p className="eyebrow">Preview</p>
+          <h2>{preview.filename}</h2>
+          <p className="small-note">
+            Batch: <code>{preview.importBatchId}</code>
+          </p>
+        </div>
+        <div className={preview.canConfirm ? "validation-badge valid" : "validation-badge invalid"}>
+          {preview.canConfirm ? "Sẵn sàng Confirm" : "Cần sửa lỗi"}
+        </div>
+      </div>
+      <div className="metrics">
+        <span>
+          <b>{preview.rowCount}</b> dòng
+        </span>
+        <span>
+          <b>{preview.validRowCount}</b> hợp lệ
+        </span>
+        <span>
+          <b>{preview.errorCount}</b> lỗi
+        </span>
+      </div>
+
+      {preview.errors.length > 0 ? (
+        <div className="error-list">
+          {preview.errors.map((issue, index) => (
+            <div className="row-error" key={issue.row + "-" + issue.field + "-" + index}>
+              <b>
+                Dòng {issue.row} · {issue.field}
+              </b>
+              <span>{issue.message}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Dòng</th>
+              <th>Mã lớp</th>
+              <th>Mã môn</th>
+              <th>Mã giáo viên</th>
+              <th>Số tiết</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            {preview.rows.map((row) => (
+              <tr className={row.errors.length > 0 ? "has-error" : ""} key={row.rowNumber}>
+                <td>{row.rowNumber}</td>
+                <td>{row.values.classCode || "—"}</td>
+                <td>{row.values.subjectCode || "—"}</td>
+                <td>{row.values.teacherCode || "—"}</td>
+                <td>{row.values.requiredSessions || "—"}</td>
+                <td>{row.errors.length > 0 ? "Lỗi" : "Hợp lệ"}</td>
+              </tr>
             ))}
-          </dl>
-        </article>
+          </tbody>
+        </table>
+      </div>
 
-        <article className="card accent-card">
-          <p className="eyebrow">Scope guardrail</p>
-          <h2>Phạm vi MVP</h2>
-          <ul>
-            <li>THCS/THPT, web-first</li>
-            <li>Không lớp ghép/lớp tách</li>
-            <li>Không desktop/offline</li>
-            <li>Không AI làm solver lõi</li>
-          </ul>
-          <p className="small-note">Contract sample status: <code>{exampleStatus}</code></p>
-        </article>
+      <button
+        className="confirm-button"
+        type="button"
+        disabled={!preview.canConfirm || isConfirming}
+        onClick={onConfirm}
+      >
+        {isConfirming ? "Đang import..." : "Confirm Import"}
+      </button>
+    </section>
+  );
+}
+
+function TimetableScreen() {
+  const exampleStatus: SolveStatus = "FEASIBLE";
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="Step 04 · Solve & review"
+        title="Thời khóa biểu"
+        description="Khu vực review theo lớp, giáo viên và phòng sẽ hiển thị sau khi một solve job hoàn tất."
+        action={
+          <button className="button-secondary" type="button" onClick={() => navigateTo("imports")}>
+            ← Quay lại import
+          </button>
+        }
+      />
+      <section className="panel timetable-shell" aria-labelledby="timetable-title">
+        <div className="timetable-toolbar">
+          <div>
+            <p className="eyebrow">Draft workspace</p>
+            <h2 id="timetable-title">Chưa có solution để review</h2>
+          </div>
+          <div className="toolbar-filters">
+            <button className="filter-button" type="button" disabled>
+              {" "}
+              Theo lớp ▾{" "}
+            </button>
+            <button className="filter-button" type="button" disabled>
+              {" "}
+              Tuần 1 ▾{" "}
+            </button>
+          </div>
+        </div>
+        <div className="timetable-empty">
+          <div className="calendar-icon" aria-hidden="true">
+            ▦
+          </div>
+          <h3>Grid sẽ xuất hiện sau bước Solve</h3>
+          <p>
+            Import và Confirm dữ liệu trước, sau đó hệ thống sẽ enqueue job qua BullMQ và trả về assignments cùng
+            diagnostics.
+          </p>
+          <button type="button" onClick={() => navigateTo("imports")}>
+            Bắt đầu từ Import →
+          </button>
+          <small>
+            Contract sample status: <code>{exampleStatus}</code>
+          </small>
+        </div>
       </section>
-    </main>
+    </>
+  );
+}
+
+export default function App() {
+  const route = useAppRoute();
+  const apiStatus = useApiStatus();
+
+  const screen =
+    route === "imports" ? <ImportScreen /> : route === "timetable" ? <TimetableScreen /> : <DashboardScreen />;
+
+  return (
+    <AppShell route={route} apiStatus={apiStatus}>
+      {screen}
+    </AppShell>
   );
 }

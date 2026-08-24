@@ -4,7 +4,7 @@
   "title": "SolveJobResult",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "jobId", "status", "assignments", "objectiveValue", "diagnostics"],
+  "required": ["schemaVersion", "jobId", "status", "assignments", "objectiveValue", "diagnostics", "metadata"],
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "jobId": { "type": "string", "minLength": 1 },
@@ -31,7 +31,17 @@
         "warnings": { "type": "array", "items": { "type": "string" } },
         "conflicts": { "type": "array", "items": { "type": "string" } }
       }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["solverVersion", "contractVersion", "randomSeed", "timeLimitSeconds"],
+      "properties": {
+        "solverVersion": { "type": "string", "minLength": 1 },
+        "contractVersion": { "const": "1.0" },
+        "randomSeed": { "type": "integer" },
+        "timeLimitSeconds": { "type": "number", "exclusiveMinimum": 0 }
+      }
     }
   }
 }
-

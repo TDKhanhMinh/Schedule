@@ -1,15 +1,35 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { AuthModule } from "./auth/auth.module";
+import { RequestIdMiddleware } from "./common/http/request-id.middleware";
+import { validateEnvironment } from "./config/env.validation";
 import { DatabaseModule } from "./database/database.module";
-import { HealthController } from "./health/health.controller";
-import { OptimizationJobsController } from "./jobs/optimization-jobs.controller";
-import { OptimizationQueueService } from "./jobs/optimization-queue.service";
-import { ImportsController } from "./imports/imports.controller";
-import { ImportsService } from "./imports/imports.service";
+import { HealthModule } from "./health/health.module";
+import { ImportsModule } from "./imports/imports.module";
+import { JobsModule } from "./jobs/jobs.module";
+import { MasterDataModule } from "./master-data/master-data.module";
+import { RulesModule } from "./rules/rules.module";
+import { TimetableModule } from "./timetable/timetable.module";
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), DatabaseModule],
-  controllers: [HealthController, OptimizationJobsController, ImportsController],
-  providers: [OptimizationQueueService, ImportsService]
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+      validate: validateEnvironment,
+    }),
+    AuthModule,
+    MasterDataModule,
+    ImportsModule,
+    RulesModule,
+    TimetableModule,
+    JobsModule,
+    HealthModule,
+    DatabaseModule,
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestIdMiddleware).forRoutes("*");
+  }
+}

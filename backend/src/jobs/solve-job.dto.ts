@@ -1,5 +1,16 @@
 import { Type } from "class-transformer";
-import { IsArray, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, Min, ValidateNested } from "class-validator";
+import {
+  ArrayMinSize,
+  IsArray,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+} from "class-validator";
 import type { SolveJobRequest } from "../contracts";
 
 export class TimeSlotDto {
@@ -56,7 +67,7 @@ export class SolveJobOptionsDto {
 
 export class SolveJobDto implements SolveJobRequest {
   @IsString()
-  @IsNotEmpty()
+  @IsIn(["1.0"])
   schemaVersion!: "1.0";
 
   @IsString()
@@ -68,11 +79,13 @@ export class SolveJobDto implements SolveJobRequest {
   schoolId!: string;
 
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => TimeSlotDto)
   timeSlots!: TimeSlotDto[];
 
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => LessonRequirementDto)
   lessons!: LessonRequirementDto[];
@@ -82,4 +95,3 @@ export class SolveJobDto implements SolveJobRequest {
   @IsOptional()
   options?: SolveJobOptionsDto;
 }
-

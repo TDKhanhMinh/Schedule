@@ -44,6 +44,13 @@ export interface SolveDiagnostics {
   conflicts: string[];
 }
 
+export interface SolverMetadata {
+  solverVersion: string;
+  contractVersion: typeof CONTRACT_VERSION;
+  randomSeed: number;
+  timeLimitSeconds: number;
+}
+
 export interface SolveJobResult {
   schemaVersion: typeof CONTRACT_VERSION;
   jobId: string;
@@ -51,5 +58,5 @@ export interface SolveJobResult {
   assignments: Assignment[];
   objectiveValue: number | null;
   diagnostics: SolveDiagnostics;
+  metadata: SolverMetadata;
 }
-

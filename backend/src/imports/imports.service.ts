@@ -8,12 +8,18 @@ const TEMPLATE_VERSION = "1.0";
 const REQUIRED_COLUMNS = [
   { key: "classCode", label: "Mã lớp", aliases: ["ma lop", "class code"] },
   { key: "subjectCode", label: "Mã môn", aliases: ["ma mon", "subject code"] },
-  { key: "teacherCode", label: "Mã giáo viên", aliases: ["ma giao vien", "ma gv", "teacher code"] },
-  { key: "requiredSessions", label: "Số tiết", aliases: ["so tiet", "required sessions"] }
+  {
+    key: "teacherCode",
+    label: "Mã giáo viên",
+    aliases: ["ma giao vien", "ma gv", "teacher code"],
+  },
+  {
+    key: "requiredSessions",
+    label: "Số tiết",
+    aliases: ["so tiet", "required sessions"],
+  },
 ] as const;
-const OPTIONAL_COLUMNS = [
-  { key: "roomCode", label: "Mã phòng", aliases: ["ma phong", "room code"] }
-] as const;
+const OPTIONAL_COLUMNS = [{ key: "roomCode", label: "Mã phòng", aliases: ["ma phong", "room code"] }] as const;
 
 type ColumnKey = (typeof REQUIRED_COLUMNS)[number]["key"] | (typeof OPTIONAL_COLUMNS)[number]["key"];
 type RawRow = Record<ColumnKey, string | number | null>;
@@ -74,14 +80,14 @@ export class ImportsService {
     if (!schoolId) {
       throw new BadRequestException({
         code: "SCHOOL_REQUIRED",
-        message: "schoolId là bắt buộc."
+        message: "schoolId là bắt buộc.",
       });
     }
 
     if (!file?.buffer?.length) {
       throw new BadRequestException({
         code: "FILE_REQUIRED",
-        message: "Vui lòng chọn file Excel để upload."
+        message: "Vui lòng chọn file Excel để upload.",
       });
     }
 
@@ -98,7 +104,7 @@ export class ImportsService {
 
       throw new BadRequestException({
         code: "INVALID_WORKBOOK",
-        message: "Không thể đọc file Excel. Hãy dùng đúng template .xlsx."
+        message: "Không thể đọc file Excel. Hãy dùng đúng template .xlsx.",
       });
     }
 
@@ -113,14 +119,23 @@ export class ImportsService {
         `INSERT INTO import_batches
           (id, school_id, original_filename, template_version, status, row_count, valid_row_count, error_count, created_by)
          VALUES ($1, $2, $3, $4, 'PREVIEWED', $5, $6, $7, $8)`,
-        [batchId, schoolId, file.originalname, TEMPLATE_VERSION, parsed.rows.length, validRows.length, errors.length, actorId]
+        [
+          batchId,
+          schoolId,
+          file.originalname,
+          TEMPLATE_VERSION,
+          parsed.rows.length,
+          validRows.length,
+          errors.length,
+          actorId,
+        ],
       );
 
       for (const row of parsed.rows) {
         await client.query(
           `INSERT INTO import_rows (id, batch_id, row_number, payload, errors)
            VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)`,
-          [row.id, batchId, row.rowNumber, JSON.stringify(row.normalized), JSON.stringify(row.errors)]
+          [row.id, batchId, row.rowNumber, JSON.stringify(row.normalized), JSON.stringify(row.errors)],
         );
       }
 
@@ -146,12 +161,12 @@ export class ImportsService {
       rows: parsed.rows.map((row) => ({
         rowNumber: row.rowNumber,
         values: row.raw,
-        errors: row.errors
-      }))
+        errors: row.errors,
+      })),
     };
   }
 
-  async confirm(batchId: string, actorId: string) {
+  async confirm(batchId: string, actorId: string, schoolId: string) {
     const client = await this.pool.connect();
 
     try {
@@ -160,9 +175,9 @@ export class ImportsService {
         `SELECT id, school_id, original_filename, status, row_count, valid_row_count, error_count,
                 created_by, created_at, confirmed_at
            FROM import_batches
-          WHERE id = $1
+          WHERE id = $1 AND school_id = $2
           FOR UPDATE`,
-        [batchId]
+        [batchId, schoolId],
       );
 
       const batch = batchResult.rows[0];
@@ -174,7 +189,7 @@ export class ImportsService {
         await client.query("COMMIT");
         return this.buildConfirmedResponse(
           { ...batch, status: "CONFIRMED" as const },
-          await this.findAudit(batch.id)
+          await this.findAudit(batch.id, schoolId),
         );
       }
 
@@ -182,7 +197,7 @@ export class ImportsService {
         throw new BadRequestException({
           code: "IMPORT_HAS_ERRORS",
           message: "Không thể Confirm Import khi dữ liệu còn lỗi.",
-          importBatchId: batch.id
+          importBatchId: batch.id,
         });
       }
 
@@ -191,7 +206,7 @@ export class ImportsService {
            FROM import_rows
           WHERE batch_id = $1
           ORDER BY row_number`,
-        [batch.id]
+        [batch.id],
       );
 
       for (const row of rows.rows) {
@@ -201,7 +216,7 @@ export class ImportsService {
              (id, school_id, class_id, subject_id, teacher_id, required_sessions)
            VALUES ($1, $2, $3, $4, $5, $6)
            ON CONFLICT (id) DO NOTHING`,
-          [row.id, batch.school_id, payload.classId, payload.subjectId, payload.teacherId, payload.requiredSessions]
+          [row.id, batch.school_id, payload.classId, payload.subjectId, payload.teacherId, payload.requiredSessions],
         );
       }
 
@@ -210,13 +225,13 @@ export class ImportsService {
         `UPDATE import_batches
             SET status = 'CONFIRMED', confirmed_at = $2
           WHERE id = $1`,
-        [batch.id, confirmedAt]
+        [batch.id, confirmedAt],
       );
 
       await client.query(
         `INSERT INTO audit_logs (school_id, action, entity_type, entity_id, actor_id, metadata)
          VALUES ($1, 'IMPORT_CONFIRMED', 'import_batch', $2, $3, $4::jsonb)
-         ON CONFLICT (entity_type, entity_id, action) DO NOTHING`,
+         ON CONFLICT DO NOTHING`,
         [
           batch.school_id,
           batch.id,
@@ -224,14 +239,18 @@ export class ImportsService {
           JSON.stringify({
             filename: batch.original_filename,
             rowCount: batch.row_count,
-            validRowCount: batch.valid_row_count
-          })
-        ]
+            validRowCount: batch.valid_row_count,
+          }),
+        ],
       );
 
       await client.query("COMMIT");
-      const confirmedBatch = { ...batch, status: "CONFIRMED" as const, confirmed_at: confirmedAt };
-      return this.buildConfirmedResponse(confirmedBatch, await this.findAudit(batch.id));
+      const confirmedBatch = {
+        ...batch,
+        status: "CONFIRMED" as const,
+        confirmed_at: confirmedAt,
+      };
+      return this.buildConfirmedResponse(confirmedBatch, await this.findAudit(batch.id, schoolId));
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -240,13 +259,13 @@ export class ImportsService {
     }
   }
 
-  async getBatch(batchId: string) {
+  async getBatch(batchId: string, schoolId: string) {
     const result = await this.pool.query<ImportBatchRecord>(
       `SELECT id, school_id, original_filename, template_version, status, row_count,
               valid_row_count, error_count, created_by, created_at, confirmed_at
          FROM import_batches
-        WHERE id = $1`,
-      [batchId]
+        WHERE id = $1 AND school_id = $2`,
+      [batchId, schoolId],
     );
     const batch = result.rows[0];
     if (!batch) {
@@ -258,7 +277,7 @@ export class ImportsService {
          FROM import_rows
         WHERE batch_id = $1
         ORDER BY row_number`,
-      [batchId]
+      [batchId],
     );
 
     return {
@@ -270,15 +289,15 @@ export class ImportsService {
       errorCount: batch.error_count,
       canConfirm: batch.status === "PREVIEWED" && batch.error_count === 0 && batch.row_count > 0,
       rows: rows.rows,
-      auditLog: await this.findAudit(batch.id)
+      auditLog: await this.findAudit(batch.id, schoolId),
     };
   }
 
-  async getAudit(batchId: string) {
-    const batch = await this.getBatch(batchId);
+  async getAudit(batchId: string, schoolId: string) {
+    const batch = await this.getBatch(batchId, schoolId);
     return {
       importBatchId: batch.importBatchId,
-      auditLog: batch.auditLog
+      auditLog: batch.auditLog,
     };
   }
 
@@ -289,7 +308,7 @@ export class ImportsService {
     if (!worksheet) {
       throw new BadRequestException({
         code: "INVALID_TEMPLATE",
-        message: "File Excel không có sheet dữ liệu."
+        message: "File Excel không có sheet dữ liệu.",
       });
     }
 
@@ -305,13 +324,13 @@ export class ImportsService {
     }
 
     const missingColumns = REQUIRED_COLUMNS.filter(
-      (column) => !column.aliases.some((alias) => headerMap.has(this.normalize(alias)))
+      (column) => !column.aliases.some((alias) => headerMap.has(this.normalize(alias))),
     );
     if (missingColumns.length > 0) {
       throw new BadRequestException({
         code: "INVALID_TEMPLATE",
         message: "File thiếu các cột bắt buộc: " + missingColumns.map((column) => column.label).join(", "),
-        missingColumns: missingColumns.map((column) => column.label)
+        missingColumns: missingColumns.map((column) => column.label),
       });
     }
 
@@ -370,10 +389,14 @@ export class ImportsService {
         errors.push(this.issue(rowNumber, "Mã môn", "UNKNOWN_REFERENCE", "Mã môn " + subjectCode + " không tồn tại."));
       }
       if (teacherCode && !teacherId) {
-        errors.push(this.issue(rowNumber, "Mã giáo viên", "UNKNOWN_REFERENCE", "Mã Giáo viên " + teacherCode + " không tồn tại."));
+        errors.push(
+          this.issue(rowNumber, "Mã giáo viên", "UNKNOWN_REFERENCE", "Mã Giáo viên " + teacherCode + " không tồn tại."),
+        );
       }
       if (roomCode && !roomId) {
-        errors.push(this.issue(rowNumber, "Mã phòng", "UNKNOWN_REFERENCE", "Mã Phòng học " + roomCode + " không tồn tại."));
+        errors.push(
+          this.issue(rowNumber, "Mã phòng", "UNKNOWN_REFERENCE", "Mã Phòng học " + roomCode + " không tồn tại."),
+        );
       }
 
       const duplicateKey = [classId, subjectId, teacherId].join("|");
@@ -396,10 +419,10 @@ export class ImportsService {
                 subjectId: subjectId as string,
                 teacherId: teacherId as string,
                 requiredSessions: requiredSessions as number,
-                ...(roomId ? { roomId } : {})
+                ...(roomId ? { roomId } : {}),
               }
             : null,
-        errors
+        errors,
       });
     }
 
@@ -414,20 +437,29 @@ export class ImportsService {
 
   private async loadMasterData(schoolId: string) {
     const [classes, subjects, teachers, rooms] = await Promise.all([
-      this.pool.query<MasterRecord>("SELECT id::text, name AS label FROM classes WHERE school_id = $1", [schoolId]),
-      this.pool.query<MasterRecord>("SELECT id::text, name AS label FROM subjects WHERE school_id = $1", [schoolId]),
       this.pool.query<MasterRecord>(
-        "SELECT id::text, display_name AS label FROM teachers WHERE school_id = $1",
-        [schoolId]
+        "SELECT id::text, name AS label FROM classes WHERE school_id = $1 AND status = 'ACTIVE'",
+        [schoolId],
       ),
-      this.pool.query<MasterRecord>("SELECT id::text, name AS label FROM rooms WHERE school_id = $1", [schoolId])
+      this.pool.query<MasterRecord>(
+        "SELECT id::text, name AS label FROM subjects WHERE school_id = $1 AND status = 'ACTIVE'",
+        [schoolId],
+      ),
+      this.pool.query<MasterRecord>(
+        "SELECT id::text, display_name AS label FROM teachers WHERE school_id = $1 AND status = 'ACTIVE'",
+        [schoolId],
+      ),
+      this.pool.query<MasterRecord>(
+        "SELECT id::text, name AS label FROM rooms WHERE school_id = $1 AND status = 'ACTIVE'",
+        [schoolId],
+      ),
     ]);
 
     return {
       classes: this.toLookup(classes.rows),
       subjects: this.toLookup(subjects.rows),
       teachers: this.toLookup(teachers.rows),
-      rooms: this.toLookup(rooms.rows)
+      rooms: this.toLookup(rooms.rows),
     };
   }
 
@@ -438,7 +470,7 @@ export class ImportsService {
     }
   }
 
-  private async findAudit(batchId: string) {
+  private async findAudit(batchId: string, schoolId: string) {
     const result = await this.pool.query<{
       id: string;
       actor_id: string;
@@ -447,8 +479,8 @@ export class ImportsService {
       created_at: Date;
     }>(
       "SELECT id, actor_id, action, metadata, created_at FROM audit_logs " +
-        "WHERE entity_type = 'import_batch' AND entity_id = $1 AND action = 'IMPORT_CONFIRMED'",
-      [batchId]
+        "WHERE school_id = $2 AND entity_type = 'import_batch' AND entity_id = $1 AND action = 'IMPORT_CONFIRMED'",
+      [batchId, schoolId],
     );
     const audit = result.rows[0];
     if (!audit) {
@@ -461,7 +493,7 @@ export class ImportsService {
       actorId: audit.actor_id,
       message: "User " + audit.actor_id + " đã import danh sách lịch học lúc " + audit.created_at.toISOString(),
       metadata: audit.metadata,
-      createdAt: audit.created_at.toISOString()
+      createdAt: audit.created_at.toISOString(),
     };
   }
 
@@ -469,7 +501,7 @@ export class ImportsService {
     batch: Pick<ImportBatchRecord, "id" | "original_filename" | "row_count" | "valid_row_count" | "confirmed_at"> & {
       status: "CONFIRMED";
     },
-    auditLog: Awaited<ReturnType<ImportsService["findAudit"]>>
+    auditLog: Awaited<ReturnType<ImportsService["findAudit"]>>,
   ) {
     return {
       importBatchId: batch.id,
@@ -479,7 +511,7 @@ export class ImportsService {
       rowCount: batch.row_count,
       validRowCount: batch.valid_row_count,
       confirmedAt: batch.confirmed_at?.toISOString() ?? null,
-      auditLog
+      auditLog,
     };
   }
 
@@ -487,7 +519,7 @@ export class ImportsService {
     if (!/\.(xlsx|xlsm)$/i.test(filename)) {
       throw new BadRequestException({
         code: "INVALID_FILE_TYPE",
-        message: "Định dạng file không hợp lệ. Chỉ hỗ trợ file Excel .xlsx hoặc .xlsm."
+        message: "Định dạng file không hợp lệ. Chỉ hỗ trợ file Excel .xlsx hoặc .xlsm.",
       });
     }
   }
@@ -528,7 +560,11 @@ export class ImportsService {
     if (typeof value === "string" || typeof value === "number") return value;
     if (value instanceof Date) return value.toISOString();
     if (typeof value === "object") {
-      const candidate = value as { result?: unknown; text?: unknown; richText?: Array<{ text: string }> };
+      const candidate = value as {
+        result?: unknown;
+        text?: unknown;
+        richText?: Array<{ text: string }>;
+      };
       if (candidate.result !== undefined) return this.asScalar(candidate.result);
       if (candidate.text !== undefined) return this.asScalar(candidate.text);
       if (Array.isArray(candidate.richText)) return candidate.richText.map((part) => part.text).join("");

@@ -13,6 +13,14 @@
     "build": "npm run build:backend && npm run build:frontend",
     "dev:backend": "npm run start:dev --workspace @schedule/backend",
     "dev:frontend": "npm run dev --workspace @schedule/frontend",
+    "format:check:backend": "npm run format:check --workspace @schedule/backend",
+    "format:check:frontend": "prettier --check \"frontend/src/**/*.{ts,tsx,css}\"",
+    "format:check": "npm run format:check:backend && npm run format:check:frontend && prettier --check \"backend/contracts/schemas/*.json\" \"*.json\" \"backend/eslint.config.mjs\" \"frontend/eslint.config.js\" \"scripts/**/*.mjs\" \"scripts/**/*.cjs\" \".github/workflows/*.yml\"",
+    "lint:backend": "npm run lint --workspace @schedule/backend",
+    "lint:frontend": "npm run lint --workspace @schedule/frontend",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "check:migrations": "node scripts/check-migrations.cjs",
+    "ci:local": "node scripts/ci.mjs",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
   }

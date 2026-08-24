@@ -1,0 +1,63 @@
+{
+  "rubricVersion": "1.0",
+  "benchmarkVersion": "1.0",
+  "contractVersion": "1.0",
+  "seedSet": [0, 1, 7],
+  "runtimeEnvironment": "local reference only; record OS, Python, OR-Tools and CPU with every run",
+  "gates": {
+    "hardConstraints": {
+      "feasible": {
+        "requiredStatus": ["OPTIMAL", "FEASIBLE"],
+        "requiredHardConflictCount": 0,
+        "requiredAssignmentCount": "manifest.expectedAssignmentCount"
+      },
+      "infeasible": {
+        "requiredStatus": ["INFEASIBLE"],
+        "requiredAssignmentCount": 0,
+        "requiredDiagnosticSubstring": "manifest.expectedConflictContains"
+      }
+    },
+    "runtimeSeconds": {
+      "small-feasible": 5,
+      "medium-near-realistic": 30,
+      "infeasible-teacher-conflict": 5
+    },
+    "optimality": {
+      "optimalStatusRequiredFor": ["small-feasible", "medium-near-realistic"],
+      "maximumObjectiveGapPercent": 0,
+      "currentContractNote": "v1 has no weighted objective; objective gap is recorded as null until a versioned objective exists"
+    },
+    "seedStability": {
+      "minimumSeeds": 3,
+      "stableFields": ["status", "assignmentCount", "hardConflictCount"],
+      "exactAssignmentLayoutRequired": false
+    },
+    "explainability": {
+      "infeasibleRequiresDiagnostic": true,
+      "feasibleRequiresEmptyHardConflicts": true
+    }
+  },
+  "softScoreGroups": [
+    {
+      "id": "coverage",
+      "weightPercent": 40,
+      "definition": "All required sessions are assigned without hard conflicts"
+    },
+    {
+      "id": "distribution",
+      "weightPercent": 30,
+      "definition": "Weekly load/distribution preferences when a versioned rule exists"
+    },
+    {
+      "id": "teacher-preference",
+      "weightPercent": 20,
+      "definition": "Teacher availability/preferences with an approved source and weight"
+    },
+    {
+      "id": "change-penalty",
+      "weightPercent": 10,
+      "definition": "Penalty for changes against a locked baseline"
+    }
+  ],
+  "softScorePolicy": "Do not calculate or claim a soft score until the versioned objective and rule inputs exist; report null/not-scored instead."
+}

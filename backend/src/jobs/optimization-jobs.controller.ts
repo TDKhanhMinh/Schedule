@@ -1,8 +1,10 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { AuthGuard } from "../auth/auth.guard";
 import { OptimizationQueueService } from "./optimization-queue.service";
 import { SolveJobDto } from "./solve-job.dto";
 
 @Controller("optimization-jobs")
+@UseGuards(AuthGuard)
 export class OptimizationJobsController {
   constructor(private readonly queue: OptimizationQueueService) {}
 

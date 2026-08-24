@@ -18,11 +18,13 @@ class DatabaseLifecycle implements OnModuleDestroy {
     {
       provide: PG_POOL,
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => new Pool({ connectionString: config.getOrThrow<string>("DATABASE_URL") })
+      useFactory: (config: ConfigService) =>
+        new Pool({
+          connectionString: config.getOrThrow<string>("DATABASE_URL"),
+        }),
     },
-    DatabaseLifecycle
+    DatabaseLifecycle,
   ],
-  exports: [PG_POOL]
+  exports: [PG_POOL],
 })
 export class DatabaseModule {}
-

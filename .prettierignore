@@ -1,0 +1,6 @@
+node_modules/
+dist/
+coverage/
+outputs/
+backend/solver/.venv/
+backend/solver/src/**/*.egg-info/

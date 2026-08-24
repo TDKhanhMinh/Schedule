@@ -1,0 +1,26 @@
+/// <reference types="jest" />
+
+import { validateEnvironment } from "./env.validation";
+
+describe("validateEnvironment", () => {
+  it("normalizes the API port and keeps the configured boundaries", () => {
+    const result = validateEnvironment({
+      NODE_ENV: "test",
+      API_PORT: "3100",
+      API_PREFIX: "api/v1",
+      DATABASE_URL: "postgresql://localhost/scheduler",
+      REDIS_URL: "redis://localhost:6379",
+    });
+
+    expect(result.API_PORT).toBe(3100);
+    expect(result.API_PREFIX).toBe("api/v1");
+    expect(result.DATABASE_URL).toContain("postgresql://");
+    expect(result.REDIS_URL).toContain("redis://");
+  });
+
+  it("rejects missing infrastructure configuration", () => {
+    expect(() => validateEnvironment({ NODE_ENV: "test", API_PORT: "3100" })).toThrow(
+      "Invalid environment configuration",
+    );
+  });
+});

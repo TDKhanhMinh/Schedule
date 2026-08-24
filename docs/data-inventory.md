@@ -9,7 +9,9 @@
 
 This inventory is derived from:
 
-- PostgreSQL migration `backend/database/migrations/001_initial_contract.sql` and `002_import_workflow.sql`.
+- PostgreSQL migrations `backend/database/migrations/001_initial_contract.sql`,
+  `002_import_workflow.sql`, `003_domain_persistence.sql` and
+  `004_master_data_timestamps.sql`.
 - Synthetic seed `backend/database/seeds/001_demo_school.sql`.
 - Generated Excel QC fixtures in `backend/solver/examples/import-fixtures/`.
 - The current import contract implemented by `backend/src/imports/imports.service.ts`.
@@ -20,20 +22,21 @@ The fixture data is not a real school's workbook. It is safe for local testing a
 
 | Source | Scope | Observed count | Quality result |
 | --- | --- | ---: | --- |
-| Synthetic PostgreSQL seed | 1 school, 1 academic period | 1 | Valid local baseline; no official-school evidence |
+| Synthetic PostgreSQL seed | 2 schools, 2 academic periods | 1 | Valid local baseline; no official-school evidence |
 | Classes | `7A`, `7B` | 2 | Unique within school |
-| Teachers | 2 synthetic display names | 2 | No staff code column in DB |
-| Subjects | Toán, Vật lý, Ngữ văn | 3 | Unique within school |
-| Rooms | Phòng A, Phòng B | 2 | Unique within school |
-| Time slots | 2 days × 2 periods | 4 | Synthetic; weekday mapping is not confirmed |
-| Lesson requirements in seed | class–subject–teacher assignments | 4 | Positive session counts |
+| Teachers | 4 synthetic display names across THCS/THPT | 4 | Stable demo codes present; no official staff data |
+| Subjects | Toán, Vật lý, Ngữ văn per school | 6 | Unique codes within school |
+| Rooms | Phòng A, Phòng B per school | 4 | Stable demo codes and capacity/type present |
+| Time slots | 2 days × 2 periods per school | 8 | Synthetic; weekday mapping is not confirmed |
+| Lesson requirements in seed | class–subject–teacher–room assignments | 8 | Positive session counts and period scope |
 | `valid.xlsx` QC fixture | 5 columns, 3 rows | 3 | 3/3 valid; confirm passed locally |
 
-Local PostgreSQL was also checked on 2026-08-24 after the QC runs: `1` school,
-`1` academic period, `2` classes, `2` teachers, `3` subjects, `2` rooms,
-`4` time slots, `10` lesson requirements, `14` import batches and `2` audit
-records. The higher lesson/import counts include confirmed and previewed QC
-artifacts; they are not representative-school counts and are not pilot evidence.
+Local PostgreSQL was checked on 2026-08-24 after migrations `003` and `004` and the
+repeatable seed: `2` schools, `2` academic periods, `4` classes, `4` teachers,
+`6` subjects, `4` rooms, `8` time slots, `14` lesson requirements, `14` import
+batches and `2` audit records. The higher lesson/import counts include legacy
+confirmed and previewed QC artifacts; they are not representative-school
+counts and are not pilot evidence.
 
 The valid fixture intentionally contains only three rows and therefore is a workflow fixture, not a representative school sample. It does not cover all seeded lesson requirements and does not include preferences, teacher availability, shifts or a full school calendar.
 
@@ -64,14 +67,14 @@ The current seed uses UUIDs as IDs and the fixture uses those UUIDs as workbook 
 | Entity/table | Required business fields observed | Key relationships | Current state |
 | --- | --- | --- | --- |
 | `schools` | `id`, `name` | Root scope for all school data | Implemented |
-| `academic_periods` | `id`, `school_id`, `name`, `starts_on`, `ends_on` | Belongs to `schools` | Persisted, not part of the import/solver v1 payload |
-| `classes` | `id`, `school_id`, `name`, `grade` | Belongs to `schools` | Implemented; unique `(school_id, name)` |
-| `teachers` | `id`, `school_id`, `display_name` | Belongs to `schools` | Implemented; no canonical source-code field |
-| `subjects` | `id`, `school_id`, `name` | Belongs to `schools` | Implemented; unique `(school_id, name)` |
-| `rooms` | `id`, `school_id`, `name` | Belongs to `schools` | Implemented; room capacity/type not present |
-| `time_slots` | `id`, `school_id`, `day`, `period` | Belongs to `schools` | Implemented; shift/start/end and weekday mapping not present |
-| `lesson_requirements` | class, subject, teacher, `required_sessions` | References class/subject/teacher | Implemented; no room, period or academic-period columns |
-| `import_batches` | filename, template version, counts, actor, status | Stages one upload for a school | Implemented in migration 002 |
+| `academic_periods` | `id`, `school_id`, `academic_year`, `term_code`, `name`, dates, `status` | Belongs to `schools` | Implemented in migration 003; still out of solver v1 wire payload |
+| `classes` | `id`, `school_id`, `code`, `name`, `grade`, `status` | Belongs to `schools` | Implemented; stable code and unique `(school_id, code)` |
+| `teachers` | `id`, `school_id`, `code`, `display_name`, `status` | Belongs to `schools` | Implemented; stable source-code field added |
+| `subjects` | `id`, `school_id`, `code`, `name`, `status` | Belongs to `schools` | Implemented; stable code and unique `(school_id, code)` |
+| `rooms` | `id`, `school_id`, `code`, `name`, capacity/type, `status` | Belongs to `schools` | Implemented; room persistence exists, solver room constraint remains out of v1 |
+| `time_slots` | `id`, `school_id`, `academic_period_id`, `day`, `period`, shift/time fields, audit timestamps | Belongs to `schools` and `academic_periods` | Implemented in migrations 003–004; weekday mapping remains pilot-dependent |
+| `lesson_requirements` | period, class, subject, teacher, optional room, `required_sessions` | Same-school references | Implemented; period/room columns are nullable for API transition |
+| `import_batches` | filename, template version, counts, actor, status, optional period | Stages one upload for a school | Implemented in migrations 002–003 |
 | `import_rows` | row number, normalized payload, validation errors | Belongs to `import_batches` | Implemented; raw workbook is not retained |
 | `audit_logs` | actor, action, entity, metadata, timestamp | Records confirmed import | Implemented for `IMPORT_CONFIRMED` |
 
@@ -90,11 +93,16 @@ The current seed uses UUIDs as IDs and the fixture uses those UUIDs as workbook 
 ## 6. Gaps and risks to carry into P0.2-T02
 
 1. **Official sample missing:** no real, anonymized school workbook is stored in this workspace. P0.2-T01 cannot be marked Done on synthetic fixtures alone.
-2. **Stable codes are unresolved:** teachers have `display_name` but no source-code column; matching by display name is fragile.
-3. **Academic period is out of band:** import and solver requests do not carry `academicPeriodId`, so the API must scope it explicitly before production use.
-4. **Room mapping is only partial:** the importer validates `roomId`, but the current confirm path does not persist it into `lesson_requirements`; solver v1 also has no room assignment field or room constraint.
+2. **Stable codes are synthetic only:** migration/seed now provide stable codes;
+the pilot must still confirm official code format and mapping for each master entity.
+3. **Academic period is still out of band:** persistence now has
+`academic_period_id`, but import and solver requests do not carry
+`academicPeriodId`; the API must scope it explicitly before production use.
+4. **Room mapping is persistence-ready but solver-limited:** the domain now has
+optional `room_id`; the current confirm path and solver v1 still need coordinated
+API/contract work before room constraints are claimed.
 5. **Schedule dimensions are absent:** shifts, start/end times, weekday labels, teacher availability, preferences and teaching-load rules are not represented by the current five-column workbook.
-6. **Cross-import duplicate policy is unresolved:** duplicate detection is currently within one workbook. The database does not yet define the official natural key for re-import/upsert behavior across batches.
+6. **Cross-import duplicate policy is unresolved:** migration 003 adds a diagnostic natural-key index, but duplicate detection is still within one workbook. The official re-import/upsert policy across batches remains open.
 7. **Privacy/retention must be confirmed:** official uploads should be anonymized, retain only required operational identifiers, avoid student/employee personal attributes, and define deletion/retention for staging rows and filenames.
 
 ## 7. Official pilot workbook intake checklist
@@ -113,4 +121,8 @@ Use this checklist when the pilot owner supplies the workbook. Do not paste pers
 
 ## 8. Related implementation follow-ups
 
-The inventory exposes contract changes that must be handled together when scheduled: add stable master-data codes, decide `academicPeriodId` scope, define room persistence/solver behavior, define re-import idempotency, and version any expanded workbook contract. These changes must update the glossary, JSON schemas, TypeScript/Python adapters, migrations and tests together.
+The remaining contract changes must be handled together when scheduled: decide
+`academicPeriodId` scope, define room solver behavior, define re-import
+idempotency, and version any expanded workbook contract. These changes must
+update the glossary, JSON schemas, TypeScript/Python adapters, migrations and
+tests together.

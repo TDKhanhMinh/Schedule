@@ -13,10 +13,14 @@ export class OptimizationQueueService implements OnModuleDestroy {
   async enqueue(payload: SolveJobRequest) {
     const job = await this.getQueue().add(OPTIMIZATION_JOB_NAME, payload, {
       removeOnComplete: 100,
-      removeOnFail: 100
+      removeOnFail: 100,
     });
 
-    return { jobId: job.id, queue: OPTIMIZATION_QUEUE, name: OPTIMIZATION_JOB_NAME };
+    return {
+      jobId: job.id,
+      queue: OPTIMIZATION_QUEUE,
+      name: OPTIMIZATION_JOB_NAME,
+    };
   }
 
   async getStatus(jobId: string) {
@@ -31,7 +35,7 @@ export class OptimizationQueueService implements OnModuleDestroy {
       name: job.name,
       state: await job.getState(),
       result: job.returnvalue ?? null,
-      failedReason: job.failedReason ?? null
+      failedReason: job.failedReason ?? null,
     };
   }
 
@@ -42,7 +46,7 @@ export class OptimizationQueueService implements OnModuleDestroy {
   private getQueue() {
     if (!this.queue) {
       this.queue = new Queue<SolveJobRequest>(OPTIMIZATION_QUEUE, {
-        connection: parseRedisConnection(this.config.getOrThrow<string>("REDIS_URL"))
+        connection: parseRedisConnection(this.config.getOrThrow<string>("REDIS_URL")),
       });
     }
 

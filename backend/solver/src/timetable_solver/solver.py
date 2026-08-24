@@ -1,9 +1,16 @@
 from ortools.sat.python import cp_model
 
-from .contracts import Assignment, SolveJobRequest, SolveJobResult
+from .contracts import (
+    Assignment,
+    CONTRACT_VERSION,
+    DEFAULT_TIME_LIMIT_SECONDS,
+    SOLVER_VERSION,
+    SolveJobRequest,
+    SolveJobResult,
+)
 
 
-def solve(request: SolveJobRequest) -> SolveJobResult:
+def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
     slot_ids = {slot.id for slot in request.timeSlots}
     lessons_by_id = {lesson.id: lesson for lesson in request.lessons}
     warnings: list[str] = []
@@ -37,12 +44,18 @@ def solve(request: SolveJobRequest) -> SolveJobResult:
 
     if conflicts:
         return SolveJobResult(
-            schemaVersion="1.0",
+            schemaVersion=CONTRACT_VERSION,
             jobId=request.jobId,
             status="INFEASIBLE",
             assignments=[],
             objectiveValue=None,
             diagnostics={"warnings": warnings, "conflicts": conflicts},
+            metadata={
+                "solverVersion": SOLVER_VERSION,
+                "contractVersion": CONTRACT_VERSION,
+                "randomSeed": random_seed,
+                "timeLimitSeconds": request.options.timeLimitSeconds if request.options else DEFAULT_TIME_LIMIT_SECONDS,
+            },
         )
 
     for slot_id in slot_ids:
@@ -57,7 +70,11 @@ def solve(request: SolveJobRequest) -> SolveJobResult:
                     model.AddAtMostOne(choices)
 
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = request.options.timeLimitSeconds if request.options else 10.0
+    # The seed is a harness-level control for reproducibility checks; it is not
+    # part of the v1 API/Python request contract.
+    solver.parameters.random_seed = random_seed
+    time_limit_seconds = request.options.timeLimitSeconds if request.options else DEFAULT_TIME_LIMIT_SECONDS
+    solver.parameters.max_time_in_seconds = time_limit_seconds
     status = solver.Solve(model)
     status_name = {
         cp_model.OPTIMAL: "OPTIMAL",
@@ -75,10 +92,16 @@ def solve(request: SolveJobRequest) -> SolveJobResult:
                 assignments.append(Assignment(lessonId=lesson_id, sessionIndex=session_index, slotId=slot_id))
 
     return SolveJobResult(
-        schemaVersion="1.0",
+        schemaVersion=CONTRACT_VERSION,
         jobId=request.jobId,
         status=status_name,
         assignments=assignments,
         objectiveValue=solver.ObjectiveValue() if status in (cp_model.OPTIMAL, cp_model.FEASIBLE) else None,
         diagnostics={"warnings": warnings, "conflicts": conflicts},
+        metadata={
+            "solverVersion": SOLVER_VERSION,
+            "contractVersion": CONTRACT_VERSION,
+            "randomSeed": random_seed,
+            "timeLimitSeconds": time_limit_seconds,
+        },
     )

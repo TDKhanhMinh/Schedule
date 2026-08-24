@@ -61,7 +61,7 @@ wire name, không tạo thêm domain concept mới.
 | Khung ngày-tiết | `TimeSlot` | `timeSlots[].{id,day,period}` | `TimeSlot` | `time_slots` |
 | Phân công giảng dạy | `LessonRequirement` | `lessons[]` | `LessonRequirement` | `lesson_requirements` |
 | Lượt tiết đã gán | `Assignment` | `assignments[].{lessonId,sessionIndex,slotId}` | `Assignment` | `optimization_assignments` |
-| Kết quả phương án | `SolveJobResult` | `status`, `assignments`, `objectiveValue`, `diagnostics` | `SolveJobResult` | `optimization_runs` + assignments khi persistence được nối |
+| Kết quả phương án | `SolveJobResult` | `status`, `assignments`, `objectiveValue`, `diagnostics`, `metadata` | `SolveJobResult` | `optimization_runs` + assignments khi persistence được nối |
 | Phiên bản contract | `CONTRACT_VERSION` | `schemaVersion` | `CONTRACT_VERSION` | `contract_version` |
 
 ### 3.1. Những tên không được dùng thay thế
