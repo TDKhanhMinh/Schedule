@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0",
+  "jobId": "benchmark-infeasible-teacher-conflict-v1",
+  "schoolId": "benchmark-school-infeasible",
+  "timeSlots": [
+    {
+      "id": "infeasible-day-1-period-1",
+      "day": 1,
+      "period": 1
+    }
+  ],
+  "lessons": [
+    {
+      "id": "infeasible-lesson-a",
+      "classId": "class-7a",
+      "subjectId": "subject-math",
+      "teacherId": "teacher-1",
+      "requiredSessions": 1
+    },
+    {
+      "id": "infeasible-lesson-b",
+      "classId": "class-7b",
+      "subjectId": "subject-physics",
+      "teacherId": "teacher-1",
+      "requiredSessions": 1
+    }
+  ]
+}

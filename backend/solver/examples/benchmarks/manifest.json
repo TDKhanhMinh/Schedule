@@ -1,0 +1,67 @@
+{
+  "benchmarkVersion": "1.0",
+  "contractVersion": "1.0",
+  "generatedFor": "School Timetable Optimizer V0.1 THCS/THPT MVP",
+  "generatedOn": "2026-08-24",
+  "piiPolicy": "opaque synthetic identifiers only; no names, emails, phones or student data",
+  "datasets": [
+    {
+      "id": "small-feasible",
+      "category": "feasible-small",
+      "file": "small-feasible.json",
+      "sha256": "F62421FB5B95C35A5A9D5F4E60F5D67A0064E52FC0B2CB73A262D86F1B2762AF",
+      "expectedStatus": "OPTIMAL",
+      "expectedAssignmentCount": 5,
+      "expectedConflictContains": [],
+      "constraints": [
+        "Each class has at most one lesson session per time slot.",
+        "The same teacher has at most one lesson session per time slot.",
+        "All required sessions must be assigned."
+      ],
+      "rowCounts": {
+        "timeSlots": 4,
+        "lessons": 4,
+        "requiredSessions": 5
+      }
+    },
+    {
+      "id": "medium-near-realistic",
+      "category": "near-realistic-medium",
+      "file": "medium-near-realistic.json",
+      "sha256": "C958A266EE8E8E6B2AF5ED2A98941C67EC2D9F889138F984085EA0A5AA46EBDE",
+      "expectedStatus": "OPTIMAL",
+      "expectedAssignmentCount": 40,
+      "expectedConflictContains": [],
+      "constraints": [
+        "10 classes, 12 teachers, 12 subjects, 5 days and 6 periods per day.",
+        "Each lesson requirement needs two sessions.",
+        "Class and teacher hard conflicts are prohibited."
+      ],
+      "rowCounts": {
+        "timeSlots": 30,
+        "lessons": 20,
+        "requiredSessions": 40
+      }
+    },
+    {
+      "id": "infeasible-teacher-conflict",
+      "category": "intentionally-infeasible",
+      "file": "infeasible-teacher-conflict.json",
+      "sha256": "335A8E9034A9EF593B819C39F567930475845D6F3A04EF4649D6DF3A1C6E1B2F",
+      "expectedStatus": "INFEASIBLE",
+      "expectedAssignmentCount": 0,
+      "expectedConflictContains": [
+        "No feasible assignment satisfies all hard class and teacher constraints"
+      ],
+      "constraints": [
+        "Two classes require the same teacher in the only available time slot.",
+        "The expected result is INFEASIBLE with no assignments."
+      ],
+      "rowCounts": {
+        "timeSlots": 1,
+        "lessons": 2,
+        "requiredSessions": 2
+      }
+    }
+  ]
+}

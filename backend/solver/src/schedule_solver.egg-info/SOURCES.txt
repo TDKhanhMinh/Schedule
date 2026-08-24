@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+src/schedule_solver.egg-info/PKG-INFO
+src/schedule_solver.egg-info/SOURCES.txt
+src/schedule_solver.egg-info/dependency_links.txt
+src/schedule_solver.egg-info/entry_points.txt
+src/schedule_solver.egg-info/requires.txt
+src/schedule_solver.egg-info/top_level.txt
+src/timetable_solver/__init__.py
+src/timetable_solver/contracts.py
+src/timetable_solver/main.py
+src/timetable_solver/solver.py
+tests/test_solver.py

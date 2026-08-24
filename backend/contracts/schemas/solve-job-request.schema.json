@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/solve-job-request.schema.json",
+  "title": "SolveJobRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "jobId", "schoolId", "timeSlots", "lessons"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "jobId": { "type": "string", "minLength": 1 },
+    "schoolId": { "type": "string", "minLength": 1 },
+    "timeSlots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "day", "period"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "day": { "type": "integer", "minimum": 1, "maximum": 7 },
+          "period": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "lessons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "classId", "subjectId", "teacherId", "requiredSessions"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "classId": { "type": "string", "minLength": 1 },
+          "subjectId": { "type": "string", "minLength": 1 },
+          "teacherId": { "type": "string", "minLength": 1 },
+          "requiredSessions": { "type": "integer", "minimum": 1 },
+          "allowedSlotIds": { "type": "array", "items": { "type": "string" } },
+          "fixedSlotId": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "options": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "timeLimitSeconds": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    }
+  }
+}
+

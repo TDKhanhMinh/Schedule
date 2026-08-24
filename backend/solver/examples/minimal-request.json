@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0",
+  "jobId": "local-example-1",
+  "schoolId": "pilot-school",
+  "timeSlots": [
+    { "id": "mon-1", "day": 1, "period": 1 },
+    { "id": "mon-2", "day": 1, "period": 2 }
+  ],
+  "lessons": [
+    {
+      "id": "math-7a",
+      "classId": "7a",
+      "subjectId": "math",
+      "teacherId": "teacher-1",
+      "requiredSessions": 1
+    }
+  ]
+}
+

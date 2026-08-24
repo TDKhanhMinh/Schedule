@@ -1,0 +1,19 @@
+{
+  "name": "school-timetable-optimizer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "School timetable optimizer monorepo.",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "build:backend": "npm run build --workspace @schedule/backend",
+    "build:frontend": "npm run build --workspace @schedule/frontend",
+    "build": "npm run build:backend && npm run build:frontend",
+    "dev:backend": "npm run start:dev --workspace @schedule/backend",
+    "dev:frontend": "npm run dev --workspace @schedule/frontend",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

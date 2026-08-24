@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0",
+  "jobId": "benchmark-small-feasible-v1",
+  "schoolId": "benchmark-school-small",
+  "timeSlots": [
+    {
+      "id": "small-day-1-period-1",
+      "day": 1,
+      "period": 1
+    },
+    {
+      "id": "small-day-1-period-2",
+      "day": 1,
+      "period": 2
+    },
+    {
+      "id": "small-day-2-period-1",
+      "day": 2,
+      "period": 1
+    },
+    {
+      "id": "small-day-2-period-2",
+      "day": 2,
+      "period": 2
+    }
+  ],
+  "lessons": [
+    {
+      "id": "small-lesson-1",
+      "classId": "class-7a",
+      "subjectId": "subject-math",
+      "teacherId": "teacher-1",
+      "requiredSessions": 2
+    },
+    {
+      "id": "small-lesson-2",
+      "classId": "class-7a",
+      "subjectId": "subject-literature",
+      "teacherId": "teacher-2",
+      "requiredSessions": 1
+    },
+    {
+      "id": "small-lesson-3",
+      "classId": "class-7b",
+      "subjectId": "subject-physics",
+      "teacherId": "teacher-1",
+      "requiredSessions": 1
+    },
+    {
+      "id": "small-lesson-4",
+      "classId": "class-7b",
+      "subjectId": "subject-math",
+      "teacherId": "teacher-1",
+      "requiredSessions": 1
+    }
+  ]
+}

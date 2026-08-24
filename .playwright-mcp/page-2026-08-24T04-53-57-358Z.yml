@@ -1,0 +1,80 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - paragraph [ref=e5]: V0.1 · Upload & Data Validation
+    - heading "School Timetable Optimizer" [level=1] [ref=e6]
+    - paragraph [ref=e7]: Upload Excel, xem trước dữ liệu, phát hiện lỗi theo từng dòng và xác nhận import trước khi ghi vào PostgreSQL.
+    - generic [ref=e8]: API đang hoạt động
+  - region [ref=e10]:
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - paragraph [ref=e13]: QC workflow
+        - heading "Upload & Data Validation" [level=2] [ref=e14]
+      - generic [ref=e15]: TC-IMP · TC-VAL · TC-CFM
+    - generic [ref=e16]:
+      - generic [ref=e17]: File Excel theo template MVP
+      - generic [ref=e18]:
+        - button "File Excel theo template MVP" [ref=e19]
+        - button "Upload & Preview" [ref=e20] [cursor=pointer]
+      - paragraph [ref=e21]: "Bắt buộc: Mã lớp, Mã môn, Mã giáo viên, Số tiết. Có thể thêm Mã phòng."
+    - generic [ref=e99]:
+      - generic [ref=e100]:
+        - generic [ref=e101]:
+          - paragraph [ref=e102]: Preview
+          - heading "missing-value.xlsx" [level=3] [ref=e103]
+        - generic [ref=e104]: Cần sửa lỗi
+      - generic [ref=e105]:
+        - generic [ref=e106]: 1 dòng
+        - generic [ref=e107]: 0 hợp lệ
+        - generic [ref=e108]: 1 lỗi
+      - generic [ref=e110]:
+        - generic [ref=e111]: Dòng 2 · Mã lớp
+        - generic [ref=e112]: Mã lớp là bắt buộc.
+      - table [ref=e114]:
+        - rowgroup [ref=e115]:
+          - row [ref=e116]:
+            - columnheader "Dòng" [ref=e117]
+            - columnheader "Mã lớp" [ref=e118]
+            - columnheader "Mã môn" [ref=e119]
+            - columnheader "Mã giáo viên" [ref=e120]
+            - columnheader "Số tiết" [ref=e121]
+            - columnheader "Trạng thái" [ref=e122]
+        - rowgroup [ref=e123]:
+          - row [ref=e124]:
+            - cell "2" [ref=e125]
+            - cell "—" [ref=e126]
+            - cell "00000000-0000-0000-0000-000000000401" [ref=e127]
+            - cell "00000000-0000-0000-0000-000000000301" [ref=e128]
+            - cell "2" [ref=e129]
+            - cell "Lỗi" [ref=e130]
+      - button "Confirm Import" [disabled] [ref=e131]
+  - region "Architecture baseline" [ref=e22]:
+    - article [ref=e23]:
+      - paragraph [ref=e24]: Architecture
+      - heading "Các lớp đã chốt" [level=2] [ref=e25]
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - term [ref=e28]: Web
+          - definition [ref=e29]: React + TypeScript + Vite
+        - generic [ref=e30]:
+          - term [ref=e31]: API/core
+          - definition [ref=e32]: NestJS + TypeScript
+        - generic [ref=e33]:
+          - term [ref=e34]: Nguồn dữ liệu
+          - definition [ref=e35]: PostgreSQL
+        - generic [ref=e36]:
+          - term [ref=e37]: Điều phối job
+          - definition [ref=e38]: Redis + BullMQ
+        - generic [ref=e39]:
+          - term [ref=e40]: Tối ưu
+          - definition [ref=e41]: Python + OR-Tools CP-SAT
+    - article [ref=e42]:
+      - paragraph [ref=e43]: Scope guardrail
+      - heading "Phạm vi MVP" [level=2] [ref=e44]
+      - list [ref=e45]:
+        - listitem [ref=e46]: THCS/THPT, web-first
+        - listitem [ref=e47]: Không lớp ghép/lớp tách
+        - listitem [ref=e48]: Không desktop/offline
+        - listitem [ref=e49]: Không AI làm solver lõi
+      - paragraph [ref=e50]:
+        - text: "Contract sample status:"
+        - code [ref=e51]: FEASIBLE

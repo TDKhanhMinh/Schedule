@@ -1,0 +1,302 @@
+{
+  "schemaVersion": "1.0",
+  "jobId": "benchmark-medium-near-realistic-v1",
+  "schoolId": "benchmark-school-medium",
+  "timeSlots": [
+    {
+      "id": "day-1-period-1",
+      "day": 1,
+      "period": 1
+    },
+    {
+      "id": "day-1-period-2",
+      "day": 1,
+      "period": 2
+    },
+    {
+      "id": "day-1-period-3",
+      "day": 1,
+      "period": 3
+    },
+    {
+      "id": "day-1-period-4",
+      "day": 1,
+      "period": 4
+    },
+    {
+      "id": "day-1-period-5",
+      "day": 1,
+      "period": 5
+    },
+    {
+      "id": "day-1-period-6",
+      "day": 1,
+      "period": 6
+    },
+    {
+      "id": "day-2-period-1",
+      "day": 2,
+      "period": 1
+    },
+    {
+      "id": "day-2-period-2",
+      "day": 2,
+      "period": 2
+    },
+    {
+      "id": "day-2-period-3",
+      "day": 2,
+      "period": 3
+    },
+    {
+      "id": "day-2-period-4",
+      "day": 2,
+      "period": 4
+    },
+    {
+      "id": "day-2-period-5",
+      "day": 2,
+      "period": 5
+    },
+    {
+      "id": "day-2-period-6",
+      "day": 2,
+      "period": 6
+    },
+    {
+      "id": "day-3-period-1",
+      "day": 3,
+      "period": 1
+    },
+    {
+      "id": "day-3-period-2",
+      "day": 3,
+      "period": 2
+    },
+    {
+      "id": "day-3-period-3",
+      "day": 3,
+      "period": 3
+    },
+    {
+      "id": "day-3-period-4",
+      "day": 3,
+      "period": 4
+    },
+    {
+      "id": "day-3-period-5",
+      "day": 3,
+      "period": 5
+    },
+    {
+      "id": "day-3-period-6",
+      "day": 3,
+      "period": 6
+    },
+    {
+      "id": "day-4-period-1",
+      "day": 4,
+      "period": 1
+    },
+    {
+      "id": "day-4-period-2",
+      "day": 4,
+      "period": 2
+    },
+    {
+      "id": "day-4-period-3",
+      "day": 4,
+      "period": 3
+    },
+    {
+      "id": "day-4-period-4",
+      "day": 4,
+      "period": 4
+    },
+    {
+      "id": "day-4-period-5",
+      "day": 4,
+      "period": 5
+    },
+    {
+      "id": "day-4-period-6",
+      "day": 4,
+      "period": 6
+    },
+    {
+      "id": "day-5-period-1",
+      "day": 5,
+      "period": 1
+    },
+    {
+      "id": "day-5-period-2",
+      "day": 5,
+      "period": 2
+    },
+    {
+      "id": "day-5-period-3",
+      "day": 5,
+      "period": 3
+    },
+    {
+      "id": "day-5-period-4",
+      "day": 5,
+      "period": 4
+    },
+    {
+      "id": "day-5-period-5",
+      "day": 5,
+      "period": 5
+    },
+    {
+      "id": "day-5-period-6",
+      "day": 5,
+      "period": 6
+    }
+  ],
+  "lessons": [
+    {
+      "id": "lesson-01-1",
+      "classId": "class-01",
+      "subjectId": "subject-01",
+      "teacherId": "teacher-01",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-01-2",
+      "classId": "class-01",
+      "subjectId": "subject-02",
+      "teacherId": "teacher-02",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-02-1",
+      "classId": "class-02",
+      "subjectId": "subject-02",
+      "teacherId": "teacher-03",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-02-2",
+      "classId": "class-02",
+      "subjectId": "subject-03",
+      "teacherId": "teacher-04",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-03-1",
+      "classId": "class-03",
+      "subjectId": "subject-03",
+      "teacherId": "teacher-05",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-03-2",
+      "classId": "class-03",
+      "subjectId": "subject-04",
+      "teacherId": "teacher-06",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-04-1",
+      "classId": "class-04",
+      "subjectId": "subject-04",
+      "teacherId": "teacher-07",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-04-2",
+      "classId": "class-04",
+      "subjectId": "subject-05",
+      "teacherId": "teacher-08",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-05-1",
+      "classId": "class-05",
+      "subjectId": "subject-05",
+      "teacherId": "teacher-09",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-05-2",
+      "classId": "class-05",
+      "subjectId": "subject-06",
+      "teacherId": "teacher-10",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-06-1",
+      "classId": "class-06",
+      "subjectId": "subject-06",
+      "teacherId": "teacher-11",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-06-2",
+      "classId": "class-06",
+      "subjectId": "subject-07",
+      "teacherId": "teacher-12",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-07-1",
+      "classId": "class-07",
+      "subjectId": "subject-07",
+      "teacherId": "teacher-01",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-07-2",
+      "classId": "class-07",
+      "subjectId": "subject-08",
+      "teacherId": "teacher-02",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-08-1",
+      "classId": "class-08",
+      "subjectId": "subject-08",
+      "teacherId": "teacher-03",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-08-2",
+      "classId": "class-08",
+      "subjectId": "subject-09",
+      "teacherId": "teacher-04",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-09-1",
+      "classId": "class-09",
+      "subjectId": "subject-09",
+      "teacherId": "teacher-05",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-09-2",
+      "classId": "class-09",
+      "subjectId": "subject-10",
+      "teacherId": "teacher-06",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-10-1",
+      "classId": "class-10",
+      "subjectId": "subject-10",
+      "teacherId": "teacher-07",
+      "requiredSessions": 2
+    },
+    {
+      "id": "lesson-10-2",
+      "classId": "class-10",
+      "subjectId": "subject-11",
+      "teacherId": "teacher-08",
+      "requiredSessions": 2
+    }
+  ],
+  "options": {
+    "timeLimitSeconds": 5
+  }
+}

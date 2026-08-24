@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/solve-job-result.schema.json",
+  "title": "SolveJobResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "jobId", "status", "assignments", "objectiveValue", "diagnostics"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "jobId": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["OPTIMAL", "FEASIBLE", "INFEASIBLE", "UNKNOWN"] },
+    "assignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["lessonId", "sessionIndex", "slotId"],
+        "properties": {
+          "lessonId": { "type": "string", "minLength": 1 },
+          "sessionIndex": { "type": "integer", "minimum": 0 },
+          "slotId": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "objectiveValue": { "type": ["number", "null"] },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["warnings", "conflicts"],
+      "properties": {
+        "warnings": { "type": "array", "items": { "type": "string" } },
+        "conflicts": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
+

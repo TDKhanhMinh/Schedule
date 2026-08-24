@@ -1,0 +1,9 @@
+domain_entity,source_sheet,source_column,canonical_field,data_type,required,join_key,nullable,sensitive,validation,notes
+Class,LessonRequirements,Mã lớp,classId,text,yes,schoolId + stable class code,no,no,master reference,Confirm whether source uses UUID or school code
+Subject,LessonRequirements,Mã môn,subjectId,text,yes,schoolId + stable subject code,no,no,master reference,Confirm code uniqueness and rename policy
+Teacher,LessonRequirements,Mã giáo viên,teacherId,text,yes,schoolId + stable teacher code,no,limited staff reference,master reference,Do not include phone email or national ID
+LessonRequirement,LessonRequirements,Số tiết,requiredSessions,positive integer,yes,lesson natural key,no,no,integer > 0,Confirm aggregate sessions versus one-row-per-session
+Room,LessonRequirements,Mã phòng,roomId,text,no,schoolId + stable room code,yes,no,master reference if present,Current importer validates but confirm/solver room support is incomplete
+AcademicPeriod,Metadata,,academicPeriodId,opaque id or source code,yes,schoolId + period code,no,no,period exists,Current workbook does not carry this field
+TimeSlot,Calendar,,day,period number,yes,school calendar mapping,no,no,day 1-7 and period > 0,Record shifts weekday labels start/end times
+TeacherAvailability,Availability,,availability,structured rule,no,teacher code,yes,limited staff reference,approved rule mapping,Identify unavailable slots and preferences separately
