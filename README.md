@@ -18,7 +18,7 @@ Nền tảng web-first cho trường THCS/THPT Việt Nam, với phạm vi MVP �
 - `backend/solver`: Python + OR-Tools CP-SAT, chạy độc lập theo contract JSON.
 - `docker-compose.yml`: PostgreSQL và Redis cho môi trường local.
 - `backend/src/imports`: upload Excel, preview/validation, confirm import và audit log.
-- `docs/excel-workbook-contract.md` và `outputs/P0.2-T02/school-timetable-mvp-0.1.0-template-v1.0.xlsx`: workbook contract v1.0 và template chuẩn cho import lesson requirements.
+- `docs/excel-workbook-contract.md` và `outputs/P1.3-T01/school-timetable-mvp-0.1.0-template-v1.0.xlsx`: workbook contract v1.0 và template chuẩn có version/changelog cho import lesson requirements.
 
 ## Phạm vi MVP
 

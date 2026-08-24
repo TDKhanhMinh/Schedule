@@ -22,6 +22,7 @@ const steps = [
   ["typecheck", npmCommand, ["run", "typecheck"]],
   ["tests", npmCommand, ["test"]],
   ["migrations", process.execPath, [resolve(root, "scripts", "check-migrations.cjs")]],
+  ["template", process.execPath, [resolve(root, "scripts", "check-template.cjs")]],
   ["python-tests", pythonCommand, ["-m", "unittest", "discover", "-s", "backend/solver/tests", "-v"]],
   ["build", npmCommand, ["run", "build"]],
 ];

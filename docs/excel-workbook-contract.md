@@ -2,8 +2,8 @@
 
 **Contract version:** `1.0`  
 **Template version:** `MVP-0.1.0`  
-**Artifact:** `outputs/P0.2-T02/school-timetable-mvp-0.1.0-template-v1.0.xlsx`  
-**Status:** Standard workbook definition for the current MVP import slice
+**Artifact:** `outputs/P1.3-T01/school-timetable-mvp-0.1.0-template-v1.0.xlsx`
+**Status:** Published P1.3-T01 workbook for implementation review; pilot master-data approval remains open
 
 ## 1. Purpose and compatibility boundary
 
@@ -23,27 +23,29 @@ workbook.
 
 ## 2. Workbook structure
 
-The template contains four sheets. `LessonRequirements` must remain the first
+The template contains six sheets. `LessonRequirements` must remain the first
 sheet because the current importer reads the first worksheet as the data sheet.
 The other sheets are human-readable contract guidance and are not imported as
 domain rows.
 
-| Sheet | Required | Purpose |
-| --- | --- | --- |
-| `LessonRequirements` | Yes; first sheet | One row per lesson requirement |
-| `TemplateGuide` | Recommended | Version, usage rules and compatibility policy |
-| `ErrorCatalog` | Recommended | Validation codes, locations and remediation |
-| `Mapping` | Recommended | Excel → NestJS → PostgreSQL → Python traceability |
+| Sheet                | Required                        | Purpose                                                       |
+| -------------------- | ------------------------------- | ------------------------------------------------------------- |
+| `LessonRequirements` | Yes; first sheet                | One row per lesson requirement                                |
+| `TemplateGuide`      | Recommended                     | Version, usage rules and compatibility policy                 |
+| `ErrorCatalog`       | Recommended                     | Validation codes, locations and remediation                   |
+| `Mapping`            | Recommended                     | Excel → NestJS → PostgreSQL → Python traceability             |
+| `CodeLists`          | Recommended                     | Illustrative THCS/THPT code examples and master-data guidance |
+| `Changelog`          | Required for published versions | Version history and compatibility notes                       |
 
 ## 3. `LessonRequirements` columns
 
-| Column | Canonical field | Type | Required | Rule |
-| --- | --- | --- | --- | --- |
-| `Mã lớp` | `classId` | Text | Yes | Must resolve in the selected school's class master data |
-| `Mã môn` | `subjectId` | Text | Yes | Must resolve in the selected school's subject master data |
-| `Mã giáo viên` | `teacherId` | Text | Yes | Must resolve in the selected school's teacher master data |
-| `Số tiết` | `requiredSessions` | Positive integer | Yes | Integer greater than zero |
-| `Mã phòng` | `roomId` | Text | No | If present, must resolve in the selected school's room master data |
+| Column         | Canonical field    | Type             | Required | Rule                                                               |
+| -------------- | ------------------ | ---------------- | -------- | ------------------------------------------------------------------ |
+| `Mã lớp`       | `classId`          | Text             | Yes      | Must resolve in the selected school's class master data            |
+| `Mã môn`       | `subjectId`        | Text             | Yes      | Must resolve in the selected school's subject master data          |
+| `Mã giáo viên` | `teacherId`        | Text             | Yes      | Must resolve in the selected school's teacher master data          |
+| `Số tiết`      | `requiredSessions` | Positive integer | Yes      | Integer greater than zero                                          |
+| `Mã phòng`     | `roomId`           | Text             | No       | If present, must resolve in the selected school's room master data |
 
 Headers are matched case-insensitively with diacritics and repeated whitespace
 normalized. Current aliases include:
@@ -56,13 +58,13 @@ normalized. Current aliases include:
 
 ## 4. Canonical mapping
 
-| Workbook | NestJS normalized payload | PostgreSQL | Python solver |
-| --- | --- | --- | --- |
-| `Mã lớp` | `classId` | `classes.id` | `LessonRequirement.classId` |
-| `Mã môn` | `subjectId` | `subjects.id` | `LessonRequirement.subjectId` |
-| `Mã giáo viên` | `teacherId` | `teachers.id` | `LessonRequirement.teacherId` |
-| `Số tiết` | `requiredSessions` | `lesson_requirements.required_sessions` | `LessonRequirement.requiredSessions` |
-| `Mã phòng` | `roomId` | `rooms.id` during validation | Not present in solver v1 assignment |
+| Workbook       | NestJS normalized payload | PostgreSQL                              | Python solver                        |
+| -------------- | ------------------------- | --------------------------------------- | ------------------------------------ |
+| `Mã lớp`       | `classId`                 | `classes.id`                            | `LessonRequirement.classId`          |
+| `Mã môn`       | `subjectId`               | `subjects.id`                           | `LessonRequirement.subjectId`        |
+| `Mã giáo viên` | `teacherId`               | `teachers.id`                           | `LessonRequirement.teacherId`        |
+| `Số tiết`      | `requiredSessions`        | `lesson_requirements.required_sessions` | `LessonRequirement.requiredSessions` |
+| `Mã phòng`     | `roomId`                  | `rooms.id` during validation            | Not present in solver v1 assignment  |
 
 Stable school-level source codes are preferred. Until dedicated code columns
 exist in master data, the current importer can resolve an ID or normalized
@@ -73,15 +75,15 @@ production template is published; display names are not a durable join key.
 
 The error catalog is part of the workbook and mirrors current API error codes:
 
-| Code | Scope | Current location data |
-| --- | --- | --- |
-| `INVALID_FILE_TYPE` | Request | Filename/extension |
-| `INVALID_TEMPLATE` | Header | First sheet, header row, missing column labels |
-| `REQUIRED` | Data row | `row` plus canonical `field` |
-| `INVALID_NUMBER` | Data row | `row` plus `Số tiết` |
-| `UNKNOWN_REFERENCE` | Data row | `row` plus master-data field |
-| `DUPLICATE` | Data row | `row` plus duplicate natural-key field |
-| `IMPORT_HAS_ERRORS` | Confirm | Import batch |
+| Code                | Scope    | Current location data                          |
+| ------------------- | -------- | ---------------------------------------------- |
+| `INVALID_FILE_TYPE` | Request  | Filename/extension                             |
+| `INVALID_TEMPLATE`  | Header   | First sheet, header row, missing column labels |
+| `REQUIRED`          | Data row | `row` plus canonical `field`                   |
+| `INVALID_NUMBER`    | Data row | `row` plus `Số tiết`                           |
+| `UNKNOWN_REFERENCE` | Data row | `row` plus master-data field                   |
+| `DUPLICATE`         | Data row | `row` plus duplicate natural-key field         |
+| `IMPORT_HAS_ERRORS` | Confirm  | Import batch                                   |
 
 For v1, the sheet is fixed to `LessonRequirements`; the API returns the row
 number and field label for row errors. A future multi-sheet import must extend
@@ -113,12 +115,30 @@ must not be assumed to update existing lesson requirements automatically.
 - The filename should follow:
   `school-timetable-mvp-<product-version>-template-v<contract-version>.xlsx`.
 
+### P1.3-T01 publication
+
+`MVP-0.1.0` template `v1.0` keeps `contractVersion: 1.0` and the five-column
+`LessonRequirements` import contract unchanged. The published workbook adds
+the `CodeLists` and `Changelog` sheets, a whole-number validation rule for
+`Số tiết` in rows 2–200, and illustrative examples for both THCS and THPT.
+The examples are not official school master data and must not be used as a
+pilot workbook until the school confirms its stable codes and names.
+
+Every later published workbook must append a row to `Changelog`. A breaking
+change to the first-sheet columns, field meaning or join rules requires a new
+contract version and synchronized NestJS/Python/schema/test changes.
+
 ## 8. Verification evidence
 
-The generated template was inspected and rendered for all four sheets. The
-first sheet contains the five-column lesson-requirement header and three valid
-example rows. The `Số tiết` column has whole-number validation greater than
-zero, and the error scan found no formula errors. Existing QC fixtures continue
-to cover valid preview/confirm, invalid file/template, missing value, invalid
-number and unknown master-data reference cases.
-
+The P1.3-T01 generated template was inspected and rendered for all six sheets,
+then re-imported after export. The first sheet contains the five-column
+lesson-requirement header and three valid example rows. The `Số tiết` column
+has whole-number validation from 1 to 50 for rows 2–200; `CodeLists` contains
+illustrative THCS/THPT examples; `Changelog` records `v1.0`; and the error scan
+found no formula errors. The read-only template contract check verifies sheet
+order, headers, examples, validation metadata, version metadata and changelog.
+The current NestJS importer also accepted this artifact in a local runtime
+preview with three valid rows and then confirmed it, producing the import audit
+event `IMPORT_CONFIRMED`. Existing QC fixtures continue to cover valid
+preview/confirm, invalid file/template, missing value, invalid number and
+unknown master-data reference cases.
