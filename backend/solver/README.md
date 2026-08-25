@@ -1,6 +1,6 @@
 # Python solver
 
-Worker boundary cho `optimization.solve`, dùng Python + OR-Tools CP-SAT. Contract request/result phải bám các JSON Schema trong [`../contracts/schemas`](../contracts/schemas) và `schemaVersion: "1.0"`.
+Worker boundary cho `optimization.solve`, dùng Python + OR-Tools CP-SAT. Contract request/result phải bám các JSON Schema trong [`../contracts/schemas`](../contracts/schemas) và `schemaVersion: "1.0"`. Rule provenance dùng contract độc lập `RuleSetSnapshot` phiên bản `RULE-SET-1.0.0`.
 
 ## Local setup
 
@@ -21,7 +21,16 @@ Get-Content .\examples\minimal-request.json | schedule-solver --random-seed 7
 The runner writes a versioned `SolveJobResult` JSON document to stdout. The
 result includes `status`, `objectiveValue` as the v1 score field,
 `diagnostics`, assignments and `metadata` containing `solverVersion`,
-`contractVersion`, the effective random seed and the effective time limit.
+`contractVersion`, the effective random seed, the effective time limit and,
+when supplied, the `ruleSnapshotId`, `ruleSetVersion` and
+`ruleSnapshotHash` used by the request.
+
+`RuleSetSnapshot` carries the profile/register versions, source URL and
+locator, effective date range, applicability scope, approval state, immutable
+rule definitions and canonical SHA-256 hash. A pending, revoked or expired
+rule is not effective. The v1 CP-SAT objective still enforces only its current
+hard class/teacher/slot invariants; interpreting additional hard/soft rule
+kinds is the follow-up P2.1-T02 solver task.
 
 Invalid JSON or a payload that fails the Pydantic contract exits with code `2`
 and writes a machine-readable error to stderr with `INVALID_JSON` or

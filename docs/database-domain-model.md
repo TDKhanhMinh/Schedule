@@ -2,9 +2,9 @@
 
 **Product:** School Timetable Optimizer  
 **Scope:** V0.1 — một trường THCS/THPT, web-first  
-**Task:** P1.2-T01  
-**Status:** Design proposal; migration implementation thuộc P1.2-T02  
-**Updated:** 2026-08-24
+**Task:** P1.2-T01 design baseline; P2.1-T01 rule snapshot extension
+**Status:** Design baseline plus implemented versioned rule snapshot persistence
+**Updated:** 2026-08-25
 
 Tài liệu này là schema proposal cho PostgreSQL. Nó làm rõ quan hệ, khóa tự
 nhiên, tenant boundary, lifecycle và ranh giới với solver trước khi viết
@@ -50,6 +50,8 @@ erDiagram
     ROOMS ||--o{ LESSON_REQUIREMENTS : optionally_hosts
     ACADEMIC_PERIODS ||--o{ RULE_PROFILES : uses
     RULE_PROFILES ||--o{ RULE_DEFINITIONS : contains
+    RULE_PROFILES ||--o{ RULE_SET_SNAPSHOTS : snapshots
+    RULE_SET_SNAPSHOTS ||--o{ OPTIMIZATION_RUNS : used_by
     ACADEMIC_PERIODS ||--o{ OPTIMIZATION_RUNS : solves
     OPTIMIZATION_RUNS ||--o{ OPTIMIZATION_ASSIGNMENTS : produces
     LESSON_REQUIREMENTS ||--o{ OPTIMIZATION_ASSIGNMENTS : scheduled
@@ -76,9 +78,10 @@ erDiagram
 | `Room` / `rooms` | `id`, `school_id`, `code`, `name`, `room_type`, `capacity`, `status` | Unique `(school_id, code)`; positive capacity when present; no room assignment is added to solver v1 until its contract is versioned. |
 | `TimeSlot` / `time_slots` | `id`, `school_id`, `academic_period_id`, `day`, `period`, optional `shift_code`, `starts_at`, `ends_at` | Unique `(academic_period_id, day, period)`; day `1..7`, period `>= 1`; `starts_at/ends_at` are local wall-clock values tied to school timezone. |
 | `LessonRequirement` / `lesson_requirements` | `id`, `school_id`, `academic_period_id`, `class_id`, `subject_id`, `teacher_id`, optional `room_id`, `required_sessions`, `status` | Unique `(academic_period_id, class_id, subject_id, teacher_id)` for the MVP; `required_sessions > 0`; all referenced master rows must belong to the same school. Wire collection remains `lessons[]`. |
-| `RuleProfile` / `rule_profiles` | `id`, `school_id`, `academic_period_id`, `version`, `name`, `status`, `source_ref`, `effective_from`, `effective_to`, approval fields | Versioned and immutable after activation; status `DRAFT`, `ACTIVE`, `RETIRED`; source/effective/approval metadata is mandatory before enforcement. |
-| `RuleDefinition` / `rule_definitions` | `id`, `rule_profile_id`, `code`, `kind`, `weight`, `parameters` | Unique `(rule_profile_id, code)`; `kind` is `HARD` or `SOFT`; parameters remain JSONB but are validated by the rule layer in P2.1. |
-| `OptimizationRun` / `optimization_runs` | `id`, `school_id`, `academic_period_id`, `job_id`, `status`, `contract_version`, timestamps, `diagnostics` | Run is separate from a schedule version; status follows queue/solver lifecycle; result rows are immutable after completion. |
+| `RuleProfile` / `rule_profiles` | `id`, `school_id`, `academic_period_id`, `version`, `register_version`, `name`, `status`, source URL/locator, `scope`, `effective_from`, `effective_to`, approval fields | Versioned and immutable after activation; status `DRAFT`, `ACTIVE`, `RETIRED`; source/effective/scope/approval metadata is mandatory before enforcement. |
+| `RuleDefinition` / `rule_definitions` | `id`, `rule_profile_id`, `code`, `kind`, `weight`, source URL/locator, `scope`, `effective_from`, `effective_to`, approval fields, `parameters` | Unique `(rule_profile_id, code)`; `kind` is `HARD` or `SOFT`; hard rules have no soft weight, soft rules have a non-negative weight; parameters remain JSONB but are validated by the rule layer. |
+| `RuleSetSnapshot` / `rule_set_snapshots` | `id`, `rule_profile_id`, `rule_set_version`, profile/register versions, source/effective/scope/approval metadata, canonical `rules`, `snapshot_hash`, capture actor/time | Append-only immutable snapshot. `snapshot_hash` is SHA-256 of the canonical payload excluding the hash itself; expired/unapproved snapshots are not effective. |
+| `OptimizationRun` / `optimization_runs` | `id`, `school_id`, `academic_period_id`, `job_id`, `status`, `contract_version`, `rule_snapshot_id`, `rule_set_version`, `rule_snapshot_hash`, timestamps, `diagnostics` | Run is separate from a schedule version and records the exact rule snapshot used for reproducibility; status follows queue/solver lifecycle; result rows are immutable after completion. |
 | `OptimizationAssignment` / `optimization_assignments` | `run_id`, `lesson_id`, `session_index`, `time_slot_id` | Unique `(run_id, lesson_id, session_index)`; a run must not place one class or teacher twice in one slot. The latter conflict is enforced in solver/domain validation and, when persistence is implemented, with a materialized assignment scope. |
 | `ScheduleVersion` / `schedule_versions` | `id`, `school_id`, `academic_period_id`, `version_number`, `status`, `source_run_id`, `created_by`, approval/publish/lock timestamps | Unique `(academic_period_id, version_number)`; lifecycle `DRAFT → APPROVED → LOCKED → PUBLISHED`; no overwrite of an existing published snapshot. |
 | `ScheduleAssignment` / `schedule_assignments` | `schedule_version_id`, `lesson_id`, `session_index`, `time_slot_id`, optional `room_id` | Snapshot rows are immutable once locked/published; same class/teacher/room collision rules apply within a version. |
@@ -117,8 +120,8 @@ relying only on controller checks:
    status and counts, insert all normalized requirements, update the batch and
    write `IMPORT_CONFIRMED`; any failure rolls back the whole import.
 3. **Solve transaction:** create an `OptimizationRun` before enqueueing; the
-   worker records the terminal status and immutable assignments separately from
-   any user-editable schedule version.
+   worker records the terminal status, the exact rule snapshot reference and
+   immutable assignments separately from any user-editable schedule version.
 4. **Version transaction:** copy a result into a draft `ScheduleVersion`; edit,
    approval, lock and publish are explicit transitions with audit entries.
 5. **Time handling:** persist business dates and local slot times without
@@ -127,21 +130,27 @@ relying only on controller checks:
 
 ## 6. Compatibility with the solver contract
 
-The proposal intentionally keeps the current `schemaVersion: "1.0"` boundary:
+The proposal intentionally keeps the current `schemaVersion: "1.0"` boundary
+and adds an independent `RuleSetSnapshot` contract version
+`RULE-SET-1.0.0`:
 
-- NestJS resolves `schoolId`, `academicPeriodId`, master references and active
-  rule profile before constructing the request.
+- NestJS resolves `schoolId`, `academicPeriodId`, master references and the
+  versioned rule snapshot before constructing the request; the request may carry
+  its snapshot id/version/hash as additive metadata.
 - The Python request continues to receive `schoolId`, `timeSlots[]` and
   `lessons[]`; `lessons[]` remains the wire name for `LessonRequirement`.
-- `room_id`, `schedule_version_id`, approval state and audit metadata are
-  persistence concerns until a coordinated contract version adds them.
+- `room_id`, `schedule_version_id` and schedule approval state remain
+  persistence concerns. Rule snapshot identity is additive request/result
+  metadata, while PostgreSQL remains the source of truth for the snapshot body.
+- The current Python solver does not interpret new rule kinds yet; P2.1-T02
+  adds rule evaluation and hard/soft enforcement against this snapshot.
 - Any future addition of `academicPeriodId`, `roomId`, soft constraints or
   schedule-version fields must update JSON Schema, TypeScript, Pydantic, the
   glossary and tests in one change.
 
 ## 7. Implementation split and open decisions
 
-### P1.2-T02 will implement
+### Historical P1.2-T02 implementation boundary
 
 - Forward-only migration(s) for the approved subset of this proposal.
 - Stable master-data codes, period scope and composite school-boundary checks.
@@ -154,7 +163,8 @@ The proposal intentionally keeps the current `schemaVersion: "1.0"` boundary:
 ### P1.2-T03/T04/T05 or later will implement
 
 - CRUD/repositories, RBAC, audit API and schedule-version lifecycle.
-- Rule profile/definition validation and solver-facing rule mapping.
+- Rule profile/definition business validation and solver-facing rule evaluation;
+  P2.1-T01 now provides the persistence/contract foundation.
 - Room assignment and any expanded solver contract.
 
 The following remain explicit decisions for the pilot owner: exact academic year
@@ -168,4 +178,6 @@ proposal does not claim those stakeholder or production gates are closed.
 - Product scope and gate separation: `docs/prd-mvp.md`.
 - Current executable baseline: `backend/database/migrations/001_initial_contract.sql`
   and `002_import_workflow.sql`.
-- Next implementation task: `[P1.2-T02] Viết migrations và seed fixtures`.
+- P2.1-T01 evidence: `backend/database/migrations/007_versioned_rule_set_snapshots.sql`,
+  `backend/contracts/schemas/rule-set-snapshot.schema.json` and the NestJS/Python
+  rule contract tests.

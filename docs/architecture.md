@@ -57,6 +57,12 @@ are not automatically solver constraints: the rule model must carry version,
 source, effective date, applicability and approval before NestJS and Python
 enforce it consistently.
 
+P2.1-T01 defines the independent `RuleSetSnapshot` contract
+(`RULE-SET-1.0.0`) and PostgreSQL `rule_set_snapshots` persistence. An
+optimization run records the snapshot id/version/hash used for reproducibility;
+the current solve wire contract remains `schemaVersion: "1.0"` until a later
+task adds rule evaluation to the solver.
+
  Product requirements, user journeys and acceptance evidence are maintained in
  [`docs/prd-mvp.md`](prd-mvp.md). The PRD distinguishes local development evidence
  from pilot/stakeholder approval and production gates.

@@ -86,8 +86,9 @@ phương/trường.
 - `RULE-SCHOOL-002` là invariant của contract kỹ thuật nên có thể dùng cho
   validation local; nó không thay thế legal approval.
 - Không đưa `45`, `5`, `19`, `17` hoặc công thức tải dạy vào CP-SAT v1 khi
-  contract chưa có rule profile. Task tiếp theo về rule model phải tạo mapping
-  có version, source, effective date, approval và test.
+  rule snapshot chưa được tạo và phê duyệt. P2.1-T01 đã tạo mapping/contract
+  có version, source, effective date, scope, approval, snapshot hash và test;
+  P2.1-T02 mới thực thi các rule kind mới trong solver.
 - Khi nguồn bị sửa/thay thế, tạo register version mới, giữ bản cũ để audit và
   không sửa ngược lịch sử của phiên bản đã dùng để tạo schedule.
 

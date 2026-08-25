@@ -5,10 +5,18 @@
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "jobId", "schoolId", "timeSlots", "lessons"],
+  "dependentRequired": {
+    "ruleSnapshotId": ["ruleSetVersion", "ruleSnapshotHash"],
+    "ruleSetVersion": ["ruleSnapshotId", "ruleSnapshotHash"],
+    "ruleSnapshotHash": ["ruleSnapshotId", "ruleSetVersion"]
+  },
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "jobId": { "type": "string", "minLength": 1 },
     "schoolId": { "type": "string", "minLength": 1 },
+    "ruleSnapshotId": { "type": "string", "minLength": 1 },
+    "ruleSetVersion": { "type": "string", "pattern": "^RULE-SET-[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "ruleSnapshotHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "timeSlots": {
       "type": "array",
       "items": {

@@ -2,6 +2,8 @@ export const CONTRACT_VERSION = "1.0" as const;
 export const OPTIMIZATION_QUEUE = "optimization" as const;
 export const OPTIMIZATION_JOB_NAME = "optimization.solve" as const;
 
+export * from "./rule-set";
+
 export type SolveStatus = "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "UNKNOWN";
 
 export interface TimeSlot {
@@ -28,6 +30,9 @@ export interface SolveJobRequest {
   schemaVersion: typeof CONTRACT_VERSION;
   jobId: string;
   schoolId: string;
+  ruleSnapshotId?: string;
+  ruleSetVersion?: string;
+  ruleSnapshotHash?: string;
   timeSlots: TimeSlot[];
   lessons: LessonRequirement[];
   options?: SolveJobOptions;
@@ -49,6 +54,9 @@ export interface SolverMetadata {
   contractVersion: typeof CONTRACT_VERSION;
   randomSeed: number;
   timeLimitSeconds: number;
+  ruleSnapshotId?: string;
+  ruleSetVersion?: string;
+  ruleSnapshotHash?: string;
 }
 
 export interface SolveJobResult {

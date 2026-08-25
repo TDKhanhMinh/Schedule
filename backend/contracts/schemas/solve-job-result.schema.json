@@ -36,11 +36,19 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["solverVersion", "contractVersion", "randomSeed", "timeLimitSeconds"],
+      "dependentRequired": {
+        "ruleSnapshotId": ["ruleSetVersion", "ruleSnapshotHash"],
+        "ruleSetVersion": ["ruleSnapshotId", "ruleSnapshotHash"],
+        "ruleSnapshotHash": ["ruleSnapshotId", "ruleSetVersion"]
+      },
       "properties": {
         "solverVersion": { "type": "string", "minLength": 1 },
         "contractVersion": { "const": "1.0" },
         "randomSeed": { "type": "integer" },
-        "timeLimitSeconds": { "type": "number", "exclusiveMinimum": 0 }
+        "timeLimitSeconds": { "type": "number", "exclusiveMinimum": 0 },
+        "ruleSnapshotId": { "type": "string", "minLength": 1 },
+        "ruleSetVersion": { "type": "string", "pattern": "^RULE-SET-[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "ruleSnapshotHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
       }
     }
   }

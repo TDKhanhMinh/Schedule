@@ -11,6 +11,9 @@ class SolverTest(unittest.TestCase):
                 "schemaVersion": "1.0",
                 "jobId": "job-1",
                 "schoolId": "school-1",
+                "ruleSnapshotId": "snapshot-001",
+                "ruleSetVersion": "RULE-SET-1.0.0",
+                "ruleSnapshotHash": "0" * 64,
                 "timeSlots": [
                     {"id": "mon-1", "day": 1, "period": 1},
                     {"id": "mon-2", "day": 1, "period": 2},
@@ -30,6 +33,9 @@ class SolverTest(unittest.TestCase):
         self.assertEqual(result.metadata.contractVersion, "1.0")
         self.assertEqual(result.metadata.randomSeed, 0)
         self.assertEqual(result.metadata.timeLimitSeconds, 10.0)
+        self.assertEqual(result.metadata.ruleSnapshotId, "snapshot-001")
+        self.assertEqual(result.metadata.ruleSetVersion, "RULE-SET-1.0.0")
+        self.assertEqual(result.metadata.ruleSnapshotHash, "0" * 64)
 
     def test_reports_infeasible_hard_teacher_conflict(self):
         request = SolveJobRequest.model_validate(

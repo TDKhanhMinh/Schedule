@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 CONTRACT_VERSION = "1.0"
 SOLVER_VERSION = "0.1.0"
@@ -39,9 +39,19 @@ class SolveJobRequest(BaseModel):
     schemaVersion: Literal["1.0"]
     jobId: str = Field(min_length=1)
     schoolId: str = Field(min_length=1)
+    ruleSnapshotId: str | None = Field(default=None, min_length=1)
+    ruleSetVersion: str | None = Field(default=None, pattern=r"^RULE-SET-[0-9]+\.[0-9]+\.[0-9]+$")
+    ruleSnapshotHash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     timeSlots: list[TimeSlot]
     lessons: list[LessonRequirement]
     options: SolveJobOptions | None = None
+
+    @model_validator(mode="after")
+    def validate_rule_snapshot_reference(self) -> "SolveJobRequest":
+        fields = (self.ruleSnapshotId, self.ruleSetVersion, self.ruleSnapshotHash)
+        if any(value is not None for value in fields) and not all(value is not None for value in fields):
+            raise ValueError("rule snapshot metadata must include id, version and hash together")
+        return self
 
 
 class Assignment(BaseModel):
@@ -66,6 +76,9 @@ class SolverMetadata(BaseModel):
     contractVersion: Literal["1.0"]
     randomSeed: int
     timeLimitSeconds: float = Field(gt=0)
+    ruleSnapshotId: str | None = Field(default=None, min_length=1)
+    ruleSetVersion: str | None = Field(default=None, pattern=r"^RULE-SET-[0-9]+\.[0-9]+\.[0-9]+$")
+    ruleSnapshotHash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 
 
 class SolveJobResult(BaseModel):

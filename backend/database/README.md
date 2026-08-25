@@ -25,6 +25,13 @@ stream có `correlation_id`, `actor_role` và `entity_key`; bỏ unique constrai
 theo entity/action để giữ được nhiều lần create/update/delete. Identity header
 adapter và permission matrix do NestJS sở hữu; production IdP vẫn là gate riêng.
 
+`007_versioned_rule_set_snapshots.sql` chuẩn hóa metadata nguồn, phạm vi, ngày
+hiệu lực và trạng thái phê duyệt của `rule_profiles`/`rule_definitions`, tạo
+snapshot bất biến `rule_set_snapshots` có hash SHA-256, và liên kết snapshot
+đã dùng vào `optimization_runs`. Snapshot là bản tái dựng chính xác của rule
+set tại thời điểm solve; việc thực thi các loại rule mới trong solver thuộc
+P2.1-T02.
+
 Migration là forward-only: không có down migration. Trước khi migrate môi
 trường có dữ liệu, tạo backup/snapshot; nếu cần quay lại thì restore snapshot
 hoặc viết migration sửa tiếp theo. Không xóa hay gộp các row legacy/import QC

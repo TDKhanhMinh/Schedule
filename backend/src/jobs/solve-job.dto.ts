@@ -2,13 +2,16 @@ import { Type } from "class-transformer";
 import {
   ArrayMinSize,
   IsArray,
+  IsDefined,
   IsIn,
   IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Min,
+  ValidateIf,
   ValidateNested,
 } from "class-validator";
 import type { SolveJobRequest } from "../contracts";
@@ -77,6 +80,24 @@ export class SolveJobDto implements SolveJobRequest {
   @IsString()
   @IsNotEmpty()
   schoolId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ValidateIf((payload) => Boolean(payload.ruleSnapshotId || payload.ruleSetVersion || payload.ruleSnapshotHash))
+  @IsDefined()
+  ruleSnapshotId?: string;
+
+  @IsString()
+  @Matches(/^RULE-SET-[0-9]+\.[0-9]+\.[0-9]+$/)
+  @ValidateIf((payload) => Boolean(payload.ruleSnapshotId || payload.ruleSetVersion || payload.ruleSnapshotHash))
+  @IsDefined()
+  ruleSetVersion?: string;
+
+  @IsString()
+  @Matches(/^[0-9a-f]{64}$/)
+  @ValidateIf((payload) => Boolean(payload.ruleSnapshotId || payload.ruleSetVersion || payload.ruleSnapshotHash))
+  @IsDefined()
+  ruleSnapshotHash?: string;
 
   @IsArray()
   @ArrayMinSize(1)

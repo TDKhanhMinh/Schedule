@@ -24,6 +24,9 @@ wire name, không tạo thêm domain concept mới.
 - `lessons[]` là tên field wire hiện tại để tương thích `schemaVersion: "1.0"`;
   domain concept chuẩn của từng phần tử là `LessonRequirement`, không phải một
   khái niệm thứ hai tên `Lesson`.
+- `rule_profiles` là cấu hình nguồn có thể chỉnh sửa trước activation; một
+  `RuleSetSnapshot` là bản chụp bất biến, có hash và là bằng chứng rule set đã
+  dùng cho một `OptimizationRun`.
 
 ## 2. Glossary chuẩn
 
@@ -44,15 +47,16 @@ wire name, không tạo thêm domain concept mới.
 | Số tiết yêu cầu | `RequiredSessions` / `requiredSessions` | Tổng số lượt tiết phải được xếp cho một `LessonRequirement`; không phải số `TimeSlot` đã được gán. Ví dụ `2`. | `requiredSessions` | PostgreSQL `lesson_requirements.required_sessions`; API/Python cùng tên camelCase. **Đã có ở v1.** |
 | Lượt tiết | `LessonSession` / `sessionIndex` | Một lần xuất hiện của một phân công; đánh số từ 0 trong contract để phân biệt các lượt cùng môn/lớp/giáo viên. | `lessonId`, `sessionIndex` | Không có bảng riêng; `lessonId` trỏ về item `id` của `lessons[]`/row `lesson_requirements`; xuất hiện trong `Assignment` và `optimization_assignments.session_index`. **Đã có ở result v1.** |
 | Phân công vào lịch | `Assignment` / `assignment` | Kết quả gán một lượt tiết vào một khung ngày-tiết. Ví dụ `lessonId + sessionIndex + slotId`. | `lessonId`, `sessionIndex`, `slotId`, tương lai `roomId` | API/Python result `assignments[]`; PostgreSQL `optimization_assignments`. **Đã có ở v1, chưa gán phòng.** |
-| Ràng buộc cứng | `HardConstraint` / `hardConstraint` | Điều kiện bắt buộc; vi phạm làm phương án không hợp lệ. Ví dụ mỗi lớp/giáo viên không thể có hai lượt cùng một `TimeSlot`, hoặc `fixedSlotId` phải tồn tại. | `type`, `scope`, `parameters`, `source`, `effectiveFrom` | Hiện được biểu diễn bằng `requiredSessions`, `allowedSlotIds`, `fixedSlotId` và luật CP-SAT; result ghi `diagnostics.conflicts`. **Đã có một phần ở v1.** |
-| Ràng buộc mềm | `SoftConstraint` / `softConstraint` | Điều kiện ưu tiên nhưng có thể vi phạm với chi phí/trọng số, ví dụ tránh tiết cuối cho giáo viên. | `type`, `weight`, `scope`, `parameters`, `source`, `effectiveFrom` | Schema v1 chưa có `softConstraints` và solver chưa tối ưu trọng số. **Khái niệm thuộc MVP, capability follow-up.** |
+| Ràng buộc cứng | `HardConstraint` / `hardConstraint` | Điều kiện bắt buộc; vi phạm làm phương án không hợp lệ. Trong rule model, rule phải có `code`, `sourceUrl`, ngày hiệu lực, `scope`, approval state và `kind: HARD`; ví dụ mỗi lớp/giáo viên không thể có hai lượt cùng một `TimeSlot`. | `code`, `kind`, `scope`, `parameters`, `sourceUrl`, `effectiveFrom`, approval | `RuleDefinition`/`rule_definitions`; snapshot dùng khi solve; v1 vẫn enforce các invariant slot/class/teacher hiện có, rule kinds mới thuộc P2.1-T02. |
+| Ràng buộc mềm | `SoftConstraint` / `softConstraint` | Điều kiện ưu tiên nhưng có thể vi phạm với chi phí/trọng số, ví dụ tránh tiết cuối cho giáo viên. Trong rule model phải có `kind: SOFT` và weight không âm. | `code`, `kind`, `weight`, `scope`, `parameters`, `sourceUrl`, `effectiveFrom`, approval | `RuleDefinition`/`rule_definitions` và `RuleSetSnapshot`; v1 chưa tối ưu trọng số, capability enforcement thuộc P2.1-T02. |
+| Snapshot bộ luật | `RuleSetSnapshot` / `ruleSnapshotId` | Bản chụp bất biến của profile và các rule đã chọn, có version bộ luật, register version, nguồn, hiệu lực, phạm vi, approval và hash canonical để tái dựng chính xác rule set. | `snapshotId`, `ruleSetVersion`, `profileVersion`, `registerVersion`, `sourceUrl`, `effectiveFrom`, `scope`, `approvalState`, `rules`, `snapshotHash` | PostgreSQL `rule_set_snapshots`; request/result có thể mang id/version/hash; `optimization_runs` lưu liên kết. **Đã có contract/persistence foundation P2.1-T01.** |
 | Nguyện vọng | `Preference` / `preference` | Mong muốn của giáo viên/trường dùng để tạo ràng buộc mềm hoặc cảnh báo; không tự động trở thành ràng buộc cứng. Ví dụ giáo viên ưu tiên không dạy tiết 5. | `actorType`, `actorId`, `constraintType`, `weight`, `allowedSlotIds`/`blockedSlotIds`, `reason` | Chưa có bảng/API/solver field v1. Khi triển khai phải map rõ sang `SoftConstraint` hoặc hard rule được phê duyệt. **Chưa triển khai.** |
 | Job tối ưu | `OptimizationJob` / `jobId` | Một lần yêu cầu solver chạy bất đồng bộ, có vòng đời queue và kết quả. | `jobId`, `schemaVersion`, `status`, `requestedAt`, `completedAt` | BullMQ job `optimization.solve`; API `POST/GET /api/v1/optimization-jobs`; PostgreSQL tương lai dùng `optimization_runs`. **Queue/API đã có ở local.** |
 | Lần chạy tối ưu | `OptimizationRun` / `runId` | Bản ghi/audit của một lần chạy solver, độc lập với phiên bản lịch được người dùng lưu. | `id`, `schoolId`, `status`, `contractVersion`, timestamps, diagnostics | PostgreSQL `optimization_runs`; API job id hiện chưa phải UUID `runId`. **Persistence baseline có, lifecycle đầy đủ follow-up.** |
 | Phương án xếp thời khóa biểu | `ScheduleSolution` / `solution` | Tập `Assignment` do một `OptimizationRun` trả về, kèm trạng thái, objective và diagnostics. Ví dụ phương án `OPTIMAL` có 5 assignments và 0 conflicts. | `status`, `assignments`, `objectiveValue`, `diagnostics` | API/Python `SolveJobResult`; chưa có entity lưu độc lập. **Đã có ở result v1.** |
 | Phiên bản thời khóa biểu | `ScheduleVersion` / `scheduleVersionId` | Snapshot nghiệp vụ có thể xem, chỉnh sửa, phê duyệt, khóa hoặc công bố; khác với kết quả tạm của một job. | `id`, `schoolId`, `academicPeriodId`, `versionNumber`, `status`, `sourceRunId`, `createdBy` | Chưa có bảng/API trong baseline; PostgreSQL `optimization_runs` không được gọi là `ScheduleVersion`. **Capability follow-up.** |
 | Chẩn đoán | `Diagnostics` / `diagnostics` | Thông tin giải thích kết quả, gồm cảnh báo không chặn và xung đột làm phương án không khả thi. | `warnings[]`, `conflicts[]`, tương lai `ruleCode`/`source` | `SolveJobResult.diagnostics` và JSON schema/Pydantic cùng cấu trúc. **Đã có ở v1.** |
-| Phiên bản contract | `ContractVersion` / `schemaVersion` | Phiên bản hình dạng và ý nghĩa của request/result giữa NestJS và Python; breaking change phải tăng version. | `schemaVersion` ở request/result; DB audit dùng `contract_version` | JSON Schema const `"1.0"`; TS/Python `CONTRACT_VERSION`; DB `optimization_runs.contract_version`. **Đã có ở v1.** |
+| Phiên bản contract | `ContractVersion` / `schemaVersion` | Phiên bản hình dạng và ý nghĩa của request/result giữa NestJS và Python; breaking change phải tăng version. Rule set có version độc lập để không nhầm với wire contract. | `schemaVersion` ở request/result; `ruleSetVersion`/`ruleSnapshotHash` cho rule provenance; DB audit dùng `contract_version` | Solve wire contract vẫn const `"1.0"`; rule contract là `RULE-SET-1.0.0`; TS/Python/JSON Schema và DB snapshot/run mapping cùng được version hóa. |
 
 ## 3. Mapping contract v1
 
@@ -74,6 +78,9 @@ wire name, không tạo thêm domain concept mới.
   và rule version tương ứng.
 - Không đổi `lessons[]` thành `lessonRequirements[]` trong `schemaVersion: 1.0`
   mà không có migration/versioning; domain code vẫn dùng `LessonRequirement`.
+- Không coi `rule_profiles` là bằng chứng lịch sử; snapshot bất biến và
+  `optimization_runs.rule_snapshot_id/rule_snapshot_hash` mới xác định rule set
+  đã dùng cho một lần solve.
 
 ## 4. Khoảng trống contract cần theo dõi
 
@@ -83,7 +90,8 @@ solver contract v1:
 1. `academicPeriodId` trong request và phạm vi dữ liệu theo học kỳ.
 2. `shiftCode`/ca học và mapping ngày trong import Excel.
 3. `roomId` trong assignment cùng hard/soft room constraints.
-4. `SoftConstraint` và `Preference` có trọng số, nguồn, ngày hiệu lực.
+4. `SoftConstraint` và `Preference` được evaluate/enforce bằng snapshot có
+   trọng số, nguồn, ngày hiệu lực.
 5. `ScheduleVersion` với trạng thái draft/approved/published/locked.
 
 Khi một mục được triển khai, phải cập nhật đồng thời glossary này, JSON Schema,

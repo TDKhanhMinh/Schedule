@@ -55,6 +55,9 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
                 "contractVersion": CONTRACT_VERSION,
                 "randomSeed": random_seed,
                 "timeLimitSeconds": request.options.timeLimitSeconds if request.options else DEFAULT_TIME_LIMIT_SECONDS,
+                "ruleSnapshotId": request.ruleSnapshotId,
+                "ruleSetVersion": request.ruleSetVersion,
+                "ruleSnapshotHash": request.ruleSnapshotHash,
             },
         )
 
@@ -103,5 +106,8 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
             "contractVersion": CONTRACT_VERSION,
             "randomSeed": random_seed,
             "timeLimitSeconds": time_limit_seconds,
+            "ruleSnapshotId": request.ruleSnapshotId,
+            "ruleSetVersion": request.ruleSetVersion,
+            "ruleSnapshotHash": request.ruleSnapshotHash,
         },
     )
