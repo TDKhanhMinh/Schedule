@@ -30,12 +30,26 @@
       "properties": {
         "warnings": { "type": "array", "items": { "type": "string" } },
         "conflicts": { "type": "array", "items": { "type": "string" } },
+        "catalogVersion": { "const": "CONFLICT-CATALOG-1.0.0" },
+        "conflictDetails": {
+          "type": "array",
+          "items": { "$ref": "conflict-catalog.schema.json#/$defs/diagnostic" }
+        },
         "preSolve": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["contractVersion", "canSolve", "totalDemandSessions", "slotCapacity", "issues", "warnings"],
+          "required": [
+            "contractVersion",
+            "catalogVersion",
+            "canSolve",
+            "totalDemandSessions",
+            "slotCapacity",
+            "issues",
+            "warnings"
+          ],
           "properties": {
             "contractVersion": { "const": "PRE-SOLVE-1.0.0" },
+            "catalogVersion": { "const": "CONFLICT-CATALOG-1.0.0" },
             "canSolve": { "type": "boolean" },
             "totalDemandSessions": { "type": "integer", "minimum": 0 },
             "slotCapacity": { "type": "integer", "minimum": 0 },
@@ -44,11 +58,23 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["code", "severity", "message"],
+                "required": [
+                  "catalogVersion",
+                  "code",
+                  "severity",
+                  "entity",
+                  "message",
+                  "remediationHint",
+                  "entityReferences"
+                ],
                 "properties": {
+                  "catalogVersion": { "const": "CONFLICT-CATALOG-1.0.0" },
                   "code": { "type": "string", "minLength": 1 },
                   "severity": { "enum": ["ERROR", "WARNING"] },
+                  "entity": { "enum": ["IMPORT", "JOB", "LESSON", "CLASS", "TEACHER", "ROOM", "SLOT", "RULE"] },
                   "message": { "type": "string", "minLength": 1 },
+                  "remediationHint": { "type": "string", "minLength": 1 },
+                  "entityReferences": { "type": "object", "additionalProperties": { "type": "string" } },
                   "lessonId": { "type": "string", "minLength": 1 },
                   "resourceId": { "type": "string", "minLength": 1 },
                   "details": { "type": "object" }

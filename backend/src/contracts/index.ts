@@ -6,6 +6,7 @@ export const OPTIMIZATION_QUEUE = "optimization" as const;
 export const OPTIMIZATION_JOB_NAME = "optimization.solve" as const;
 
 export * from "./rule-set";
+export * from "./conflict-catalog";
 export * from "./pre-solve";
 export * from "./teacher-availability";
 export * from "./teacher-load";
@@ -59,6 +60,8 @@ export interface Assignment {
 export interface SolveDiagnostics {
   warnings: string[];
   conflicts: string[];
+  catalogVersion?: "CONFLICT-CATALOG-1.0.0";
+  conflictDetails?: import("./conflict-catalog").ConflictDiagnostic[];
   preSolve?: PreSolveReport;
 }
 

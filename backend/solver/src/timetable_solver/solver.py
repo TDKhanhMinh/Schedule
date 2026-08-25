@@ -1,5 +1,6 @@
 from ortools.sat.python import cp_model
 
+from .conflict_catalog import CONFLICT_CATALOG_VERSION, conflict_diagnostic
 from .contracts import (
     Assignment,
     CONTRACT_VERSION,
@@ -47,8 +48,18 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
     pre_solve = run_pre_solve_checks(request)
     if not pre_solve.canSolve:
         pre_solve_conflicts = [f"{issue.code}: {issue.message}" for issue in pre_solve.issues]
+        conflict_details = [
+            conflict_diagnostic(issue.code, issue.message, issue.entityReferences, issue.severity)
+            for issue in pre_solve.issues
+        ]
         if "No feasible assignment satisfies all hard class and teacher constraints" not in pre_solve_conflicts:
             pre_solve_conflicts.append("No feasible assignment satisfies all hard class and teacher constraints")
+            conflict_details.append(
+                conflict_diagnostic(
+                    "NO_FEASIBLE_ASSIGNMENT",
+                    "No feasible assignment satisfies all hard class and teacher constraints",
+                )
+            )
         return SolveJobResult(
             schemaVersion=CONTRACT_VERSION,
             jobId=request.jobId,
@@ -58,6 +69,8 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
             diagnostics={
                 "warnings": pre_solve.warnings,
                 "conflicts": pre_solve_conflicts,
+                "catalogVersion": CONFLICT_CATALOG_VERSION,
+                "conflictDetails": conflict_details,
                 "preSolve": pre_solve,
             },
             metadata={
@@ -74,6 +87,7 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
     lessons_by_id = {lesson.id: lesson for lesson in request.lessons}
     warnings: list[str] = []
     conflicts: list[str] = []
+    conflict_details = []
     model = cp_model.CpModel()
     variables: dict[tuple[str, int, str], cp_model.IntVar] = {}
     availability_rules = _active_availability_rules(request)
@@ -84,6 +98,9 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
     for lesson in request.lessons:
         if lesson.fixedSlotId and lesson.fixedSlotId not in slot_ids:
             conflicts.append(f"Lesson {lesson.id} references unknown fixed slot {lesson.fixedSlotId}")
+            conflict_details.append(
+                conflict_diagnostic("UNKNOWN_FIXED_SLOT", f"Lesson {lesson.id} references unknown fixed slot.", {"lessonId": lesson.id})
+            )
             continue
 
         allowed = set(lesson.allowedSlotIds or slot_ids)
@@ -92,6 +109,9 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
         unknown = sorted(allowed - slot_ids)
         if unknown:
             conflicts.append(f"Lesson {lesson.id} references unknown slots: {', '.join(unknown)}")
+            conflict_details.append(
+                conflict_diagnostic("UNKNOWN_ALLOWED_SLOT", f"Lesson {lesson.id} references unknown slots.", {"lessonId": lesson.id})
+            )
             allowed -= set(unknown)
 
         for session_index in range(lesson.requiredSessions):
@@ -117,6 +137,13 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
                 conflicts.append(
                     f"Lesson {lesson.id} session {session_index} has no allowed slots after hard teacher availability rules"
                 )
+                conflict_details.append(
+                    conflict_diagnostic(
+                        "HARD_AVAILABILITY_CONFLICT",
+                        f"Lesson {lesson.id} session {session_index} has no allowed slots after hard teacher availability rules",
+                        {"lessonId": lesson.id},
+                    )
+                )
 
     if conflicts:
         return SolveJobResult(
@@ -125,7 +152,13 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
             status="INFEASIBLE",
             assignments=[],
             objectiveValue=None,
-            diagnostics={"warnings": warnings, "conflicts": conflicts, "preSolve": pre_solve},
+            diagnostics={
+                "warnings": warnings,
+                "conflicts": conflicts,
+                "catalogVersion": CONFLICT_CATALOG_VERSION,
+                "conflictDetails": conflict_details,
+                "preSolve": pre_solve,
+            },
             metadata={
                 "solverVersion": SOLVER_VERSION,
                 "contractVersion": CONTRACT_VERSION,
@@ -166,6 +199,9 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
 
     if status_name == "INFEASIBLE" and not conflicts:
         conflicts.append("No feasible assignment satisfies all hard class and teacher constraints")
+        conflict_details.append(
+            conflict_diagnostic("NO_FEASIBLE_ASSIGNMENT", "No feasible assignment satisfies all hard class and teacher constraints")
+        )
 
     assignments: list[Assignment] = []
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
@@ -184,6 +220,14 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
                     warnings.append(
                         f"PREFERENCE_VIOLATED:{rule.code}:teacher={lesson.teacherId}:slot={assignment.slotId}"
                     )
+                    conflict_details.append(
+                        conflict_diagnostic(
+                            "PREFERENCE_VIOLATED",
+                            f"Teacher {lesson.teacherId} preference {rule.code} was violated at slot {assignment.slotId}.",
+                            {"teacherId": lesson.teacherId, "slotId": assignment.slotId},
+                            "WARNING",
+                        )
+                    )
 
     return SolveJobResult(
         schemaVersion=CONTRACT_VERSION,
@@ -191,7 +235,13 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
         status=status_name,
         assignments=assignments,
         objectiveValue=solver.ObjectiveValue() if status in (cp_model.OPTIMAL, cp_model.FEASIBLE) else None,
-        diagnostics={"warnings": warnings, "conflicts": conflicts, "preSolve": pre_solve},
+        diagnostics={
+            "warnings": warnings,
+            "conflicts": conflicts,
+            "catalogVersion": CONFLICT_CATALOG_VERSION,
+            "conflictDetails": conflict_details,
+            "preSolve": pre_solve,
+        },
         metadata={
             "solverVersion": SOLVER_VERSION,
             "contractVersion": CONTRACT_VERSION,

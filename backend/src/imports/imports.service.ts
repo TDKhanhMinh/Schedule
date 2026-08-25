@@ -4,6 +4,7 @@ import JSZip from "jszip";
 import { createHash, randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import { PG_POOL } from "../database/database.module";
+import { createConflictDiagnostic, type ConflictDiagnostic } from "../contracts/conflict-catalog";
 
 const TEMPLATE_VERSION = "1.0";
 export const MAX_WORKBOOK_SIZE_BYTES = 5 * 1024 * 1024;
@@ -32,6 +33,7 @@ type ColumnKey = (typeof REQUIRED_COLUMNS)[number]["key"] | (typeof OPTIONAL_COL
 type RawRow = Record<ColumnKey, string | number | null>;
 
 export interface ImportIssue {
+  catalogVersion: ConflictDiagnostic["catalogVersion"];
   sheet: string;
   row: number;
   column: string;
@@ -39,7 +41,10 @@ export interface ImportIssue {
   field: string;
   code: string;
   severity: "ERROR" | "WARNING";
+  entity: ConflictDiagnostic["entity"];
   message: string;
+  remediationHint: string;
+  entityReferences: Record<string, string>;
   value: string | number | null;
 }
 
@@ -1168,15 +1173,20 @@ export class ImportsService {
     value: string | number | null,
     cell?: string,
   ): ImportIssue {
+    const diagnostic = createConflictDiagnostic(code, message, {
+      sheet,
+      row: String(row),
+      column,
+      field,
+    });
     return {
+      ...diagnostic,
       sheet,
       row,
       column,
       cell: cell ?? (column === "—" ? "—" : `${column}${row}`),
       field,
-      code,
       severity: "ERROR",
-      message,
       value,
     };
   }

@@ -11,6 +11,9 @@ HTTP error uses this shape:
   "requestId": "qc-2026-08-24-001",
   "timestamp": "2026-08-24T08:00:00.000Z",
   "path": "/api/v1/imports/preview",
+  "catalogVersion": "CONFLICT-CATALOG-1.0.0",
+  "remediationHint": "Dùng template MVP-0.1.0 và giữ nguyên tên các cột bắt buộc.",
+  "entity": "IMPORT",
   "details": {
     "code": "INVALID_TEMPLATE",
     "message": "File thiếu các cột bắt buộc: Mã lớp",
@@ -23,6 +26,11 @@ HTTP error uses this shape:
 `x-request-id`; the same value is returned in the response header. Internal
 errors return a safe generic message and never expose stack traces or
 connection details.
+
+Known data and constraint errors use the versioned catalog in
+[`conflict-catalog.md`](./conflict-catalog.md). The exception boundary removes
+`stack`, `stackTrace` and `cause` from structured details before returning the
+response.
 
 ## NestJS module map
 

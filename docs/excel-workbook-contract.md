@@ -100,8 +100,10 @@ The error catalog is part of the workbook and mirrors current API error codes:
 
 For v1, the first sheet is fixed to `LessonRequirements`, while the preview
 summarizes every sheet and marks later guidance sheets as `IGNORED`. Each issue
-has `severity` (`ERROR` or `WARNING`), a machine-readable `code`, a canonical
-field, the source sheet, Excel column letter and cell reference. The preview
+has `severity` (`ERROR` or `WARNING`), a machine-readable `code`,
+`catalogVersion: CONFLICT-CATALOG-1.0.0`, a Vietnamese `remediationHint`, a
+bounded `entityReferences` map, a canonical field, the source sheet, Excel
+column letter and cell reference. The preview
 also returns `status` (`VALID`, `WARNING` or `INVALID`) and `normalized` values
 for every row. The current five-column contract has no enum-valued field; an
 `INVALID_ENUM` rule must be added only with an approved versioned contract

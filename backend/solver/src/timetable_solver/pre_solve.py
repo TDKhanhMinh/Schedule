@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
+from .conflict_catalog import CONFLICT_CATALOG_VERSION, conflict_diagnostic
 from .contracts import SolveJobRequest
 from .pre_solve_contract import PRE_SOLVE_CONTRACT_VERSION, PreSolveIssue, PreSolveReport
 from .teacher_availability import TeacherAvailabilityRule
@@ -30,6 +31,15 @@ def _matches_slot(rule: TeacherAvailabilityRule, slot) -> bool:
     if rule.period and rule.period != slot.period:
         return False
     return True
+
+
+def _decorate_issue(issue: PreSolveIssue) -> PreSolveIssue:
+    references = {
+        **({"lessonId": issue.lessonId} if issue.lessonId else {}),
+        **({"resourceId": issue.resourceId} if issue.resourceId else {}),
+    }
+    diagnostic = conflict_diagnostic(issue.code, issue.message, references, issue.severity)
+    return issue.model_copy(update=diagnostic.model_dump())
 
 
 def _candidate_slots(request: SolveJobRequest, lesson, slots_by_id, hard_rules):
@@ -174,9 +184,10 @@ def run_pre_solve_checks(request: SolveJobRequest) -> PreSolveReport:
 
     return PreSolveReport(
         contractVersion=PRE_SOLVE_CONTRACT_VERSION,
+        catalogVersion=CONFLICT_CATALOG_VERSION,
         canSolve=not any(issue.severity == "ERROR" for issue in issues),
         totalDemandSessions=demand,
         slotCapacity=slot_capacity,
-        issues=issues,
+        issues=[_decorate_issue(issue) for issue in issues],
         warnings=[],
     )

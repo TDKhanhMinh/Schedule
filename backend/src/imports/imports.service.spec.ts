@@ -290,6 +290,8 @@ describe("ImportsService secure workbook boundary", () => {
           cell,
           code,
           severity: "ERROR",
+          catalogVersion: "CONFLICT-CATALOG-1.0.0",
+          remediationHint: expect.any(String),
         }),
       ]),
     );

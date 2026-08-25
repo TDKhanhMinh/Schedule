@@ -2,6 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from .conflict_catalog import CONFLICT_CATALOG_VERSION, ConflictDiagnostic
 from .teacher_availability import TeacherAvailabilitySet
 from .pre_solve_contract import PreSolveReport
 
@@ -83,6 +84,8 @@ class SolveDiagnostics(BaseModel):
 
     warnings: list[str]
     conflicts: list[str]
+    catalogVersion: Literal["CONFLICT-CATALOG-1.0.0"] = CONFLICT_CATALOG_VERSION
+    conflictDetails: list[ConflictDiagnostic] = Field(default_factory=list)
     preSolve: PreSolveReport | None = None
 
 

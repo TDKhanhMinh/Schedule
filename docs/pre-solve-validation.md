@@ -2,6 +2,11 @@
 
 **Contract:** `PRE-SOLVE-1.0.0`
 
+Every issue also carries `catalogVersion: CONFLICT-CATALOG-1.0.0`, a stable
+`entity`, a Vietnamese `remediationHint` and bounded `entityReferences`. See
+[`conflict-catalog.md`](./conflict-catalog.md) for the import/API/solver
+mapping.
+
 Pre-solve validation is a necessary-condition gate owned by the API and
 repeated by the Python worker. It prevents a job with a provably impossible
 dataset from consuming CP-SAT time; CP-SAT remains the final authority for the

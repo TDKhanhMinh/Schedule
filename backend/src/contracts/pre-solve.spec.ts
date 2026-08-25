@@ -28,7 +28,11 @@ describe("pre-solve checks", () => {
     );
 
     expect(report.canSolve).toBe(false);
+    expect(report.catalogVersion).toBe("CONFLICT-CATALOG-1.0.0");
     expect(report.issues.map((issue) => issue.code)).toContain("TOTAL_SLOT_CAPACITY_EXCEEDED");
+    expect(report.issues[0]).toEqual(
+      expect.objectContaining({ catalogVersion: "CONFLICT-CATALOG-1.0.0", remediationHint: expect.any(String) }),
+    );
   });
 
   it("combines hard availability and room capability checks", () => {

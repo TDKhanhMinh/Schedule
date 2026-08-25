@@ -56,6 +56,8 @@ class SolverTest(unittest.TestCase):
         self.assertEqual(result.status, "INFEASIBLE")
         self.assertEqual(result.assignments, [])
         self.assertTrue(result.diagnostics.conflicts)
+        self.assertEqual(result.diagnostics.catalogVersion, "CONFLICT-CATALOG-1.0.0")
+        self.assertTrue(result.diagnostics.conflictDetails)
         self.assertEqual(result.metadata.solverVersion, "0.1.0")
 
     def test_hard_teacher_unavailable_is_never_assigned(self):
@@ -160,6 +162,7 @@ class SolverTest(unittest.TestCase):
 
         self.assertEqual(result.status, "OPTIMAL")
         self.assertTrue(any("PREFERENCE_VIOLATED:RULE-TEACHER-AVAILABILITY-SOFT" in warning for warning in result.diagnostics.warnings))
+        self.assertEqual(result.diagnostics.conflictDetails[0].code, "PREFERENCE_VIOLATED")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,33 @@
+{
+  "catalogVersion": "CONFLICT-CATALOG-1.0.0",
+  "definitions": [
+    {
+      "code": "UNKNOWN_REFERENCE",
+      "severity": "ERROR",
+      "entity": "IMPORT",
+      "messageTemplateVi": "Mã tham chiếu không tồn tại trong master data.",
+      "remediationHintVi": "Dùng đúng mã lớp, môn, giáo viên hoặc phòng đã được khai báo."
+    },
+    {
+      "code": "TOTAL_SLOT_CAPACITY_EXCEEDED",
+      "severity": "ERROR",
+      "entity": "CLASS",
+      "messageTemplateVi": "Tổng nhu cầu vượt sức chứa class-slot.",
+      "remediationHintVi": "Kiểm tra số tiết, số slot và phân bổ lesson theo từng lớp."
+    },
+    {
+      "code": "NO_FEASIBLE_ASSIGNMENT",
+      "severity": "ERROR",
+      "entity": "JOB",
+      "messageTemplateVi": "Không tìm được assignment thỏa mãn các hard constraints.",
+      "remediationHintVi": "Xem các conflict theo lesson/lớp/giáo viên và nới input hoặc rule phù hợp."
+    },
+    {
+      "code": "PREFERENCE_VIOLATED",
+      "severity": "WARNING",
+      "entity": "TEACHER",
+      "messageTemplateVi": "Solver phải vi phạm một preference mềm.",
+      "remediationHintVi": "Review lịch kết quả hoặc giảm mức ưu tiên của preference nếu cần."
+    }
+  ]
+}

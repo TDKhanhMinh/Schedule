@@ -29,7 +29,9 @@ class PreSolveTest(unittest.TestCase):
             )
         )
         self.assertFalse(report.canSolve)
+        self.assertEqual(report.catalogVersion, "CONFLICT-CATALOG-1.0.0")
         self.assertIn("TOTAL_SLOT_CAPACITY_EXCEEDED", {issue.code for issue in report.issues})
+        self.assertTrue(report.issues[0].remediationHint)
 
     def test_hard_teacher_availability_and_room_capability_are_checked(self):
         report = run_pre_solve_checks(

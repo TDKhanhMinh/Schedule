@@ -1,4 +1,5 @@
 import type { LessonRequirement, SolveJobRequest, TimeSlot } from "./index";
+import { createConflictDiagnostic, CONFLICT_CATALOG_VERSION, type ConflictDiagnostic } from "./conflict-catalog";
 import { availabilityRuleMatchesSlot, type TeacherAvailabilityRule } from "./teacher-availability";
 
 export const PRE_SOLVE_CONTRACT_VERSION = "PRE-SOLVE-1.0.0" as const;
@@ -9,9 +10,13 @@ export interface RoomCapability {
 }
 
 export interface PreSolveIssue {
+  catalogVersion: typeof CONFLICT_CATALOG_VERSION;
   code: string;
   severity: "ERROR" | "WARNING";
+  entity: ConflictDiagnostic["entity"];
   message: string;
+  remediationHint: string;
+  entityReferences: Record<string, string>;
   lessonId?: string;
   resourceId?: string;
   details?: Record<string, unknown>;
@@ -19,11 +24,26 @@ export interface PreSolveIssue {
 
 export interface PreSolveReport {
   contractVersion: typeof PRE_SOLVE_CONTRACT_VERSION;
+  catalogVersion: typeof CONFLICT_CATALOG_VERSION;
   canSolve: boolean;
   totalDemandSessions: number;
   slotCapacity: number;
   issues: PreSolveIssue[];
   warnings: string[];
+}
+
+type PreSolveIssueDraft = Omit<PreSolveIssue, "catalogVersion" | "entity" | "remediationHint" | "entityReferences">;
+
+function finalizeIssue(issue: PreSolveIssueDraft): PreSolveIssue {
+  const entityReferences = {
+    ...(issue.lessonId ? { lessonId: issue.lessonId } : {}),
+    ...(issue.resourceId ? { resourceId: issue.resourceId } : {}),
+  };
+  return {
+    ...issue,
+    ...createConflictDiagnostic(issue.code, issue.message, entityReferences, issue.severity),
+    severity: issue.severity,
+  };
 }
 
 function activeTeacherRules(request: SolveJobRequest): TeacherAvailabilityRule[] {
@@ -37,7 +57,7 @@ function activeTeacherRules(request: SolveJobRequest): TeacherAvailabilityRule[]
 }
 
 function candidateSlots(request: SolveJobRequest, lesson: LessonRequirement, slotsById: Map<string, TimeSlot>) {
-  const issues: PreSolveIssue[] = [];
+  const issues: PreSolveIssueDraft[] = [];
   const allSlotIds = new Set(slotsById.keys());
   let allowed = new Set(lesson.allowedSlotIds ?? allSlotIds);
   const unknownAllowed = [...allowed].filter((slotId) => !allSlotIds.has(slotId));
@@ -77,7 +97,7 @@ function candidateSlots(request: SolveJobRequest, lesson: LessonRequirement, slo
 }
 
 function addResourceCapacityIssues(
-  issues: PreSolveIssue[],
+  issues: PreSolveIssueDraft[],
   lessons: LessonRequirement[],
   candidates: Map<string, string[]>,
   resource: "classId" | "teacherId",
@@ -101,7 +121,7 @@ function addResourceCapacityIssues(
 }
 
 export function runPreSolveChecks(request: SolveJobRequest): PreSolveReport {
-  const issues: PreSolveIssue[] = [];
+  const issues: PreSolveIssueDraft[] = [];
   const slotsById = new Map(request.timeSlots.map((slot) => [slot.id, slot]));
   const totalDemandSessions = request.lessons.reduce((sum, lesson) => sum + lesson.requiredSessions, 0);
   const candidates = new Map<string, string[]>();
@@ -183,10 +203,11 @@ export function runPreSolveChecks(request: SolveJobRequest): PreSolveReport {
 
   return {
     contractVersion: PRE_SOLVE_CONTRACT_VERSION,
+    catalogVersion: CONFLICT_CATALOG_VERSION,
     canSolve: issues.every((issue) => issue.severity !== "ERROR"),
     totalDemandSessions,
     slotCapacity,
-    issues,
+    issues: issues.map(finalizeIssue),
     warnings: [],
   };
 }
