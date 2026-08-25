@@ -71,6 +71,7 @@ export interface SolveDiagnostics {
   conflicts: string[];
   catalogVersion?: "CONFLICT-CATALOG-1.0.0";
   conflictDetails?: import("./conflict-catalog").ConflictDiagnostic[];
+  hardConstraintViolations?: string[];
   modelMetrics?: SolverModelMetrics;
   preSolve?: PreSolveReport;
 }

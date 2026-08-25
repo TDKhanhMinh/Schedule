@@ -1,6 +1,7 @@
 from ortools.sat.python import cp_model
 
 from .conflict_catalog import CONFLICT_CATALOG_VERSION, conflict_diagnostic
+from .constraint_audit import audit_hard_constraints
 from .contracts import (
     Assignment,
     CONTRACT_VERSION,
@@ -104,6 +105,7 @@ def solve(
                 "conflicts": pre_solve_conflicts,
                 "catalogVersion": CONFLICT_CATALOG_VERSION,
                 "conflictDetails": conflict_details,
+                "hardConstraintViolations": [],
                 "modelMetrics": {
                     "variableCount": 0,
                     "candidatePairCount": 0,
@@ -234,6 +236,7 @@ def solve(
                 "conflicts": conflicts,
                 "catalogVersion": CONFLICT_CATALOG_VERSION,
                 "conflictDetails": conflict_details,
+                "hardConstraintViolations": [],
                 "modelMetrics": {
                     "variableCount": len(variables),
                     "candidatePairCount": candidate_pair_count,
@@ -306,6 +309,22 @@ def solve(
                     )
                 )
 
+    hard_constraint_violations = (
+        audit_hard_constraints(request, assignments)
+        if status in (cp_model.OPTIMAL, cp_model.FEASIBLE)
+        else []
+    )
+    if hard_constraint_violations:
+        status_name = "INFEASIBLE"
+        assignments = []
+        conflicts.extend(hard_constraint_violations)
+        conflict_details.append(
+            conflict_diagnostic(
+                "NO_FEASIBLE_ASSIGNMENT",
+                "Decoded solver output violated one or more hard constraints.",
+            )
+        )
+
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         lessons_by_id = {lesson.id: lesson for lesson in request.lessons}
         for assignment in assignments:
@@ -330,12 +349,13 @@ def solve(
         jobId=request.jobId,
         status=status_name,
         assignments=assignments,
-        objectiveValue=solver.ObjectiveValue() if status in (cp_model.OPTIMAL, cp_model.FEASIBLE) else None,
+        objectiveValue=solver.ObjectiveValue() if status_name in {"OPTIMAL", "FEASIBLE"} else None,
         diagnostics={
             "warnings": warnings,
             "conflicts": conflicts,
             "catalogVersion": CONFLICT_CATALOG_VERSION,
             "conflictDetails": conflict_details,
+            "hardConstraintViolations": hard_constraint_violations,
             "modelMetrics": {
                 "variableCount": len(variables),
                 "candidatePairCount": candidate_pair_count,

@@ -1,6 +1,7 @@
 import unittest
 
-from timetable_solver.contracts import SolveJobRequest
+from timetable_solver.constraint_audit import audit_hard_constraints
+from timetable_solver.contracts import Assignment, SolveJobRequest
 from timetable_solver.solver import solve
 
 
@@ -36,6 +37,7 @@ class SolverTest(unittest.TestCase):
         self.assertEqual(result.metadata.ruleSnapshotId, "snapshot-001")
         self.assertEqual(result.metadata.ruleSetVersion, "RULE-SET-1.0.0")
         self.assertEqual(result.metadata.ruleSnapshotHash, "0" * 64)
+        self.assertEqual(result.diagnostics.hardConstraintViolations, [])
 
     def test_reports_infeasible_hard_teacher_conflict(self):
         request = SolveJobRequest.model_validate(
@@ -144,6 +146,7 @@ class SolverTest(unittest.TestCase):
         self.assertEqual(result.diagnostics.modelMetrics.candidatePairCount, 2)
         self.assertEqual(result.diagnostics.modelMetrics.roomDomainCount, 1)
         self.assertEqual(result.diagnostics.modelMetrics.domainPrunedCount, 2)
+        self.assertEqual(result.diagnostics.hardConstraintViolations, [])
 
     def test_enforces_room_occupancy_as_hard_constraint(self):
         request = SolveJobRequest.model_validate(
@@ -178,6 +181,39 @@ class SolverTest(unittest.TestCase):
         self.assertEqual(result.diagnostics.modelMetrics.variableCount, 2)
         self.assertEqual(result.diagnostics.modelMetrics.candidatePairCount, 2)
         self.assertEqual(result.diagnostics.conflictDetails[0].code, "NO_FEASIBLE_ASSIGNMENT")
+
+    def test_audit_rejects_duplicate_occurrence_and_resource_overlap(self):
+        request = SolveJobRequest.model_validate(
+            {
+                "schemaVersion": "1.0",
+                "jobId": "job-audit",
+                "schoolId": "school-1",
+                "timeSlots": [{"id": "mon-1", "day": 1, "period": 1}],
+                "rooms": [{"id": "room-1", "capabilities": ["STANDARD"]}],
+                "lessons": [
+                    {
+                        "id": "lesson-a",
+                        "classId": "class-7a",
+                        "subjectId": "math",
+                        "teacherId": "teacher-1",
+                        "requiredSessions": 1,
+                    }
+                ],
+            }
+        )
+        assignment = Assignment(
+            lessonId="lesson-a",
+            sessionIndex=0,
+            slotId="mon-1",
+            roomId="room-1",
+        )
+
+        violations = audit_hard_constraints(request, [assignment, assignment])
+
+        self.assertTrue(any(violation.startswith("EXACT_DEMAND_VIOLATION") for violation in violations))
+        self.assertTrue(any(violation.startswith("CLASS_OVERLAP") for violation in violations))
+        self.assertTrue(any(violation.startswith("TEACHER_OVERLAP") for violation in violations))
+        self.assertTrue(any(violation.startswith("ROOM_OVERLAP") for violation in violations))
 
     def test_strong_preference_is_avoided_and_soft_wish_can_be_violated(self):
         base = {

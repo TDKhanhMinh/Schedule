@@ -31,3 +31,9 @@ Assignments are decoded from the same tuple index, so a selected room is
 returned as `roomId`. The field is `null` in backwards-compatible no-room
 mode. These metrics and the reverse mapping are solver evidence; the UI is
 not a correctness boundary.
+
+After decoding, an independent hard-constraint audit verifies exact demand,
+unique lesson occurrences, and class/teacher/room no-overlap. Any violation is
+returned in `diagnostics.hardConstraintViolations` and the result is not
+reported as feasible. A successful result therefore carries an explicit empty
+audit list in addition to the CP-SAT constraints.

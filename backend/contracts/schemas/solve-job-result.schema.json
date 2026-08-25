@@ -36,6 +36,10 @@
           "type": "array",
           "items": { "$ref": "conflict-catalog.schema.json#/$defs/diagnostic" }
         },
+        "hardConstraintViolations": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
         "modelMetrics": {
           "type": "object",
           "additionalProperties": false,
