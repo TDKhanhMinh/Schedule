@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import type { SolveStatus } from "@schedule/backend/contracts";
 import { authHeaders, frontendConfig } from "./config";
 import { MasterDataScreen } from "./master-data";
 import { navigateTo, useAppRoute, type AppRoute } from "./routing";
+import { TimetableScreen } from "./timetable";
 
 type ApiStatus = "checking" | "online" | "offline";
 
@@ -651,59 +651,6 @@ function PreviewPanel({
         </button>
       ) : null}
     </section>
-  );
-}
-
-function TimetableScreen() {
-  const exampleStatus: SolveStatus = "FEASIBLE";
-
-  return (
-    <>
-      <PageHeader
-        eyebrow="Step 04 · Solve & review"
-        title="Thời khóa biểu"
-        description="Khu vực review theo lớp, giáo viên và phòng sẽ hiển thị sau khi một solve job hoàn tất."
-        action={
-          <button className="button-secondary" type="button" onClick={() => navigateTo("imports")}>
-            ← Quay lại import
-          </button>
-        }
-      />
-      <section className="panel timetable-shell" aria-labelledby="timetable-title">
-        <div className="timetable-toolbar">
-          <div>
-            <p className="eyebrow">Draft workspace</p>
-            <h2 id="timetable-title">Chưa có solution để review</h2>
-          </div>
-          <div className="toolbar-filters">
-            <button className="filter-button" type="button" disabled>
-              {" "}
-              Theo lớp ▾{" "}
-            </button>
-            <button className="filter-button" type="button" disabled>
-              {" "}
-              Tuần 1 ▾{" "}
-            </button>
-          </div>
-        </div>
-        <div className="timetable-empty">
-          <div className="calendar-icon" aria-hidden="true">
-            ▦
-          </div>
-          <h3>Grid sẽ xuất hiện sau bước Solve</h3>
-          <p>
-            Import và Confirm dữ liệu trước, sau đó hệ thống sẽ enqueue job qua BullMQ và trả về assignments cùng
-            diagnostics.
-          </p>
-          <button type="button" onClick={() => navigateTo("imports")}>
-            Bắt đầu từ Import →
-          </button>
-          <small>
-            Contract sample status: <code>{exampleStatus}</code>
-          </small>
-        </div>
-      </section>
-    </>
   );
 }
 

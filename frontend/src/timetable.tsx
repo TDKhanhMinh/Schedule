@@ -1,0 +1,448 @@
+import { useMemo, useState } from "react";
+import { navigateTo } from "./routing";
+
+type TimetableView = "class" | "teacher" | "room";
+type TimetableState = "loading" | "ready" | "empty" | "error";
+
+interface TimetableLesson {
+  id: string;
+  classId: string;
+  classLabel: string;
+  teacherId: string;
+  teacherLabel: string;
+  roomId: string;
+  roomLabel: string;
+  subjectLabel: string;
+  slotId: string;
+  status: "SCHEDULED" | "CONFLICT";
+  conflictMessage?: string;
+}
+
+interface TimetableSlot {
+  id: string;
+  day: number;
+  dayLabel: string;
+  period: number;
+  shiftLabel: string;
+  timeLabel: string;
+}
+
+interface TimetableEntity {
+  id: string;
+  label: string;
+  detail: string;
+}
+
+const DAYS = [
+  { day: 1, label: "Thứ 2" },
+  { day: 2, label: "Thứ 3" },
+  { day: 3, label: "Thứ 4" },
+  { day: 4, label: "Thứ 5" },
+  { day: 5, label: "Thứ 6" },
+] as const;
+
+const SLOTS: TimetableSlot[] = [
+  { id: "mon-p1", day: 1, dayLabel: "Thứ 2", period: 1, shiftLabel: "Sáng", timeLabel: "07:00–07:45" },
+  { id: "mon-p2", day: 1, dayLabel: "Thứ 2", period: 2, shiftLabel: "Sáng", timeLabel: "07:50–08:35" },
+  { id: "mon-p3", day: 1, dayLabel: "Thứ 2", period: 3, shiftLabel: "Sáng", timeLabel: "08:45–09:30" },
+  { id: "mon-p4", day: 1, dayLabel: "Thứ 2", period: 4, shiftLabel: "Sáng", timeLabel: "09:35–10:20" },
+  { id: "mon-p5", day: 1, dayLabel: "Thứ 2", period: 5, shiftLabel: "Sáng", timeLabel: "10:30–11:15" },
+  { id: "tue-p1", day: 2, dayLabel: "Thứ 3", period: 1, shiftLabel: "Sáng", timeLabel: "07:00–07:45" },
+  { id: "tue-p2", day: 2, dayLabel: "Thứ 3", period: 2, shiftLabel: "Sáng", timeLabel: "07:50–08:35" },
+  { id: "tue-p3", day: 2, dayLabel: "Thứ 3", period: 3, shiftLabel: "Sáng", timeLabel: "08:45–09:30" },
+  { id: "tue-p4", day: 2, dayLabel: "Thứ 3", period: 4, shiftLabel: "Sáng", timeLabel: "09:35–10:20" },
+  { id: "tue-p5", day: 2, dayLabel: "Thứ 3", period: 5, shiftLabel: "Sáng", timeLabel: "10:30–11:15" },
+  { id: "wed-p1", day: 3, dayLabel: "Thứ 4", period: 1, shiftLabel: "Sáng", timeLabel: "07:00–07:45" },
+  { id: "wed-p2", day: 3, dayLabel: "Thứ 4", period: 2, shiftLabel: "Sáng", timeLabel: "07:50–08:35" },
+  { id: "wed-p3", day: 3, dayLabel: "Thứ 4", period: 3, shiftLabel: "Sáng", timeLabel: "08:45–09:30" },
+  { id: "wed-p4", day: 3, dayLabel: "Thứ 4", period: 4, shiftLabel: "Sáng", timeLabel: "09:35–10:20" },
+  { id: "wed-p5", day: 3, dayLabel: "Thứ 4", period: 5, shiftLabel: "Sáng", timeLabel: "10:30–11:15" },
+  { id: "thu-p1", day: 4, dayLabel: "Thứ 5", period: 1, shiftLabel: "Sáng", timeLabel: "07:00–07:45" },
+  { id: "thu-p2", day: 4, dayLabel: "Thứ 5", period: 2, shiftLabel: "Sáng", timeLabel: "07:50–08:35" },
+  { id: "thu-p3", day: 4, dayLabel: "Thứ 5", period: 3, shiftLabel: "Sáng", timeLabel: "08:45–09:30" },
+  { id: "thu-p4", day: 4, dayLabel: "Thứ 5", period: 4, shiftLabel: "Sáng", timeLabel: "09:35–10:20" },
+  { id: "thu-p5", day: 4, dayLabel: "Thứ 5", period: 5, shiftLabel: "Sáng", timeLabel: "10:30–11:15" },
+  { id: "fri-p1", day: 5, dayLabel: "Thứ 6", period: 1, shiftLabel: "Sáng", timeLabel: "07:00–07:45" },
+  { id: "fri-p2", day: 5, dayLabel: "Thứ 6", period: 2, shiftLabel: "Sáng", timeLabel: "07:50–08:35" },
+  { id: "fri-p3", day: 5, dayLabel: "Thứ 6", period: 3, shiftLabel: "Sáng", timeLabel: "08:45–09:30" },
+  { id: "fri-p4", day: 5, dayLabel: "Thứ 6", period: 4, shiftLabel: "Sáng", timeLabel: "09:35–10:20" },
+  { id: "fri-p5", day: 5, dayLabel: "Thứ 6", period: 5, shiftLabel: "Sáng", timeLabel: "10:30–11:15" },
+];
+
+// The fixture mirrors the shared assignment shape until the solve-result read API is wired.
+const DEMO_LESSONS: TimetableLesson[] = [
+  {
+    id: "lesson-math-7a1",
+    classId: "class-7a1",
+    classLabel: "7A1",
+    teacherId: "teacher-an",
+    teacherLabel: "GV An",
+    roomId: "room-a101",
+    roomLabel: "A101",
+    subjectLabel: "Toán",
+    slotId: "mon-p1",
+    status: "SCHEDULED",
+  },
+  {
+    id: "lesson-literature-7a1",
+    classId: "class-7a1",
+    classLabel: "7A1",
+    teacherId: "teacher-binh",
+    teacherLabel: "GV Bình",
+    roomId: "room-a102",
+    roomLabel: "A102",
+    subjectLabel: "Ngữ văn",
+    slotId: "tue-p2",
+    status: "SCHEDULED",
+  },
+  {
+    id: "lesson-english-7a1",
+    classId: "class-7a1",
+    classLabel: "7A1",
+    teacherId: "teacher-chi",
+    teacherLabel: "GV Chi",
+    roomId: "room-lab",
+    roomLabel: "Lab 01",
+    subjectLabel: "Tiếng Anh",
+    slotId: "wed-p3",
+    status: "SCHEDULED",
+  },
+  {
+    id: "lesson-science-7a1",
+    classId: "class-7a1",
+    classLabel: "7A1",
+    teacherId: "teacher-an",
+    teacherLabel: "GV An",
+    roomId: "room-lab",
+    roomLabel: "Lab 01",
+    subjectLabel: "Khoa học tự nhiên",
+    slotId: "thu-p1",
+    status: "SCHEDULED",
+  },
+  {
+    id: "lesson-math-7a2",
+    classId: "class-7a2",
+    classLabel: "7A2",
+    teacherId: "teacher-an",
+    teacherLabel: "GV An",
+    roomId: "room-a103",
+    roomLabel: "A103",
+    subjectLabel: "Toán",
+    slotId: "mon-p2",
+    status: "SCHEDULED",
+  },
+  {
+    id: "lesson-history-7a2",
+    classId: "class-7a2",
+    classLabel: "7A2",
+    teacherId: "teacher-binh",
+    teacherLabel: "GV Bình",
+    roomId: "room-a103",
+    roomLabel: "A103",
+    subjectLabel: "Lịch sử",
+    slotId: "wed-p1",
+    status: "SCHEDULED",
+  },
+  {
+    id: "lesson-physics-7a2",
+    classId: "class-7a2",
+    classLabel: "7A2",
+    teacherId: "teacher-chi",
+    teacherLabel: "GV Chi",
+    roomId: "room-lab",
+    roomLabel: "Lab 01",
+    subjectLabel: "Vật lý",
+    slotId: "fri-p2",
+    status: "SCHEDULED",
+  },
+  {
+    id: "lesson-conflict-7a1",
+    classId: "class-7a1",
+    classLabel: "7A1",
+    teacherId: "teacher-an",
+    teacherLabel: "GV An",
+    roomId: "room-a101",
+    roomLabel: "A101",
+    subjectLabel: "Sinh hoạt",
+    slotId: "wed-p2",
+    status: "CONFLICT",
+    conflictMessage: "GV An đang có hai lesson cùng Thứ 4 · Tiết 2.",
+  },
+  {
+    id: "lesson-conflict-7a2",
+    classId: "class-7a2",
+    classLabel: "7A2",
+    teacherId: "teacher-an",
+    teacherLabel: "GV An",
+    roomId: "room-a102",
+    roomLabel: "A102",
+    subjectLabel: "Sinh hoạt",
+    slotId: "wed-p2",
+    status: "CONFLICT",
+    conflictMessage: "GV An đang có hai lesson cùng Thứ 4 · Tiết 2.",
+  },
+];
+
+const viewLabels: Record<TimetableView, string> = {
+  class: "Theo lớp",
+  teacher: "Theo giáo viên",
+  room: "Theo phòng",
+};
+
+const viewKeys: Record<TimetableView, keyof Pick<TimetableLesson, "classId" | "teacherId" | "roomId">> = {
+  class: "classId",
+  teacher: "teacherId",
+  room: "roomId",
+};
+
+function readInitialState(): TimetableState {
+  const state = new URLSearchParams(window.location.search).get("state");
+  return state === "loading" || state === "empty" || state === "error" ? state : "ready";
+}
+
+function getEntityOptions(view: TimetableView, lessons: TimetableLesson[]): TimetableEntity[] {
+  const key = viewKeys[view];
+  const entities = new Map<string, TimetableEntity>();
+  lessons.forEach((lesson) => {
+    const id = lesson[key];
+    const label = view === "class" ? lesson.classLabel : view === "teacher" ? lesson.teacherLabel : lesson.roomLabel;
+    const detail = view === "class" ? "Lớp học" : view === "teacher" ? "Người phụ trách" : "Không gian học";
+    entities.set(id, { id, label, detail });
+  });
+  return [...entities.values()].sort((left, right) => left.label.localeCompare(right.label, "vi"));
+}
+
+function formatViewSubject(lesson: TimetableLesson, view: TimetableView) {
+  if (view === "class") return `${lesson.subjectLabel} · ${lesson.teacherLabel}`;
+  if (view === "teacher") return `${lesson.subjectLabel} · ${lesson.classLabel}`;
+  return `${lesson.subjectLabel} · ${lesson.classLabel}`;
+}
+
+function StatePanel({ state }: { state: TimetableState }) {
+  if (state === "loading") {
+    return (
+      <div className="timetable-state" role="status" aria-live="polite">
+        <div className="state-icon loading-icon" aria-hidden="true">
+          …
+        </div>
+        <h3>Đang tải solution</h3>
+        <p>Đang đọc assignments và diagnostics từ solve job. Vui lòng chờ trong giây lát.</p>
+      </div>
+    );
+  }
+  if (state === "error") {
+    return (
+      <div className="timetable-state error-state" role="alert">
+        <div className="state-icon error-icon" aria-hidden="true">
+          !
+        </div>
+        <h3>Không thể tải thời khóa biểu</h3>
+        <p>API chưa trả về solution. Kiểm tra trạng thái job hoặc thử tải lại sau.</p>
+        <button className="button-secondary" type="button" onClick={() => window.location.reload()}>
+          Thử lại
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="timetable-state" role="status">
+      <div className="state-icon empty-icon" aria-hidden="true">
+        ▦
+      </div>
+      <h3>Chưa có assignment để hiển thị</h3>
+      <p>Hãy Confirm dữ liệu và chạy solver trước khi mở các góc nhìn thời khóa biểu.</p>
+      <button type="button" onClick={() => navigateTo("imports")}>
+        Mở Import →
+      </button>
+    </div>
+  );
+}
+
+function TimetableGrid({
+  view,
+  selectedEntityId,
+  lessons,
+}: {
+  view: TimetableView;
+  selectedEntityId: string;
+  lessons: TimetableLesson[];
+}) {
+  const visibleLessons = lessons.filter((lesson) => lesson[viewKeys[view]] === selectedEntityId);
+  const lessonBySlot = new Map(visibleLessons.map((lesson) => [lesson.slotId, lesson]));
+  const periodRows = [...new Set(SLOTS.map((slot) => slot.period))].map((period) =>
+    SLOTS.find((slot) => slot.period === period),
+  );
+
+  return (
+    <div className="timetable-grid-scroll" role="region" aria-label={`${viewLabels[view]} timetable`} tabIndex={0}>
+      <div className="timetable-grid" role="grid" aria-label={`${viewLabels[view]} thời khóa biểu`}>
+        <div className="timetable-corner" role="columnheader">
+          <span>Ca / tiết</span>
+          <small>Thứ trong tuần</small>
+        </div>
+        {DAYS.map((day) => (
+          <div className="timetable-day-header" role="columnheader" key={day.day}>
+            {day.label}
+          </div>
+        ))}
+        {periodRows.map((firstSlot) => {
+          if (!firstSlot) return null;
+          return (
+            <div className="timetable-grid-row" role="row" key={firstSlot.period}>
+              <div className="timetable-row-header" role="rowheader">
+                <strong>
+                  {firstSlot.shiftLabel} · Tiết {firstSlot.period}
+                </strong>
+                <small>{firstSlot.timeLabel}</small>
+              </div>
+              {DAYS.map((day) => {
+                const slot = SLOTS.find(
+                  (candidate) => candidate.day === day.day && candidate.period === firstSlot.period,
+                );
+                const lesson = slot ? lessonBySlot.get(slot.id) : undefined;
+                return (
+                  <div className="timetable-cell" role="gridcell" key={day.day}>
+                    {lesson ? (
+                      <article className={`lesson-card ${lesson.status === "CONFLICT" ? "conflict-card" : ""}`}>
+                        <div className="lesson-card-topline">
+                          <strong>{lesson.subjectLabel}</strong>
+                          {lesson.status === "CONFLICT" ? (
+                            <span className="conflict-marker" title={lesson.conflictMessage} aria-label="Có xung đột">
+                              !
+                            </span>
+                          ) : null}
+                        </div>
+                        <span>{formatViewSubject(lesson, view)}</span>
+                        <small>{lesson.roomLabel}</small>
+                        {lesson.conflictMessage ? <em>{lesson.conflictMessage}</em> : null}
+                      </article>
+                    ) : (
+                      <span className="empty-cell" aria-label="Trống">
+                        ·
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function TimetableScreen() {
+  const [view, setView] = useState<TimetableView>("class");
+  const [selectedEntityId, setSelectedEntityId] = useState("class-7a1");
+  const [state, setState] = useState<TimetableState>(readInitialState);
+
+  const entities = useMemo(() => getEntityOptions(view, DEMO_LESSONS), [view]);
+  const selectedEntity = entities.find((entity) => entity.id === selectedEntityId) ?? entities[0];
+  const selectedId = selectedEntity?.id ?? "";
+  const visibleCount = DEMO_LESSONS.filter((lesson) => lesson[viewKeys[view]] === selectedId).length;
+  const conflictCount = DEMO_LESSONS.filter(
+    (lesson) => lesson[viewKeys[view]] === selectedId && lesson.status === "CONFLICT",
+  ).length;
+
+  function handleViewChange(nextView: TimetableView) {
+    const nextEntities = getEntityOptions(nextView, DEMO_LESSONS);
+    setView(nextView);
+    setSelectedEntityId(nextEntities[0]?.id ?? "");
+  }
+
+  return (
+    <>
+      <div className="page-header">
+        <div>
+          <p className="eyebrow">Step 04 · Solve & review</p>
+          <h1>Thời khóa biểu</h1>
+          <p className="lead">Một solution, ba góc nhìn nghiệp vụ — cùng lesson, cùng slot và cùng conflict marker.</p>
+        </div>
+        <div className="page-header-action">
+          <button className="button-secondary" type="button" onClick={() => navigateTo("imports")}>
+            ← Quay lại import
+          </button>
+        </div>
+      </div>
+
+      <section className="panel timetable-shell" aria-labelledby="timetable-title">
+        <div className="timetable-toolbar">
+          <div>
+            <p className="eyebrow">Draft workspace · demo solution</p>
+            <h2 id="timetable-title">Review assignment theo resource</h2>
+            <p className="small-note">
+              Dữ liệu mẫu minh họa contract `SolveJobResult`; hard constraints vẫn thuộc server/solver.
+            </p>
+          </div>
+          <span className="solve-status feasible-status">FEASIBLE · 842 ms</span>
+        </div>
+
+        <div className="timetable-controls" aria-label="Bộ lọc thời khóa biểu">
+          <div className="view-switcher" role="tablist" aria-label="Góc nhìn thời khóa biểu">
+            {(Object.keys(viewLabels) as TimetableView[]).map((option) => (
+              <button
+                className={view === option ? "view-tab active" : "view-tab"}
+                type="button"
+                role="tab"
+                aria-selected={view === option}
+                key={option}
+                onClick={() => handleViewChange(option)}
+              >
+                {viewLabels[option]}
+              </button>
+            ))}
+          </div>
+          <label className="entity-picker">
+            <span>{viewLabels[view]}</span>
+            <select value={selectedId} onChange={(event) => setSelectedEntityId(event.target.value)}>
+              {entities.map((entity) => (
+                <option value={entity.id} key={entity.id}>
+                  {entity.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="state-picker">
+            <span>Trạng thái demo</span>
+            <select value={state} onChange={(event) => setState(event.target.value as TimetableState)}>
+              <option value="ready">Có dữ liệu</option>
+              <option value="loading">Đang tải</option>
+              <option value="empty">Trống</option>
+              <option value="error">Lỗi API</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="solve-summary" aria-label="Tóm tắt solution">
+          <span>
+            <b>{selectedEntity?.label ?? "—"}</b> · {selectedEntity?.detail ?? "Chưa chọn"}
+          </span>
+          <span>{visibleCount} lesson</span>
+          <span className={conflictCount > 0 ? "summary-warning" : "summary-ok"}>
+            {conflictCount > 0 ? `${conflictCount} conflict cần review` : "Không có conflict"}
+          </span>
+          <span>Objective 4,000 · gap 0%</span>
+        </div>
+
+        {state === "ready" ? (
+          <TimetableGrid view={view} selectedEntityId={selectedId} lessons={DEMO_LESSONS} />
+        ) : (
+          <StatePanel state={state} />
+        )}
+
+        <div className="timetable-legend" aria-label="Chú thích thời khóa biểu">
+          <span>
+            <i className="legend-dot scheduled-dot" aria-hidden="true" /> Đã xếp
+          </span>
+          <span>
+            <i className="legend-dot conflict-dot" aria-hidden="true" /> Conflict cần review
+          </span>
+          <span className="legend-note">Timezone: Asia/Ho_Chi_Minh · tuần pilot</span>
+        </div>
+      </section>
+    </>
+  );
+}
+
+export type { TimetableState, TimetableView };
