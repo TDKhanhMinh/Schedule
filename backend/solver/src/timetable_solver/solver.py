@@ -104,6 +104,12 @@ def solve(
                 "conflicts": pre_solve_conflicts,
                 "catalogVersion": CONFLICT_CATALOG_VERSION,
                 "conflictDetails": conflict_details,
+                "modelMetrics": {
+                    "variableCount": 0,
+                    "candidatePairCount": 0,
+                    "domainPrunedCount": 0,
+                    "roomDomainCount": 0,
+                },
                 "preSolve": pre_solve,
             },
             metadata=_build_metadata(
@@ -114,12 +120,18 @@ def solve(
             ),
         )
     slot_ids = {slot.id for slot in request.timeSlots}
+    slots_by_id = {slot.id: slot for slot in request.timeSlots}
     lessons_by_id = {lesson.id: lesson for lesson in request.lessons}
     warnings: list[str] = []
     conflicts: list[str] = []
     conflict_details = []
     model = cp_model.CpModel()
-    variables: dict[tuple[str, int, str], cp_model.IntVar] = {}
+    variables: dict[tuple[str, int, str, str | None], cp_model.IntVar] = {}
+    candidate_pair_count = 0
+    domain_pruned_count = 0
+    room_domain_count = 0
+    room_model_enabled = request.rooms is not None
+    rooms_by_id = {room.id: room for room in request.rooms or []}
     availability_rules = _active_availability_rules(request)
     hard_unavailable = [rule for rule in availability_rules if rule.strength == "HARD_UNAVAILABLE"]
     preference_rules = [rule for rule in availability_rules if rule.strength != "HARD_UNAVAILABLE"]
@@ -133,7 +145,8 @@ def solve(
             )
             continue
 
-        allowed = set(lesson.allowedSlotIds or slot_ids)
+        requested_allowed = set(lesson.allowedSlotIds or slot_ids)
+        allowed = set(requested_allowed)
         if lesson.fixedSlotId:
             allowed = {lesson.fixedSlotId}
         unknown = sorted(allowed - slot_ids)
@@ -144,23 +157,57 @@ def solve(
             )
             allowed -= set(unknown)
 
+        if room_model_enabled:
+            eligible_room_ids = [
+                room_id
+                for room_id, room in sorted(rooms_by_id.items())
+                if (not lesson.allowedRoomIds or room_id in lesson.allowedRoomIds)
+                and all(
+                    capability in room.capabilities
+                    for capability in (lesson.requiredRoomCapabilities or [])
+                )
+            ]
+            room_domain_count += len(eligible_room_ids)
+            domain_pruned_count += max(0, len(rooms_by_id) - len(eligible_room_ids)) * len(allowed) * lesson.requiredSessions
+            if not eligible_room_ids:
+                conflicts.append(f"Lesson {lesson.id} has no eligible rooms")
+                conflict_details.append(
+                    conflict_diagnostic(
+                        "ROOM_CAPABILITY_UNSATISFIED",
+                        f"Lesson {lesson.id} has no room matching its room constraints.",
+                        {"lessonId": lesson.id},
+                    )
+                )
+                continue
+        else:
+            # A missing rooms collection is the backwards-compatible no-room
+            # mode. It keeps existing requests valid without creating room
+            # collision constraints or inventing a room identifier.
+            eligible_room_ids = [None]
+
+        domain_pruned_count += len(unknown) * len(eligible_room_ids) * lesson.requiredSessions
+
         for session_index in range(lesson.requiredSessions):
             choices = []
             for slot_id in sorted(allowed):
-                slot = next(slot for slot in request.timeSlots if slot.id == slot_id)
+                slot = slots_by_id[slot_id]
                 if any(
                     rule.teacherId == lesson.teacherId and _rule_matches_slot(rule, slot)
                     for rule in hard_unavailable
                 ):
+                    domain_pruned_count += len(eligible_room_ids)
                     continue
-                variable = model.NewBoolVar(f"{lesson.id}_{session_index}_{slot_id}")
-                variables[(lesson.id, session_index, slot_id)] = variable
-                choices.append(variable)
-                for rule in preference_rules:
-                    if rule.teacherId == lesson.teacherId and _rule_matches_slot(rule, slot):
-                        penalty = _availability_penalty(rule)
-                        if penalty:
-                            penalty_terms.append(variable * penalty)
+                for room_id in eligible_room_ids:
+                    room_label = room_id or "no-room"
+                    variable = model.NewBoolVar(f"{lesson.id}_{session_index}_{slot_id}_{room_label}")
+                    variables[(lesson.id, session_index, slot_id, room_id)] = variable
+                    candidate_pair_count += 1
+                    choices.append(variable)
+                    for rule in preference_rules:
+                        if rule.teacherId == lesson.teacherId and _rule_matches_slot(rule, slot):
+                            penalty = _availability_penalty(rule)
+                            if penalty:
+                                penalty_terms.append(variable * penalty)
             if choices:
                 model.AddExactlyOne(choices)
             else:
@@ -187,6 +234,12 @@ def solve(
                 "conflicts": conflicts,
                 "catalogVersion": CONFLICT_CATALOG_VERSION,
                 "conflictDetails": conflict_details,
+                "modelMetrics": {
+                    "variableCount": len(variables),
+                    "candidatePairCount": candidate_pair_count,
+                    "domainPrunedCount": domain_pruned_count,
+                    "roomDomainCount": room_domain_count,
+                },
                 "preSolve": pre_solve,
             },
             metadata=_build_metadata(
@@ -202,8 +255,18 @@ def solve(
             for resource_id in {getattr(lesson, resource) for lesson in request.lessons}:
                 choices = [
                     variable
-                    for (lesson_id, _, candidate_slot_id), variable in variables.items()
+                    for (lesson_id, _, candidate_slot_id, _), variable in variables.items()
                     if candidate_slot_id == slot_id and getattr(lessons_by_id[lesson_id], resource) == resource_id
+                ]
+                if choices:
+                    model.AddAtMostOne(choices)
+
+        if room_model_enabled:
+            for room_id in rooms_by_id:
+                choices = [
+                    variable
+                    for (_, _, candidate_slot_id, candidate_room_id), variable in variables.items()
+                    if candidate_slot_id == slot_id and candidate_room_id == room_id
                 ]
                 if choices:
                     model.AddAtMostOne(choices)
@@ -232,12 +295,18 @@ def solve(
 
     assignments: list[Assignment] = []
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        for (lesson_id, session_index, slot_id), variable in variables.items():
+        for (lesson_id, session_index, slot_id, room_id), variable in variables.items():
             if solver.Value(variable):
-                assignments.append(Assignment(lessonId=lesson_id, sessionIndex=session_index, slotId=slot_id))
+                assignments.append(
+                    Assignment(
+                        lessonId=lesson_id,
+                        sessionIndex=session_index,
+                        slotId=slot_id,
+                        roomId=room_id,
+                    )
+                )
 
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        slots_by_id = {slot.id: slot for slot in request.timeSlots}
         lessons_by_id = {lesson.id: lesson for lesson in request.lessons}
         for assignment in assignments:
             lesson = lessons_by_id[assignment.lessonId]
@@ -267,6 +336,12 @@ def solve(
             "conflicts": conflicts,
             "catalogVersion": CONFLICT_CATALOG_VERSION,
             "conflictDetails": conflict_details,
+            "modelMetrics": {
+                "variableCount": len(variables),
+                "candidatePairCount": candidate_pair_count,
+                "domainPrunedCount": domain_pruned_count,
+                "roomDomainCount": room_domain_count,
+            },
             "preSolve": pre_solve,
         },
         metadata=_build_metadata(request, random_seed, time_limit_seconds, adapter_payload),

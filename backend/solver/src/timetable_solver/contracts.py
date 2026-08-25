@@ -77,6 +77,16 @@ class Assignment(BaseModel):
     lessonId: str
     sessionIndex: int = Field(ge=0)
     slotId: str
+    roomId: str | None = None
+
+
+class SolverModelMetrics(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    variableCount: int = Field(ge=0)
+    candidatePairCount: int = Field(ge=0)
+    domainPrunedCount: int = Field(ge=0)
+    roomDomainCount: int = Field(ge=0)
 
 
 class SolveDiagnostics(BaseModel):
@@ -86,6 +96,7 @@ class SolveDiagnostics(BaseModel):
     conflicts: list[str]
     catalogVersion: Literal["CONFLICT-CATALOG-1.0.0"] = CONFLICT_CATALOG_VERSION
     conflictDetails: list[ConflictDiagnostic] = Field(default_factory=list)
+    modelMetrics: SolverModelMetrics | None = None
     preSolve: PreSolveReport | None = None
 
 

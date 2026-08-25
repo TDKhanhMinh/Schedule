@@ -18,7 +18,8 @@
         "properties": {
           "lessonId": { "type": "string", "minLength": 1 },
           "sessionIndex": { "type": "integer", "minimum": 0 },
-          "slotId": { "type": "string", "minLength": 1 }
+          "slotId": { "type": "string", "minLength": 1 },
+          "roomId": { "type": ["string", "null"], "minLength": 1 }
         }
       }
     },
@@ -34,6 +35,17 @@
         "conflictDetails": {
           "type": "array",
           "items": { "$ref": "conflict-catalog.schema.json#/$defs/diagnostic" }
+        },
+        "modelMetrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["variableCount", "candidatePairCount", "domainPrunedCount", "roomDomainCount"],
+          "properties": {
+            "variableCount": { "type": "integer", "minimum": 0 },
+            "candidatePairCount": { "type": "integer", "minimum": 0 },
+            "domainPrunedCount": { "type": "integer", "minimum": 0 },
+            "roomDomainCount": { "type": "integer", "minimum": 0 }
+          }
         },
         "preSolve": {
           "type": "object",

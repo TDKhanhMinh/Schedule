@@ -108,6 +108,77 @@ class SolverTest(unittest.TestCase):
         self.assertEqual(result.status, "OPTIMAL")
         self.assertEqual(result.assignments[0].slotId, "tue-1")
 
+    def test_builds_lesson_slot_room_variables_and_prunes_ineligible_rooms(self):
+        request = SolveJobRequest.model_validate(
+            {
+                "schemaVersion": "1.0",
+                "jobId": "job-room-domain",
+                "schoolId": "school-1",
+                "timeSlots": [
+                    {"id": "mon-1", "day": 1, "period": 1},
+                    {"id": "mon-2", "day": 1, "period": 2},
+                ],
+                "rooms": [
+                    {"id": "room-lab", "capabilities": ["LAB"]},
+                    {"id": "room-standard", "capabilities": ["STANDARD"]},
+                ],
+                "lessons": [
+                    {
+                        "id": "lesson-lab",
+                        "classId": "class-7a",
+                        "subjectId": "science",
+                        "teacherId": "teacher-1",
+                        "requiredSessions": 1,
+                        "allowedRoomIds": ["room-lab"],
+                        "requiredRoomCapabilities": ["LAB"],
+                    }
+                ],
+            }
+        )
+
+        result = solve(request)
+
+        self.assertEqual(result.status, "OPTIMAL")
+        self.assertEqual(result.assignments[0].roomId, "room-lab")
+        self.assertEqual(result.diagnostics.modelMetrics.variableCount, 2)
+        self.assertEqual(result.diagnostics.modelMetrics.candidatePairCount, 2)
+        self.assertEqual(result.diagnostics.modelMetrics.roomDomainCount, 1)
+        self.assertEqual(result.diagnostics.modelMetrics.domainPrunedCount, 2)
+
+    def test_enforces_room_occupancy_as_hard_constraint(self):
+        request = SolveJobRequest.model_validate(
+            {
+                "schemaVersion": "1.0",
+                "jobId": "job-room-conflict",
+                "schoolId": "school-1",
+                "timeSlots": [{"id": "mon-1", "day": 1, "period": 1}],
+                "rooms": [{"id": "room-1", "capabilities": ["STANDARD"]}],
+                "lessons": [
+                    {
+                        "id": "lesson-a",
+                        "classId": "class-7a",
+                        "subjectId": "math",
+                        "teacherId": "teacher-1",
+                        "requiredSessions": 1,
+                    },
+                    {
+                        "id": "lesson-b",
+                        "classId": "class-7b",
+                        "subjectId": "physics",
+                        "teacherId": "teacher-2",
+                        "requiredSessions": 1,
+                    },
+                ],
+            }
+        )
+
+        result = solve(request)
+
+        self.assertEqual(result.status, "INFEASIBLE")
+        self.assertEqual(result.diagnostics.modelMetrics.variableCount, 2)
+        self.assertEqual(result.diagnostics.modelMetrics.candidatePairCount, 2)
+        self.assertEqual(result.diagnostics.conflictDetails[0].code, "NO_FEASIBLE_ASSIGNMENT")
+
     def test_strong_preference_is_avoided_and_soft_wish_can_be_violated(self):
         base = {
             "schemaVersion": "1.0",

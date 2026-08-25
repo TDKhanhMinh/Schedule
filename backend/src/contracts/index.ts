@@ -56,6 +56,14 @@ export interface Assignment {
   lessonId: string;
   sessionIndex: number;
   slotId: string;
+  roomId?: string | null;
+}
+
+export interface SolverModelMetrics {
+  variableCount: number;
+  candidatePairCount: number;
+  domainPrunedCount: number;
+  roomDomainCount: number;
 }
 
 export interface SolveDiagnostics {
@@ -63,6 +71,7 @@ export interface SolveDiagnostics {
   conflicts: string[];
   catalogVersion?: "CONFLICT-CATALOG-1.0.0";
   conflictDetails?: import("./conflict-catalog").ConflictDiagnostic[];
+  modelMetrics?: SolverModelMetrics;
   preSolve?: PreSolveReport;
 }
 
