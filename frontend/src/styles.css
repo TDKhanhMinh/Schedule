@@ -356,6 +356,16 @@ button:disabled {
 .featured-card button:hover:not(:disabled) {
   background: #eef2ff;
 }
+.dashboard-secondary-action {
+  margin-top: 8px;
+  color: #dce5ff;
+  border-color: rgb(255 255 255 / 34%);
+  background: rgb(255 255 255 / 12%);
+}
+.dashboard-secondary-action:hover:not(:disabled) {
+  color: var(--blue);
+  background: #fff;
+}
 .card-kicker {
   color: var(--muted);
   font-size: 0.67rem;
@@ -819,6 +829,183 @@ tr.has-warning td {
   color: var(--blue);
 }
 
+.master-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+.master-header h1 {
+  max-width: 760px;
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.03;
+  letter-spacing: -0.055em;
+}
+.master-header-actions {
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+.permission-chip,
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.permission-chip.write,
+.status-tag.active {
+  color: var(--green);
+  background: var(--green-soft);
+}
+.permission-chip.read,
+.status-tag.archived {
+  color: var(--muted);
+  background: #eef1f6;
+}
+.master-panel {
+  padding: 22px;
+}
+.master-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin: -2px -2px 22px;
+  padding: 2px;
+}
+.master-tab {
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  background: #f8faff;
+  font-size: 0.74rem;
+}
+.master-tab:hover:not(:disabled),
+.master-tab.active {
+  color: var(--blue);
+  border-color: #cbd7ff;
+  background: var(--blue-soft);
+}
+.period-picker,
+.master-search {
+  display: grid;
+  gap: 7px;
+  max-width: 360px;
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+.period-picker select,
+.master-search input,
+.master-field input,
+.master-field select {
+  width: 100%;
+  min-height: 40px;
+  padding: 9px 10px;
+  border: 1px solid #cbd5e3;
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  font-size: 0.8rem;
+}
+.master-layout {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.34fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.master-form {
+  position: sticky;
+  top: 94px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface-soft);
+}
+.master-form .panel-heading {
+  margin-bottom: 16px;
+}
+.master-fields {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 17px;
+}
+.master-field {
+  display: grid;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.master-field input[aria-invalid="true"],
+.master-field select[aria-invalid="true"] {
+  border-color: #f04438;
+  background: var(--red-soft);
+}
+.field-error {
+  color: var(--red);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+.master-list {
+  min-width: 0;
+}
+.master-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+.master-list-actions button {
+  padding: 8px 10px;
+  font-size: 0.7rem;
+}
+.master-table-wrap table {
+  min-width: 620px;
+}
+.master-table-wrap td {
+  vertical-align: middle;
+}
+.row-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+.table-action {
+  padding: 6px 8px;
+  color: var(--blue);
+  border: 1px solid #cbd7ff;
+  background: var(--blue-soft);
+  font-size: 0.68rem;
+}
+.table-action:hover:not(:disabled) {
+  color: var(--blue-dark);
+  background: #e1e8ff;
+}
+.table-action.danger {
+  color: var(--red);
+  border-color: #fecdca;
+  background: var(--red-soft);
+}
+
+@media (max-width: 980px) {
+  .master-layout {
+    grid-template-columns: 1fr;
+  }
+  .master-form {
+    position: static;
+  }
+}
+
 @media (max-width: 980px) {
   .dashboard-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -887,8 +1074,15 @@ tr.has-warning td {
   }
   .panel-heading,
   .preview-summary,
-  .timetable-toolbar {
+  .timetable-toolbar,
+  .master-header {
     display: grid;
+  }
+  .master-header-actions {
+    justify-items: start;
+  }
+  .master-panel {
+    padding: 18px;
   }
   .preview-meta-grid {
     grid-template-columns: 1fr;

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import type { SolveStatus } from "@schedule/backend/contracts";
 import { authHeaders, frontendConfig } from "./config";
+import { MasterDataScreen } from "./master-data";
 import { navigateTo, useAppRoute, type AppRoute } from "./routing";
 
 type ApiStatus = "checking" | "online" | "offline";
@@ -104,6 +105,7 @@ const navigation: Array<{
   shortLabel: string;
 }> = [
   { route: "dashboard", label: "Tổng quan", shortLabel: "Home" },
+  { route: "master-data", label: "Dữ liệu master", shortLabel: "Data" },
   { route: "imports", label: "Nhập dữ liệu", shortLabel: "Import" },
   { route: "timetable", label: "Thời khóa biểu", shortLabel: "Schedule" },
 ];
@@ -244,6 +246,13 @@ function DashboardScreen() {
           <p>Upload workbook theo template MVP hoặc bắt đầu với nhập tay.</p>
           <button type="button" onClick={() => navigateTo("imports")}>
             Upload & Preview <span aria-hidden="true">→</span>
+          </button>
+          <button
+            className="button-secondary dashboard-secondary-action"
+            type="button"
+            onClick={() => navigateTo("master-data")}
+          >
+            Nhập tay master data
           </button>
         </article>
         <article className="stat-card">
@@ -652,7 +661,15 @@ export default function App() {
   const apiStatus = useApiStatus();
 
   const screen =
-    route === "imports" ? <ImportScreen /> : route === "timetable" ? <TimetableScreen /> : <DashboardScreen />;
+    route === "master-data" ? (
+      <MasterDataScreen />
+    ) : route === "imports" ? (
+      <ImportScreen />
+    ) : route === "timetable" ? (
+      <TimetableScreen />
+    ) : (
+      <DashboardScreen />
+    );
 
   return (
     <AppShell route={route} apiStatus={apiStatus}>

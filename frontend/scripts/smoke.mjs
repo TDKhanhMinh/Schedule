@@ -15,8 +15,17 @@ assert.ok(javascript, "the production JavaScript asset is missing");
 assert.ok(stylesheet, "the production CSS asset is missing");
 
 const bundle = readFileSync(join(dist, "assets", javascript), "utf8");
-for (const marker of ["School Timetable", "/imports", "/timetable", "Upload & Preview"]) {
+for (const marker of [
+  "School Timetable",
+  "/master-data",
+  "/imports",
+  "/timetable",
+  "Upload & Preview",
+  "Nhập tay & chỉnh sửa dữ liệu",
+]) {
   assert.ok(bundle.includes(marker), `bundle marker missing: ${marker}`);
 }
 
-console.log(`Frontend smoke passed: ${javascript} + ${stylesheet}; dashboard/import/timetable markers present.`);
+console.log(
+  `Frontend smoke passed: ${javascript} + ${stylesheet}; dashboard/master-data/import/timetable markers present.`,
+);

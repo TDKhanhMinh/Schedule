@@ -1,14 +1,16 @@
 import { useSyncExternalStore } from "react";
 
-export type AppRoute = "dashboard" | "imports" | "timetable";
+export type AppRoute = "dashboard" | "master-data" | "imports" | "timetable";
 
 const routePaths: Record<AppRoute, string> = {
   dashboard: "/",
+  "master-data": "/master-data",
   imports: "/imports",
   timetable: "/timetable",
 };
 
 function routeFromPath(pathname: string): AppRoute {
+  if (pathname.startsWith("/master-data")) return "master-data";
   if (pathname.startsWith("/imports")) return "imports";
   if (pathname.startsWith("/timetable")) return "timetable";
   return "dashboard";
