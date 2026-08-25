@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/solver-adapter.schema.json",
+  "title": "SolverAdapterPayload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["adapterContractVersion", "source", "reproducibility", "input", "inputChecksum"],
+  "properties": {
+    "adapterContractVersion": { "const": "SOLVER-ADAPTER-1.0.0" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "templateVersion",
+        "schoolId",
+        "academicPeriodId",
+        "ruleSnapshotId",
+        "ruleSetVersion",
+        "ruleSnapshotHash"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "templateVersion": { "type": "string", "minLength": 1 },
+        "schoolId": { "type": "string", "minLength": 1 },
+        "academicPeriodId": { "type": "string", "minLength": 1 },
+        "ruleSnapshotId": { "type": "string", "minLength": 1 },
+        "ruleSetVersion": { "type": "string", "pattern": "^RULE-SET-[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "ruleSnapshotHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "reproducibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["randomSeed", "timeLimitSeconds"],
+      "properties": {
+        "randomSeed": { "type": "integer" },
+        "timeLimitSeconds": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "input": { "$ref": "solve-job-request.schema.json" },
+    "inputChecksum": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

@@ -10,6 +10,7 @@ from timetable_solver.contracts import SolveJobResult
 
 SOLVER_ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = SOLVER_ROOT / "examples" / "minimal-request.json"
+ADAPTER_FIXTURE = SOLVER_ROOT.parent / "contracts" / "examples" / "solver-adapter.json"
 
 
 class SolverCliTest(unittest.TestCase):
@@ -47,6 +48,17 @@ class SolverCliTest(unittest.TestCase):
         error = json.loads(completed.stderr)
         self.assertEqual(error["error"]["code"], "INVALID_SOLVE_REQUEST")
         self.assertTrue(error["error"]["details"])
+
+    def test_adapter_fixture_round_trips_snapshot_and_reproducibility_metadata(self):
+        payload = ADAPTER_FIXTURE.read_text(encoding="utf-8")
+        completed = self.run_cli(payload)
+
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        result = SolveJobResult.model_validate(json.loads(completed.stdout))
+        self.assertEqual(result.metadata.adapterContractVersion, "SOLVER-ADAPTER-1.0.0")
+        self.assertEqual(result.metadata.templateVersion, "MVP-0.1.0")
+        self.assertEqual(result.metadata.randomSeed, 7)
+        self.assertEqual(result.metadata.inputChecksum, json.loads(payload)["inputChecksum"])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,81 @@
+{
+  "adapterContractVersion": "SOLVER-ADAPTER-1.0.0",
+  "source": {
+    "schemaVersion": "1.0",
+    "templateVersion": "MVP-0.1.0",
+    "schoolId": "pilot-school",
+    "academicPeriodId": "period-2026-2027-1",
+    "ruleSnapshotId": "snapshot-pilot-001",
+    "ruleSetVersion": "RULE-SET-1.0.0",
+    "ruleSnapshotHash": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "reproducibility": {
+    "randomSeed": 7,
+    "timeLimitSeconds": 10
+  },
+  "input": {
+    "schemaVersion": "1.0",
+    "jobId": "adapter-fixture-1",
+    "schoolId": "pilot-school",
+    "ruleSnapshotId": "snapshot-pilot-001",
+    "ruleSetVersion": "RULE-SET-1.0.0",
+    "ruleSnapshotHash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "timeSlots": [
+      { "id": "mon-1", "day": 1, "period": 1, "shiftCode": "MORNING" },
+      { "id": "tue-1", "day": 2, "period": 1, "shiftCode": "MORNING" }
+    ],
+    "lessons": [
+      {
+        "id": "lesson-math-7a",
+        "classId": "class-7a",
+        "subjectId": "subject-math",
+        "teacherId": "teacher-1",
+        "requiredSessions": 1
+      }
+    ],
+    "teacherAvailability": {
+      "contractVersion": "TEACHER-AVAILABILITY-1.0.0",
+      "schoolId": "pilot-school",
+      "academicPeriodId": "period-2026-2027-1",
+      "effectiveAsOf": "2026-09-01",
+      "ruleSnapshotId": "snapshot-pilot-001",
+      "ruleSetVersion": "RULE-SET-1.0.0",
+      "ruleSnapshotHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "rules": [
+        {
+          "ruleId": "availability-hard-001",
+          "code": "RULE-TEACHER-AVAILABILITY-HARD-001",
+          "teacherId": "teacher-1",
+          "strength": "HARD_UNAVAILABLE",
+          "weight": null,
+          "dayOfWeek": 1,
+          "blockedSlotIds": ["mon-1"],
+          "effectiveFrom": "2026-09-01",
+          "source": {
+            "sourceUrl": "https://schedule.local/rules/pilot",
+            "ruleSnapshotId": "snapshot-pilot-001",
+            "ruleSetVersion": "RULE-SET-1.0.0",
+            "ruleSnapshotHash": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        },
+        {
+          "ruleId": "availability-soft-001",
+          "code": "RULE-TEACHER-AVAILABILITY-SOFT-001",
+          "teacherId": "teacher-1",
+          "strength": "SOFT_WISH",
+          "weight": 1,
+          "dayOfWeek": 2,
+          "blockedSlotIds": ["tue-1"],
+          "effectiveFrom": "2026-09-01",
+          "source": {
+            "sourceUrl": "https://schedule.local/rules/pilot",
+            "ruleSnapshotId": "snapshot-pilot-001",
+            "ruleSetVersion": "RULE-SET-1.0.0",
+            "ruleSnapshotHash": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        }
+      ]
+    }
+  },
+  "inputChecksum": "1937d4ac72546c148cb62d49826b2bc133308d2c326de067700c27900f9f8f83"
+}

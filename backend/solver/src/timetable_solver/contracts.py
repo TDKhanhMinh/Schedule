@@ -96,6 +96,10 @@ class SolverMetadata(BaseModel):
     contractVersion: Literal["1.0"]
     randomSeed: int
     timeLimitSeconds: float = Field(gt=0)
+    adapterContractVersion: Literal["SOLVER-ADAPTER-1.0.0"] | None = None
+    templateVersion: str | None = Field(default=None, min_length=1)
+    academicPeriodId: str | None = Field(default=None, min_length=1)
+    inputChecksum: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     ruleSnapshotId: str | None = Field(default=None, min_length=1)
     ruleSetVersion: str | None = Field(default=None, pattern=r"^RULE-SET-[0-9]+\.[0-9]+\.[0-9]+$")
     ruleSnapshotHash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")

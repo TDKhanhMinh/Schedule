@@ -1,6 +1,6 @@
 # Python solver
 
-Worker boundary cho `optimization.solve`, dùng Python + OR-Tools CP-SAT. Contract request/result phải bám các JSON Schema trong [`../contracts/schemas`](../contracts/schemas) và `schemaVersion: "1.0"`. Rule provenance dùng contract độc lập `RuleSetSnapshot` phiên bản `RULE-SET-1.0.0`.
+Worker boundary cho `optimization.solve`, dùng Python + OR-Tools CP-SAT. Contract request/result phải bám các JSON Schema trong [`../contracts/schemas`](../contracts/schemas) và `schemaVersion: "1.0"`. Rule provenance dùng contract độc lập `RuleSetSnapshot` phiên bản `RULE-SET-1.0.0`. Adapter snapshot-to-worker dùng `SOLVER-ADAPTER-1.0.0`, checksum SHA-256 và metadata seed/time-limit; xem [`docs/solver-adapter.md`](../../docs/solver-adapter.md).
 
 ## Local setup
 
@@ -18,7 +18,11 @@ Get-Content .\examples\minimal-request.json | schedule-solver
 Get-Content .\examples\minimal-request.json | schedule-solver --random-seed 7
 ```
 
-The runner writes a versioned `SolveJobResult` JSON document to stdout. The
+The runner writes a versioned `SolveJobResult` JSON document to stdout. It
+accepts either the raw `SolveJobRequest` compatibility shape or a validated
+`SOLVER-ADAPTER-1.0.0` envelope. Adapter runs preserve template version,
+academic period, input checksum and effective random seed in result metadata.
+The
 result includes `status`, `objectiveValue` as the v1 score field,
 `diagnostics`, assignments and `metadata` containing `solverVersion`,
 `contractVersion`, the effective random seed, the effective time limit and,

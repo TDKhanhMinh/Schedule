@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from .contracts import SolveJobRequest
 from .solver import solve
+from .solver_adapter import SolverAdapterPayload
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -13,8 +14,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--random-seed",
         type=int,
-        default=0,
-        help="Deterministic solver seed; default: 0. This is a runner control, not a v1 request field.",
+        default=None,
+        help="Deterministic solver seed; defaults to the adapter seed or 0 for a raw request.",
     )
     return parser
 
@@ -31,6 +32,10 @@ def _print_error(code: str, message: str, details: object) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
     args = _build_parser().parse_args(argv)
 
     try:
@@ -42,16 +47,29 @@ def main(argv: list[str] | None = None) -> int:
             {"line": error.lineno, "column": error.colno, "message": error.msg},
         )
 
-    try:
-        request = SolveJobRequest.model_validate(payload)
-    except ValidationError as error:
-        return _print_error(
-            "INVALID_SOLVE_REQUEST",
-            "Payload không khớp SolveJobRequest schemaVersion 1.0.",
-            error.errors(),
-        )
+    adapter_payload = None
+    if isinstance(payload, dict) and payload.get("adapterContractVersion"):
+        try:
+            adapter_payload = SolverAdapterPayload.model_validate(payload)
+            request = adapter_payload.input
+        except ValidationError as error:
+            return _print_error(
+                "INVALID_SOLVER_ADAPTER_PAYLOAD",
+                "Payload không khớp SOLVER-ADAPTER-1.0.0 hoặc checksum không hợp lệ.",
+                error.errors(),
+            )
+    else:
+        try:
+            request = SolveJobRequest.model_validate(payload)
+        except ValidationError as error:
+            return _print_error(
+                "INVALID_SOLVE_REQUEST",
+                "Payload không khớp SolveJobRequest schemaVersion 1.0.",
+                error.errors(),
+            )
 
-    result = solve(request, random_seed=args.random_seed)
+    random_seed = args.random_seed if args.random_seed is not None else (adapter_payload.reproducibility.randomSeed if adapter_payload else 0)
+    result = solve(request, random_seed=random_seed, adapter_payload=adapter_payload)
     print(result.model_dump_json())
     return 0
 

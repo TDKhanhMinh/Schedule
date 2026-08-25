@@ -8,6 +8,7 @@ export const OPTIMIZATION_JOB_NAME = "optimization.solve" as const;
 export * from "./rule-set";
 export * from "./conflict-catalog";
 export * from "./pre-solve";
+export * from "./solver-adapter";
 export * from "./teacher-availability";
 export * from "./teacher-load";
 
@@ -70,6 +71,10 @@ export interface SolverMetadata {
   contractVersion: typeof CONTRACT_VERSION;
   randomSeed: number;
   timeLimitSeconds: number;
+  adapterContractVersion?: "SOLVER-ADAPTER-1.0.0";
+  templateVersion?: string;
+  academicPeriodId?: string;
+  inputChecksum?: string;
   ruleSnapshotId?: string;
   ruleSetVersion?: string;
   ruleSnapshotHash?: string;

@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { SolveJobRequest, SolveJobResult } from "../contracts";
+import type { SolveJobRequest, SolveJobResult, SolverAdapterPayload } from "../contracts";
 
 function getSolverRuntime() {
   const solverRoot = resolve(process.env.SOLVER_ROOT ?? "backend/solver");
@@ -18,7 +18,7 @@ function getSolverRuntime() {
   return { python, solverRoot };
 }
 
-export function runPythonSolver(payload: SolveJobRequest): Promise<SolveJobResult> {
+export function runPythonSolver(payload: SolveJobRequest | SolverAdapterPayload): Promise<SolveJobResult> {
   const { python, solverRoot } = getSolverRuntime();
 
   return new Promise((resolveResult, reject) => {

@@ -11,6 +11,34 @@ from .contracts import (
 )
 from .teacher_availability import TeacherAvailabilityRule
 from .pre_solve import run_pre_solve_checks
+from .solver_adapter import SolverAdapterPayload
+
+
+def _build_metadata(
+    request: SolveJobRequest,
+    random_seed: int,
+    time_limit_seconds: float,
+    adapter_payload: SolverAdapterPayload | None,
+) -> dict[str, object]:
+    metadata: dict[str, object] = {
+        "solverVersion": SOLVER_VERSION,
+        "contractVersion": CONTRACT_VERSION,
+        "randomSeed": random_seed,
+        "timeLimitSeconds": time_limit_seconds,
+        "ruleSnapshotId": request.ruleSnapshotId,
+        "ruleSetVersion": request.ruleSetVersion,
+        "ruleSnapshotHash": request.ruleSnapshotHash,
+    }
+    if adapter_payload:
+        metadata.update(
+            {
+                "adapterContractVersion": adapter_payload.adapterContractVersion,
+                "templateVersion": adapter_payload.source.templateVersion,
+                "academicPeriodId": adapter_payload.source.academicPeriodId,
+                "inputChecksum": adapter_payload.inputChecksum,
+            }
+        )
+    return metadata
 
 
 def _active_availability_rules(request) -> list[TeacherAvailabilityRule]:
@@ -44,7 +72,12 @@ def _availability_penalty(rule: TeacherAvailabilityRule) -> int:
     return max(0, round((rule.weight or 0) * 1000 * multiplier))
 
 
-def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
+def solve(
+    request: SolveJobRequest,
+    *,
+    random_seed: int = 0,
+    adapter_payload: SolverAdapterPayload | None = None,
+) -> SolveJobResult:
     pre_solve = run_pre_solve_checks(request)
     if not pre_solve.canSolve:
         pre_solve_conflicts = [f"{issue.code}: {issue.message}" for issue in pre_solve.issues]
@@ -73,15 +106,12 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
                 "conflictDetails": conflict_details,
                 "preSolve": pre_solve,
             },
-            metadata={
-                "solverVersion": SOLVER_VERSION,
-                "contractVersion": CONTRACT_VERSION,
-                "randomSeed": random_seed,
-                "timeLimitSeconds": request.options.timeLimitSeconds if request.options else DEFAULT_TIME_LIMIT_SECONDS,
-                "ruleSnapshotId": request.ruleSnapshotId,
-                "ruleSetVersion": request.ruleSetVersion,
-                "ruleSnapshotHash": request.ruleSnapshotHash,
-            },
+            metadata=_build_metadata(
+                request,
+                random_seed,
+                request.options.timeLimitSeconds if request.options else DEFAULT_TIME_LIMIT_SECONDS,
+                adapter_payload,
+            ),
         )
     slot_ids = {slot.id for slot in request.timeSlots}
     lessons_by_id = {lesson.id: lesson for lesson in request.lessons}
@@ -159,15 +189,12 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
                 "conflictDetails": conflict_details,
                 "preSolve": pre_solve,
             },
-            metadata={
-                "solverVersion": SOLVER_VERSION,
-                "contractVersion": CONTRACT_VERSION,
-                "randomSeed": random_seed,
-                "timeLimitSeconds": request.options.timeLimitSeconds if request.options else DEFAULT_TIME_LIMIT_SECONDS,
-                "ruleSnapshotId": request.ruleSnapshotId,
-                "ruleSetVersion": request.ruleSetVersion,
-                "ruleSnapshotHash": request.ruleSnapshotHash,
-            },
+            metadata=_build_metadata(
+                request,
+                random_seed,
+                request.options.timeLimitSeconds if request.options else DEFAULT_TIME_LIMIT_SECONDS,
+                adapter_payload,
+            ),
         )
 
     for slot_id in slot_ids:
@@ -242,13 +269,5 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
             "conflictDetails": conflict_details,
             "preSolve": pre_solve,
         },
-        metadata={
-            "solverVersion": SOLVER_VERSION,
-            "contractVersion": CONTRACT_VERSION,
-            "randomSeed": random_seed,
-            "timeLimitSeconds": time_limit_seconds,
-            "ruleSnapshotId": request.ruleSnapshotId,
-            "ruleSetVersion": request.ruleSetVersion,
-            "ruleSnapshotHash": request.ruleSnapshotHash,
-        },
+        metadata=_build_metadata(request, random_seed, time_limit_seconds, adapter_payload),
     )
