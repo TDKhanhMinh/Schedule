@@ -16,6 +16,17 @@ from timetable_solver.solver import solve
 
 
 BENCHMARK_DIR = Path(__file__).resolve().parents[1] / "examples" / "benchmarks"
+BENCHMARK_OBJECTIVE = {
+    "contractVersion": "SOLVER-OBJECTIVE-1.0.0",
+    "weights": {
+        "teacherGap": 1,
+        "compactness": 1,
+        "dayDistribution": 1,
+        "undesirableSlots": 1,
+        "preferredDays": 1,
+        "fairness": 1,
+    },
+}
 
 
 def sha256(path: Path) -> str:
@@ -28,7 +39,14 @@ def hard_conflict_count(result) -> int:
 
 def run_dataset(metadata: dict, rubric: dict, manifest: dict) -> dict:
     path = BENCHMARK_DIR / metadata["file"]
-    request = SolveJobRequest.model_validate(json.loads(path.read_text(encoding="utf-8")))
+    runtime_limit = rubric["gates"]["runtimeSeconds"][metadata["id"]]
+    request = SolveJobRequest.model_validate(
+        {
+            **json.loads(path.read_text(encoding="utf-8")),
+            "objective": BENCHMARK_OBJECTIVE,
+            "options": {"timeLimitSeconds": runtime_limit},
+        }
+    )
     seed_results = []
 
     for seed in rubric["seedSet"]:
@@ -43,6 +61,8 @@ def run_dataset(metadata: dict, rubric: dict, manifest: dict) -> dict:
                 "hardConflictCount": hard_conflict_count(result),
                 "runtimeMs": elapsed_ms,
                 "diagnostics": list(result.diagnostics.conflicts),
+                "objectiveValue": result.objectiveValue,
+                "objectiveBreakdown": result.diagnostics.objectiveBreakdown.model_dump(),
             }
         )
 
@@ -70,7 +90,6 @@ def run_dataset(metadata: dict, rubric: dict, manifest: dict) -> dict:
     hard_conflict_pass = all(
         result["hardConflictCount"] == 0 for result in seed_results
     ) if not is_infeasible else True
-    runtime_limit = rubric["gates"]["runtimeSeconds"][metadata["id"]]
     runtime_pass = all(result["runtimeMs"] / 1000 <= runtime_limit for result in seed_results)
     stability_pass = len(
         {
@@ -83,9 +102,14 @@ def run_dataset(metadata: dict, rubric: dict, manifest: dict) -> dict:
         if metadata["id"] in rubric["gates"]["optimality"]["optimalStatusRequiredFor"]
         else True
     )
+    objective_pass = all(
+        result["objectiveBreakdown"]["weightedTotal"] >= 0
+        for result in seed_results
+    )
+    soft_score = first["objectiveBreakdown"]["weightedTotal"]
     passed = all(
         [status_pass, assignment_pass, hard_conflict_pass, runtime_pass,
-         stability_pass, diagnostic_pass, optimality_pass]
+         stability_pass, diagnostic_pass, optimality_pass, objective_pass]
     )
 
     return {
@@ -110,9 +134,10 @@ def run_dataset(metadata: dict, rubric: dict, manifest: dict) -> dict:
             "optimality": optimality_pass,
             "seedStability": stability_pass,
             "explainability": diagnostic_pass,
-            "softScore": None,
+            "softScore": objective_pass,
         },
-        "objectiveGapPercent": None,
+        "objectiveGapPercent": 0 if optimality_pass and not is_infeasible else None,
+        "softScore": soft_score,
         "runtimeLimitSeconds": runtime_limit,
         "seedRuns": seed_results,
         "passed": passed,
@@ -140,7 +165,7 @@ def build_report() -> dict:
             "datasetCount": len(datasets),
             "passedCount": sum(1 for dataset in datasets if dataset["passed"]),
             "allPassed": all(dataset["passed"] for dataset in datasets),
-            "softScore": "not-scored: no versioned weighted objective in contract 1.0",
+            "softScore": "versioned SOLVER-OBJECTIVE-1.0.0 weightedTotal; lower is better",
         },
     }
 

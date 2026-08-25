@@ -22,19 +22,22 @@ The runner writes a versioned `SolveJobResult` JSON document to stdout. It
 accepts either the raw `SolveJobRequest` compatibility shape or a validated
 `SOLVER-ADAPTER-1.0.0` envelope. Adapter runs preserve template version,
 academic period, input checksum and effective random seed in result metadata.
-The
-result includes `status`, `objectiveValue` as the v1 score field,
+The result includes `status`, `objectiveValue` as the weighted objective score
+field, `diagnostics.objectiveBreakdown` for the six score groups, and
 `diagnostics`, assignments and `metadata` containing `solverVersion`,
 `contractVersion`, the effective random seed, the effective time limit and,
 when supplied, the `ruleSnapshotId`, `ruleSetVersion` and
 `ruleSnapshotHash` used by the request.
 
+An explicit objective is versioned as `SOLVER-OBJECTIVE-1.0.0`; see
+[`docs/solver-objective.md`](../../docs/solver-objective.md).
+
 `RuleSetSnapshot` carries the profile/register versions, source URL and
 locator, effective date range, applicability scope, approval state, immutable
 rule definitions and canonical SHA-256 hash. A pending, revoked or expired
-rule is not effective. The v1 CP-SAT objective still enforces only its current
-hard class/teacher/slot invariants; interpreting additional hard/soft rule
-kinds is the follow-up P2.1-T02 solver task.
+rule is not effective. The objective ranks only hard-feasible assignments; the
+hard class/teacher/room/availability constraints and post-solve audit remain
+authoritative.
 
 Invalid JSON or a payload that fails the Pydantic contract exits with code `2`
 and writes a machine-readable error to stderr with `INVALID_JSON` or

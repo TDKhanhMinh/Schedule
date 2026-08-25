@@ -8,6 +8,7 @@ from .pre_solve_contract import PreSolveReport
 
 CONTRACT_VERSION = "1.0"
 SOLVER_VERSION = "0.1.0"
+OBJECTIVE_CONTRACT_VERSION = "SOLVER-OBJECTIVE-1.0.0"
 DEFAULT_TIME_LIMIT_SECONDS = 10.0
 
 
@@ -48,6 +49,24 @@ class SolveJobOptions(BaseModel):
     timeLimitSeconds: float = Field(default=DEFAULT_TIME_LIMIT_SECONDS, gt=0)
 
 
+class SolverObjectiveWeights(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    teacherGap: float = Field(default=0, ge=0)
+    compactness: float = Field(default=0, ge=0)
+    dayDistribution: float = Field(default=0, ge=0)
+    undesirableSlots: float = Field(default=0, ge=0)
+    preferredDays: float = Field(default=0, ge=0)
+    fairness: float = Field(default=0, ge=0)
+
+
+class SolverObjective(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    contractVersion: Literal["SOLVER-OBJECTIVE-1.0.0"]
+    weights: SolverObjectiveWeights
+
+
 class SolveJobRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -63,6 +82,7 @@ class SolveJobRequest(BaseModel):
     classUnavailableSlotIds: dict[str, list[str]] | None = None
     rooms: list[RoomCapability] | None = None
     options: SolveJobOptions | None = None
+    objective: SolverObjective | None = None
 
     @model_validator(mode="after")
     def validate_rule_snapshot_reference(self) -> "SolveJobRequest":
@@ -90,6 +110,18 @@ class SolverModelMetrics(BaseModel):
     roomDomainCount: int = Field(ge=0)
 
 
+class ObjectiveBreakdown(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    teacherGap: int = Field(ge=0)
+    compactness: int = Field(ge=0)
+    dayDistribution: int = Field(ge=0)
+    undesirableSlots: int = Field(ge=0)
+    preferredDays: int = Field(ge=0)
+    fairness: int = Field(ge=0)
+    weightedTotal: int = Field(ge=0)
+
+
 class SolveDiagnostics(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -98,6 +130,17 @@ class SolveDiagnostics(BaseModel):
     catalogVersion: Literal["CONFLICT-CATALOG-1.0.0"] = CONFLICT_CATALOG_VERSION
     conflictDetails: list[ConflictDiagnostic] = Field(default_factory=list)
     hardConstraintViolations: list[str] = Field(default_factory=list)
+    objectiveBreakdown: ObjectiveBreakdown = Field(
+        default_factory=lambda: ObjectiveBreakdown(
+            teacherGap=0,
+            compactness=0,
+            dayDistribution=0,
+            undesirableSlots=0,
+            preferredDays=0,
+            fairness=0,
+            weightedTotal=0,
+        )
+    )
     modelMetrics: SolverModelMetrics | None = None
     preSolve: PreSolveReport | None = None
 
@@ -116,6 +159,7 @@ class SolverMetadata(BaseModel):
     ruleSnapshotId: str | None = Field(default=None, min_length=1)
     ruleSetVersion: str | None = Field(default=None, pattern=r"^RULE-SET-[0-9]+\.[0-9]+\.[0-9]+$")
     ruleSnapshotHash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    objectiveContractVersion: Literal["SOLVER-OBJECTIVE-1.0.0"] | None = None
 
 
 class SolveJobResult(BaseModel):

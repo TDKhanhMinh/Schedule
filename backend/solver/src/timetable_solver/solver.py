@@ -15,6 +15,24 @@ from .pre_solve import run_pre_solve_checks
 from .solver_adapter import SolverAdapterPayload
 
 
+OBJECTIVE_GROUPS = (
+    "teacherGap",
+    "compactness",
+    "dayDistribution",
+    "undesirableSlots",
+    "preferredDays",
+    "fairness",
+)
+DEFAULT_OBJECTIVE_WEIGHTS = {
+    "teacherGap": 0.0,
+    "compactness": 0.0,
+    "dayDistribution": 0.0,
+    "undesirableSlots": 1.0,
+    "preferredDays": 1.0,
+    "fairness": 0.0,
+}
+
+
 def _build_metadata(
     request: SolveJobRequest,
     random_seed: int,
@@ -39,6 +57,8 @@ def _build_metadata(
                 "inputChecksum": adapter_payload.inputChecksum,
             }
         )
+    if request.objective:
+        metadata["objectiveContractVersion"] = request.objective.contractVersion
     return metadata
 
 
@@ -71,6 +91,21 @@ def _availability_penalty(rule: TeacherAvailabilityRule) -> int:
     # ordinary wishes when both cannot be satisfied.
     multiplier = 10 if rule.strength == "STRONG_PREFERENCE" else 1
     return max(0, round((rule.weight or 0) * 1000 * multiplier))
+
+
+def _objective_weights(request: SolveJobRequest) -> dict[str, float]:
+    if request.objective is None:
+        return DEFAULT_OBJECTIVE_WEIGHTS.copy()
+    return request.objective.weights.model_dump()
+
+
+def _objective_group_for_rule(rule: TeacherAvailabilityRule) -> str:
+    code = rule.code.upper()
+    return "preferredDays" if "DAY" in code or "PREFERRED" in code else "undesirableSlots"
+
+
+def _empty_objective_breakdown() -> dict[str, int]:
+    return {group: 0 for group in (*OBJECTIVE_GROUPS, "weightedTotal")}
 
 
 def solve(
@@ -106,6 +141,7 @@ def solve(
                 "catalogVersion": CONFLICT_CATALOG_VERSION,
                 "conflictDetails": conflict_details,
                 "hardConstraintViolations": [],
+                "objectiveBreakdown": _empty_objective_breakdown(),
                 "modelMetrics": {
                     "variableCount": 0,
                     "candidatePairCount": 0,
@@ -137,7 +173,26 @@ def solve(
     availability_rules = _active_availability_rules(request)
     hard_unavailable = [rule for rule in availability_rules if rule.strength == "HARD_UNAVAILABLE"]
     preference_rules = [rule for rule in availability_rules if rule.strength != "HARD_UNAVAILABLE"]
-    penalty_terms = []
+    objective_weights = _objective_weights(request)
+    objective_scales = {group: round(objective_weights[group] * 1000) for group in OBJECTIVE_GROUPS}
+    objective_terms: list[object] = []
+    objective_score_terms: dict[str, list[tuple[cp_model.IntVar, int]]] = {
+        group: [] for group in OBJECTIVE_GROUPS
+    }
+
+    def register_objective_term(group: str, variable: cp_model.IntVar, coefficient: int) -> None:
+        if coefficient <= 0:
+            return
+        objective_score_terms[group].append((variable, coefficient))
+        if objective_scales[group] > 0:
+            objective_terms.append(variable * coefficient * objective_scales[group])
+
+    def add_pair_indicator(left: cp_model.IntVar, right: cp_model.IntVar, name: str) -> cp_model.IntVar:
+        indicator = model.NewBoolVar(name)
+        model.Add(indicator <= left)
+        model.Add(indicator <= right)
+        model.Add(indicator >= left + right - 1)
+        return indicator
 
     for lesson in request.lessons:
         if lesson.fixedSlotId and lesson.fixedSlotId not in slot_ids:
@@ -228,7 +283,11 @@ def solve(
                         if rule.teacherId == lesson.teacherId and _rule_matches_slot(rule, slot):
                             penalty = _availability_penalty(rule)
                             if penalty:
-                                penalty_terms.append(variable * penalty)
+                                register_objective_term(
+                                    _objective_group_for_rule(rule),
+                                    variable,
+                                    penalty,
+                                )
             if choices:
                 model.AddExactlyOne(choices)
             else:
@@ -263,6 +322,7 @@ def solve(
                 "catalogVersion": CONFLICT_CATALOG_VERSION,
                 "conflictDetails": conflict_details,
                 "hardConstraintViolations": [],
+                "objectiveBreakdown": _empty_objective_breakdown(),
                 "modelMetrics": {
                     "variableCount": len(variables),
                     "candidatePairCount": candidate_pair_count,
@@ -278,6 +338,66 @@ def solve(
                 adapter_payload,
             ),
         )
+
+    if objective_weights["teacherGap"] > 0 or objective_weights["compactness"] > 0:
+        pair_groups: dict[tuple[str, int], list[tuple[int, cp_model.IntVar]]] = {}
+        for (lesson_id, _, slot_id, _), variable in variables.items():
+            lesson = lessons_by_id[lesson_id]
+            slot = slots_by_id[slot_id]
+            for resource, group, enabled in (
+                ("teacherId", "teacherGap", objective_weights["teacherGap"] > 0),
+                ("classId", "compactness", objective_weights["compactness"] > 0),
+            ):
+                if enabled:
+                    pair_groups.setdefault((f"{resource}:{getattr(lesson, resource)}", slot.day), []).append(
+                        (slot.period, variable)
+                    )
+        for (resource_key, day), candidates in pair_groups.items():
+            for left_index, (left_period, left_variable) in enumerate(candidates):
+                for right_index in range(left_index + 1, len(candidates)):
+                    right_period, right_variable = candidates[right_index]
+                    distance_cost = max(0, abs(right_period - left_period) - 1)
+                    if distance_cost:
+                        group = "teacherGap" if resource_key.startswith("teacherId:") else "compactness"
+                        indicator = add_pair_indicator(
+                            left_variable,
+                            right_variable,
+                            f"objective_{group}_{day}_{left_index}_{right_index}",
+                        )
+                        register_objective_term(group, indicator, distance_cost)
+
+    def add_balance_terms(resource: str, group: str) -> None:
+        if objective_weights[group] <= 0:
+            return
+        resource_ids = {getattr(lesson, resource) for lesson in request.lessons}
+        days = sorted({slot.day for slot in request.timeSlots})
+        for resource_id in resource_ids:
+            demand = sum(
+                lesson.requiredSessions
+                for lesson in request.lessons
+                if getattr(lesson, resource) == resource_id
+            )
+            if not demand or not days:
+                continue
+            for day in days:
+                day_variables = [
+                    variable
+                    for (lesson_id, _, slot_id, _), variable in variables.items()
+                    if getattr(lessons_by_id[lesson_id], resource) == resource_id
+                    and slots_by_id[slot_id].day == day
+                ]
+                load = model.NewIntVar(0, demand, f"objective_{group}_{resource_id}_{day}_load")
+                model.Add(load == sum(day_variables) if day_variables else 0)
+                deviation = model.NewIntVar(
+                    0,
+                    demand * len(days),
+                    f"objective_{group}_{resource_id}_{day}_deviation",
+                )
+                model.AddAbsEquality(deviation, load * len(days) - demand)
+                register_objective_term(group, deviation, 1)
+
+    add_balance_terms("classId", "dayDistribution")
+    add_balance_terms("teacherId", "fairness")
 
     for slot_id in slot_ids:
         for resource in ("classId", "teacherId"):
@@ -300,8 +420,8 @@ def solve(
                 if choices:
                     model.AddAtMostOne(choices)
 
-    if penalty_terms:
-        model.Minimize(sum(penalty_terms))
+    if objective_terms:
+        model.Minimize(sum(objective_terms))
 
     solver = cp_model.CpSolver()
     # The seed is a harness-level control for reproducibility checks; it is not
@@ -351,7 +471,16 @@ def solve(
             )
         )
 
-    if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    objective_breakdown = _empty_objective_breakdown()
+    if status_name in {"OPTIMAL", "FEASIBLE"}:
+        for group in OBJECTIVE_GROUPS:
+            objective_breakdown[group] = sum(
+                solver.Value(variable) * coefficient
+                for variable, coefficient in objective_score_terms[group]
+            )
+            objective_breakdown["weightedTotal"] += objective_breakdown[group] * objective_scales[group]
+
+    if status_name in {"OPTIMAL", "FEASIBLE"}:
         lessons_by_id = {lesson.id: lesson for lesson in request.lessons}
         for assignment in assignments:
             lesson = lessons_by_id[assignment.lessonId]
@@ -382,6 +511,7 @@ def solve(
             "catalogVersion": CONFLICT_CATALOG_VERSION,
             "conflictDetails": conflict_details,
             "hardConstraintViolations": hard_constraint_violations,
+            "objectiveBreakdown": objective_breakdown,
             "modelMetrics": {
                 "variableCount": len(variables),
                 "candidatePairCount": candidate_pair_count,

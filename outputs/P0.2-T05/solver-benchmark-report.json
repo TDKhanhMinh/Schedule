@@ -3,7 +3,7 @@
   "rubricVersion": "1.0",
   "benchmarkVersion": "1.0",
   "contractVersion": "1.0",
-  "generatedAt": "2026-08-24T07:09:15.805143+00:00",
+  "generatedAt": "2026-08-25T06:14:33.966157+00:00",
   "environment": {
     "python": "3.11.9",
     "platform": "Windows-10-10.0.26200-SP0",
@@ -37,9 +37,10 @@
         "optimality": true,
         "seedStability": true,
         "explainability": true,
-        "softScore": null
+        "softScore": true
       },
-      "objectiveGapPercent": null,
+      "objectiveGapPercent": 0,
+      "softScore": 4000,
       "runtimeLimitSeconds": 5,
       "seedRuns": [
         {
@@ -47,24 +48,54 @@
           "status": "OPTIMAL",
           "assignmentCount": 5,
           "hardConflictCount": 0,
-          "runtimeMs": 122.885,
-          "diagnostics": []
+          "runtimeMs": 20.092,
+          "diagnostics": [],
+          "objectiveValue": 4000.0,
+          "objectiveBreakdown": {
+            "teacherGap": 0,
+            "compactness": 0,
+            "dayDistribution": 2,
+            "undesirableSlots": 0,
+            "preferredDays": 0,
+            "fairness": 2,
+            "weightedTotal": 4000
+          }
         },
         {
           "seed": 1,
           "status": "OPTIMAL",
           "assignmentCount": 5,
           "hardConflictCount": 0,
-          "runtimeMs": 8.566,
-          "diagnostics": []
+          "runtimeMs": 14.87,
+          "diagnostics": [],
+          "objectiveValue": 4000.0,
+          "objectiveBreakdown": {
+            "teacherGap": 0,
+            "compactness": 0,
+            "dayDistribution": 2,
+            "undesirableSlots": 0,
+            "preferredDays": 0,
+            "fairness": 2,
+            "weightedTotal": 4000
+          }
         },
         {
           "seed": 7,
           "status": "OPTIMAL",
           "assignmentCount": 5,
           "hardConflictCount": 0,
-          "runtimeMs": 14.464,
-          "diagnostics": []
+          "runtimeMs": 15.557,
+          "diagnostics": [],
+          "objectiveValue": 4000.0,
+          "objectiveBreakdown": {
+            "teacherGap": 0,
+            "compactness": 0,
+            "dayDistribution": 2,
+            "undesirableSlots": 0,
+            "preferredDays": 0,
+            "fairness": 2,
+            "weightedTotal": 4000
+          }
         }
       ],
       "passed": true
@@ -91,9 +122,10 @@
         "optimality": true,
         "seedStability": true,
         "explainability": true,
-        "softScore": null
+        "softScore": true
       },
-      "objectiveGapPercent": null,
+      "objectiveGapPercent": 0,
+      "softScore": 192000,
       "runtimeLimitSeconds": 30,
       "seedRuns": [
         {
@@ -101,24 +133,54 @@
           "status": "OPTIMAL",
           "assignmentCount": 40,
           "hardConflictCount": 0,
-          "runtimeMs": 141.906,
-          "diagnostics": []
+          "runtimeMs": 10912.819,
+          "diagnostics": [],
+          "objectiveValue": 192000.0,
+          "objectiveBreakdown": {
+            "teacherGap": 0,
+            "compactness": 0,
+            "dayDistribution": 80,
+            "undesirableSlots": 0,
+            "preferredDays": 0,
+            "fairness": 112,
+            "weightedTotal": 192000
+          }
         },
         {
           "seed": 1,
           "status": "OPTIMAL",
           "assignmentCount": 40,
           "hardConflictCount": 0,
-          "runtimeMs": 171.915,
-          "diagnostics": []
+          "runtimeMs": 12305.592,
+          "diagnostics": [],
+          "objectiveValue": 192000.0,
+          "objectiveBreakdown": {
+            "teacherGap": 0,
+            "compactness": 0,
+            "dayDistribution": 80,
+            "undesirableSlots": 0,
+            "preferredDays": 0,
+            "fairness": 112,
+            "weightedTotal": 192000
+          }
         },
         {
           "seed": 7,
           "status": "OPTIMAL",
           "assignmentCount": 40,
           "hardConflictCount": 0,
-          "runtimeMs": 180.406,
-          "diagnostics": []
+          "runtimeMs": 11239.458,
+          "diagnostics": [],
+          "objectiveValue": 192000.0,
+          "objectiveBreakdown": {
+            "teacherGap": 0,
+            "compactness": 0,
+            "dayDistribution": 80,
+            "undesirableSlots": 0,
+            "preferredDays": 0,
+            "fairness": 112,
+            "weightedTotal": 192000
+          }
         }
       ],
       "passed": true
@@ -147,40 +209,74 @@
         "optimality": true,
         "seedStability": true,
         "explainability": true,
-        "softScore": null
+        "softScore": true
       },
       "objectiveGapPercent": null,
+      "softScore": 0,
       "runtimeLimitSeconds": 5,
       "seedRuns": [
         {
           "seed": 0,
           "status": "INFEASIBLE",
           "assignmentCount": 0,
-          "hardConflictCount": 1,
-          "runtimeMs": 1.865,
+          "hardConflictCount": 2,
+          "runtimeMs": 0.232,
           "diagnostics": [
+            "TEACHER_SLOT_CAPACITY_EXCEEDED: teacherId teacher-1 needs 2 sessions but has 1 candidate slots.",
             "No feasible assignment satisfies all hard class and teacher constraints"
-          ]
+          ],
+          "objectiveValue": null,
+          "objectiveBreakdown": {
+            "teacherGap": 0,
+            "compactness": 0,
+            "dayDistribution": 0,
+            "undesirableSlots": 0,
+            "preferredDays": 0,
+            "fairness": 0,
+            "weightedTotal": 0
+          }
         },
         {
           "seed": 1,
           "status": "INFEASIBLE",
           "assignmentCount": 0,
-          "hardConflictCount": 1,
-          "runtimeMs": 1.219,
+          "hardConflictCount": 2,
+          "runtimeMs": 0.103,
           "diagnostics": [
+            "TEACHER_SLOT_CAPACITY_EXCEEDED: teacherId teacher-1 needs 2 sessions but has 1 candidate slots.",
             "No feasible assignment satisfies all hard class and teacher constraints"
-          ]
+          ],
+          "objectiveValue": null,
+          "objectiveBreakdown": {
+            "teacherGap": 0,
+            "compactness": 0,
+            "dayDistribution": 0,
+            "undesirableSlots": 0,
+            "preferredDays": 0,
+            "fairness": 0,
+            "weightedTotal": 0
+          }
         },
         {
           "seed": 7,
           "status": "INFEASIBLE",
           "assignmentCount": 0,
-          "hardConflictCount": 1,
-          "runtimeMs": 0.356,
+          "hardConflictCount": 2,
+          "runtimeMs": 0.086,
           "diagnostics": [
+            "TEACHER_SLOT_CAPACITY_EXCEEDED: teacherId teacher-1 needs 2 sessions but has 1 candidate slots.",
             "No feasible assignment satisfies all hard class and teacher constraints"
-          ]
+          ],
+          "objectiveValue": null,
+          "objectiveBreakdown": {
+            "teacherGap": 0,
+            "compactness": 0,
+            "dayDistribution": 0,
+            "undesirableSlots": 0,
+            "preferredDays": 0,
+            "fairness": 0,
+            "weightedTotal": 0
+          }
         }
       ],
       "passed": true
@@ -190,6 +286,6 @@
     "datasetCount": 3,
     "passedCount": 3,
     "allPassed": true,
-    "softScore": "not-scored: no versioned weighted objective in contract 1.0"
+    "softScore": "versioned SOLVER-OBJECTIVE-1.0.0 weightedTotal; lower is better"
   }
 }

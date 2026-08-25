@@ -31,7 +31,9 @@ class BenchmarkRubricTest(unittest.TestCase):
                 "status", "assignmentCount", "hardConstraints", "runtime",
                 "optimality", "seedStability", "explainability",
             )))
-            self.assertIsNone(dataset["checks"]["softScore"])
+            self.assertTrue(dataset["checks"]["softScore"])
+            self.assertIsInstance(dataset["softScore"], int)
+            self.assertTrue(all("objectiveBreakdown" in run for run in dataset["seedRuns"]))
 
 
 if __name__ == "__main__":

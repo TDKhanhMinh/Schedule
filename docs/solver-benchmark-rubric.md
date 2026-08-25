@@ -18,7 +18,7 @@ Seed là tham số của harness ở ngoài request contract; API/Python payload
 | Explainability | Không có conflict ẩn | Diagnostic chứa `expectedConflictContains` |
 | Seed stability | Status, assignment count và hard-conflict count giống nhau | Tương tự |
 | Runtime | Không vượt ngưỡng dataset | Không vượt ngưỡng dataset |
-| Optimality gap | `0%` nếu objective đã được version hóa; hiện ghi `null` vì contract v1 chưa có weighted objective | `null` |
+| Optimality gap | `0%` khi benchmark đạt `OPTIMAL`; baseline ngoài solver vẫn chưa có | `null` |
 
 Exact assignment layout không phải điều kiện stability: nhiều nghiệm tương đương
 có thể hợp lệ. Regression so sánh status, coverage và hard diagnostics trước; chỉ
@@ -36,24 +36,26 @@ runtime từng lần chạy.
 | `medium-near-realistic` | `OPTIMAL` | 40 | ≤ 30s | 0 hard conflicts |
 | `infeasible-teacher-conflict` | `INFEASIBLE` | 0 | ≤ 5s | Có diagnostic teacher/class hard conflict |
 
-Reference run ngày 2026-08-24 đạt `3/3` dataset trên cả ba seed. Max runtime
-quan sát được trong report: small `73.407ms`, medium `201.647ms`, infeasible
-`1.968ms`. Các con số này là evidence của lần chạy đó, không thay thế việc
-chạy lại khi đổi code, máy hoặc solver version.
+Reference run ngày 2026-08-25 đạt `3/3` dataset trên cả ba seed với
+`SOLVER-OBJECTIVE-1.0.0`. Max runtime quan sát được trong report: small
+`19.547ms`, medium `15885.768ms`, infeasible `0.190ms`. Các con số này là
+evidence của lần chạy đó, không thay thế việc chạy lại khi đổi code, máy hoặc
+solver version.
 
 ## 3. Soft score groups
 
-Tổng trọng số thiết kế là 100%, nhưng chưa chấm điểm trong benchmark v1 vì
-request/result contract hiện chưa có weighted objective và rule inputs đã
-version hóa. Runner phải ghi `softScore: null`/`not-scored`, không tự suy diễn
-“lịch đẹp”. Khi objective được chốt, dùng nhóm sau:
+Tổng trọng số thiết kế là 100%. Benchmark dùng objective versioned và ghi
+`diagnostics.objectiveBreakdown` cùng `softScore` (weightedTotal, thấp hơn là
+tốt hơn); hard feasibility vẫn là gate độc lập.
 
 | Nhóm | Trọng số | Ý nghĩa |
 | --- | ---: | --- |
-| `coverage` | 40% | Đủ required sessions, không hard conflict |
-| `distribution` | 30% | Phân bố tải/tiết trong tuần theo rule profile |
-| `teacher-preference` | 20% | Availability/preference có source và weight |
-| `change-penalty` | 10% | Penalty so với locked baseline |
+| `teacherGap` | 20% | Khoảng trống giữa các tiết cùng giáo viên trong ngày |
+| `compactness` | 20% | Khoảng trống giữa các tiết cùng lớp trong ngày |
+| `dayDistribution` | 20% | Độ lệch phân bố tải lớp giữa các ngày |
+| `undesirableSlots` | 15% | Soft availability rule khớp slot |
+| `preferredDays` | 10% | Soft rule thể hiện ngày ưu tiên |
+| `fairness` | 15% | Độ lệch phân bố tải giáo viên giữa các ngày |
 
 ## 4. Cách chạy và lưu report
 
@@ -91,7 +93,7 @@ Regression test:
 - Runner: `backend/solver/scripts/run_benchmark_rubric.py`.
 - Regression coverage: `backend/solver/tests/test_benchmark_rubric.py` và
   `test_benchmarks.py`.
-- Output contract không đổi; `random_seed` chỉ là keyword-only harness control
-  trong Python solver, không được gửi qua NestJS request.
-- Chưa có dữ liệu trường thật, pilot approver, deployment SLO, weighted objective
-  hoặc production observability trong task này.
+- `SOLVER-OBJECTIVE-1.0.0` là request/result extension; `random_seed` vẫn chỉ là
+  keyword-only harness control trong Python solver.
+- Chưa có dữ liệu trường thật, pilot approver, deployment SLO hoặc production
+  observability trong task này.

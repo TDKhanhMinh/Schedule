@@ -145,6 +145,27 @@
           "default": 10
         }
       }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractVersion", "weights"],
+      "properties": {
+        "contractVersion": { "const": "SOLVER-OBJECTIVE-1.0.0" },
+        "weights": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["teacherGap", "compactness", "dayDistribution", "undesirableSlots", "preferredDays", "fairness"],
+          "properties": {
+            "teacherGap": { "type": "number", "minimum": 0 },
+            "compactness": { "type": "number", "minimum": 0 },
+            "dayDistribution": { "type": "number", "minimum": 0 },
+            "undesirableSlots": { "type": "number", "minimum": 0 },
+            "preferredDays": { "type": "number", "minimum": 0 },
+            "fairness": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
     }
   }
 }

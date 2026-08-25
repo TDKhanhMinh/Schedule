@@ -25,7 +25,7 @@
     "optimality": {
       "optimalStatusRequiredFor": ["small-feasible", "medium-near-realistic"],
       "maximumObjectiveGapPercent": 0,
-      "currentContractNote": "v1 has no weighted objective; objective gap is recorded as null until a versioned objective exists"
+      "currentContractNote": "SOLVER-OBJECTIVE-1.0.0 is enabled for benchmark runs; objective gap remains null because no external baseline is supplied"
     },
     "seedStability": {
       "minimumSeeds": 3,
@@ -39,25 +39,35 @@
   },
   "softScoreGroups": [
     {
-      "id": "coverage",
-      "weightPercent": 40,
-      "definition": "All required sessions are assigned without hard conflicts"
-    },
-    {
-      "id": "distribution",
-      "weightPercent": 30,
-      "definition": "Weekly load/distribution preferences when a versioned rule exists"
-    },
-    {
-      "id": "teacher-preference",
+      "id": "teacherGap",
       "weightPercent": 20,
-      "definition": "Teacher availability/preferences with an approved source and weight"
+      "definition": "Empty periods between assignments for the same teacher/day"
     },
     {
-      "id": "change-penalty",
+      "id": "compactness",
+      "weightPercent": 20,
+      "definition": "Empty periods between assignments for the same class/day"
+    },
+    {
+      "id": "dayDistribution",
+      "weightPercent": 20,
+      "definition": "Deviation from an even class load across available days"
+    },
+    {
+      "id": "undesirableSlots",
+      "weightPercent": 15,
+      "definition": "Approved soft teacher availability rules that match a slot"
+    },
+    {
+      "id": "preferredDays",
       "weightPercent": 10,
-      "definition": "Penalty for changes against a locked baseline"
+      "definition": "Approved soft rules expressing preferred days"
+    },
+    {
+      "id": "fairness",
+      "weightPercent": 15,
+      "definition": "Deviation from an even teacher load across available days"
     }
   ],
-  "softScorePolicy": "Do not calculate or claim a soft score until the versioned objective and rule inputs exist; report null/not-scored instead."
+  "softScorePolicy": "Use diagnostics.objectiveBreakdown.weightedTotal for the versioned objective; lower is better and hard feasibility remains a gate."
 }

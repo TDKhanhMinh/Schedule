@@ -363,6 +363,87 @@ class SolverTest(unittest.TestCase):
         self.assertTrue(any("PREFERENCE_VIOLATED:RULE-TEACHER-AVAILABILITY-SOFT" in warning for warning in result.diagnostics.warnings))
         self.assertEqual(result.diagnostics.conflictDetails[0].code, "PREFERENCE_VIOLATED")
 
+    def test_versioned_weighted_objective_changes_preference_choice_and_breakdown(self):
+        base = {
+            "schemaVersion": "1.0",
+            "schoolId": "school-1",
+            "timeSlots": [
+                {"id": "mon-1", "day": 1, "period": 1},
+                {"id": "tue-1", "day": 2, "period": 1},
+            ],
+            "lessons": [
+                {
+                    "id": "lesson-a",
+                    "classId": "class-7a",
+                    "subjectId": "math",
+                    "teacherId": "teacher-1",
+                    "requiredSessions": 1,
+                }
+            ],
+            "teacherAvailability": {
+                "contractVersion": "TEACHER-AVAILABILITY-1.0.0",
+                "schoolId": "school-1",
+                "academicPeriodId": "period-1",
+                "effectiveAsOf": "2026-09-01",
+                "ruleSnapshotId": "snapshot-001",
+                "ruleSetVersion": "RULE-SET-1.0.0",
+                "ruleSnapshotHash": "0" * 64,
+                "rules": [
+                    {
+                        "ruleId": "availability-soft",
+                        "code": "RULE-TEACHER-AVAILABILITY-SOFT",
+                        "teacherId": "teacher-1",
+                        "strength": "SOFT_WISH",
+                        "weight": 1,
+                        "dayOfWeek": 1,
+                        "blockedSlotIds": ["mon-1"],
+                        "effectiveFrom": "2026-09-01",
+                        "source": {
+                            "sourceUrl": "https://schedule.local/rules",
+                            "ruleSnapshotId": "snapshot-001",
+                            "ruleSetVersion": "RULE-SET-1.0.0",
+                            "ruleSnapshotHash": "0" * 64,
+                        },
+                    }
+                ],
+            },
+        }
+        objective = {
+            "contractVersion": "SOLVER-OBJECTIVE-1.0.0",
+            "weights": {
+                "teacherGap": 0,
+                "compactness": 0,
+                "dayDistribution": 0,
+                "undesirableSlots": 1,
+                "preferredDays": 0,
+                "fairness": 0,
+            },
+        }
+
+        weighted = solve(
+            SolveJobRequest.model_validate({**base, "jobId": "job-weighted", "objective": objective})
+        )
+        unweighted = solve(
+            SolveJobRequest.model_validate(
+                {
+                    **base,
+                    "jobId": "job-unweighted",
+                    "objective": {
+                        "contractVersion": "SOLVER-OBJECTIVE-1.0.0",
+                        "weights": {group: 0 for group in objective["weights"]},
+                    },
+                }
+            )
+        )
+
+        self.assertEqual(weighted.status, "OPTIMAL")
+        self.assertEqual(weighted.assignments[0].slotId, "tue-1")
+        self.assertEqual(weighted.metadata.objectiveContractVersion, "SOLVER-OBJECTIVE-1.0.0")
+        self.assertEqual(weighted.diagnostics.objectiveBreakdown.undesirableSlots, 0)
+        self.assertEqual(weighted.diagnostics.objectiveBreakdown.weightedTotal, 0)
+        self.assertEqual(unweighted.assignments[0].slotId, "mon-1")
+        self.assertEqual(unweighted.diagnostics.objectiveBreakdown.undesirableSlots, 1000)
+
 
 if __name__ == "__main__":
     unittest.main()

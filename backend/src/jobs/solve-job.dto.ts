@@ -91,6 +91,42 @@ export class RoomCapabilityDto {
   unavailableSlotIds?: string[];
 }
 
+export class SolverObjectiveWeightsDto {
+  @IsNumber()
+  @Min(0)
+  teacherGap!: number;
+
+  @IsNumber()
+  @Min(0)
+  compactness!: number;
+
+  @IsNumber()
+  @Min(0)
+  dayDistribution!: number;
+
+  @IsNumber()
+  @Min(0)
+  undesirableSlots!: number;
+
+  @IsNumber()
+  @Min(0)
+  preferredDays!: number;
+
+  @IsNumber()
+  @Min(0)
+  fairness!: number;
+}
+
+export class SolverObjectiveDto {
+  @IsString()
+  @IsIn(["SOLVER-OBJECTIVE-1.0.0"])
+  contractVersion!: "SOLVER-OBJECTIVE-1.0.0";
+
+  @ValidateNested()
+  @Type(() => SolverObjectiveWeightsDto)
+  weights!: SolverObjectiveWeightsDto;
+}
+
 export class TeacherAvailabilityRuleSourceDto {
   @IsString()
   @IsNotEmpty()
@@ -273,4 +309,9 @@ export class SolveJobDto implements SolveJobRequest {
   @Type(() => SolveJobOptionsDto)
   @IsOptional()
   options?: SolveJobOptionsDto;
+
+  @ValidateNested()
+  @Type(() => SolverObjectiveDto)
+  @IsOptional()
+  objective?: SolverObjectiveDto;
 }
