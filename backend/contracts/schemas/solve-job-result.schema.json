@@ -29,7 +29,35 @@
       "required": ["warnings", "conflicts"],
       "properties": {
         "warnings": { "type": "array", "items": { "type": "string" } },
-        "conflicts": { "type": "array", "items": { "type": "string" } }
+        "conflicts": { "type": "array", "items": { "type": "string" } },
+        "preSolve": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["contractVersion", "canSolve", "totalDemandSessions", "slotCapacity", "issues", "warnings"],
+          "properties": {
+            "contractVersion": { "const": "PRE-SOLVE-1.0.0" },
+            "canSolve": { "type": "boolean" },
+            "totalDemandSessions": { "type": "integer", "minimum": 0 },
+            "slotCapacity": { "type": "integer", "minimum": 0 },
+            "issues": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["code", "severity", "message"],
+                "properties": {
+                  "code": { "type": "string", "minLength": 1 },
+                  "severity": { "enum": ["ERROR", "WARNING"] },
+                  "message": { "type": "string", "minLength": 1 },
+                  "lessonId": { "type": "string", "minLength": 1 },
+                  "resourceId": { "type": "string", "minLength": 1 },
+                  "details": { "type": "object" }
+                }
+              }
+            },
+            "warnings": { "type": "array", "items": { "type": "string" } }
+          }
+        }
       }
     },
     "metadata": {

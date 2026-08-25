@@ -7,6 +7,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
@@ -63,6 +64,26 @@ export class LessonRequirementDto {
   @IsString()
   @IsOptional()
   fixedSlotId?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  allowedRoomIds?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  requiredRoomCapabilities?: string[];
+}
+
+export class RoomCapabilityDto {
+  @IsString()
+  @IsNotEmpty()
+  id!: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  capabilities!: string[];
 }
 
 export class TeacherAvailabilityRuleSourceDto {
@@ -232,6 +253,16 @@ export class SolveJobDto implements SolveJobRequest {
   @Type(() => TeacherAvailabilitySetDto)
   @IsOptional()
   teacherAvailability?: TeacherAvailabilitySetDto;
+
+  @IsObject()
+  @IsOptional()
+  classUnavailableSlotIds?: Record<string, string[]>;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RoomCapabilityDto)
+  @IsOptional()
+  rooms?: RoomCapabilityDto[];
 
   @ValidateNested()
   @Type(() => SolveJobOptionsDto)

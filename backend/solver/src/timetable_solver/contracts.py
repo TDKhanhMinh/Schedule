@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .teacher_availability import TeacherAvailabilitySet
+from .pre_solve_contract import PreSolveReport
 
 CONTRACT_VERSION = "1.0"
 SOLVER_VERSION = "0.1.0"
@@ -28,6 +29,15 @@ class LessonRequirement(BaseModel):
     requiredSessions: int = Field(ge=1)
     allowedSlotIds: list[str] | None = None
     fixedSlotId: str | None = Field(default=None, min_length=1)
+    allowedRoomIds: list[str] | None = None
+    requiredRoomCapabilities: list[str] | None = None
+
+
+class RoomCapability(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1)
+    capabilities: list[str]
 
 
 class SolveJobOptions(BaseModel):
@@ -48,6 +58,8 @@ class SolveJobRequest(BaseModel):
     timeSlots: list[TimeSlot]
     lessons: list[LessonRequirement]
     teacherAvailability: TeacherAvailabilitySet | None = None
+    classUnavailableSlotIds: dict[str, list[str]] | None = None
+    rooms: list[RoomCapability] | None = None
     options: SolveJobOptions | None = None
 
     @model_validator(mode="after")
@@ -71,6 +83,7 @@ class SolveDiagnostics(BaseModel):
 
     warnings: list[str]
     conflicts: list[str]
+    preSolve: PreSolveReport | None = None
 
 
 class SolverMetadata(BaseModel):

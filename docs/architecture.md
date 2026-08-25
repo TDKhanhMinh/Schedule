@@ -77,6 +77,12 @@ period's `time_slots`. Python enforces `HARD_UNAVAILABLE` by removing matching
 choices and minimizes `STRONG_PREFERENCE`/`SOFT_WISH` violations with explicit
 diagnostic warnings. The UI is not an enforcement boundary.
 
+P2.1-T04 adds the versioned `PRE-SOLVE-1.0.0` necessary-condition report.
+NestJS exposes it before BullMQ enqueue and rejects provably infeasible
+requests; Python repeats the check before constructing a CP-SAT model. The
+report covers demand/class-slot capacity, teacher candidate capacity, fixed
+slot conflicts, class hard availability and optional room capabilities.
+
  Product requirements, user journeys and acceptance evidence are maintained in
  [`docs/prd-mvp.md`](prd-mvp.md). The PRD distinguishes local development evidence
  from pilot/stakeholder approval and production gates.

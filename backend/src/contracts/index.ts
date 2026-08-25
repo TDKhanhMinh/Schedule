@@ -1,10 +1,12 @@
 import type { TeacherAvailabilitySet } from "./teacher-availability";
+import type { PreSolveReport, RoomCapability } from "./pre-solve";
 
 export const CONTRACT_VERSION = "1.0" as const;
 export const OPTIMIZATION_QUEUE = "optimization" as const;
 export const OPTIMIZATION_JOB_NAME = "optimization.solve" as const;
 
 export * from "./rule-set";
+export * from "./pre-solve";
 export * from "./teacher-availability";
 export * from "./teacher-load";
 
@@ -25,6 +27,8 @@ export interface LessonRequirement {
   requiredSessions: number;
   allowedSlotIds?: string[];
   fixedSlotId?: string;
+  allowedRoomIds?: string[];
+  requiredRoomCapabilities?: string[];
 }
 
 export interface SolveJobOptions {
@@ -41,6 +45,8 @@ export interface SolveJobRequest {
   timeSlots: TimeSlot[];
   lessons: LessonRequirement[];
   teacherAvailability?: TeacherAvailabilitySet;
+  classUnavailableSlotIds?: Record<string, string[]>;
+  rooms?: RoomCapability[];
   options?: SolveJobOptions;
 }
 
@@ -53,6 +59,7 @@ export interface Assignment {
 export interface SolveDiagnostics {
   warnings: string[];
   conflicts: string[];
+  preSolve?: PreSolveReport;
 }
 
 export interface SolverMetadata {

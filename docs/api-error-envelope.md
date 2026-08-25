@@ -33,7 +33,7 @@ connection details.
 | `ImportsModule`    | Excel staging, validation, confirm and audit                       | `POST /imports/preview`, confirm, batch and audit endpoints    |
 | `RulesModule`      | Versioned rule profiles, provenance, teacher-load and teacher-availability reports | Approved snapshot is required; hard/strong/soft availability is server-owned |
 | `TimetableModule`  | Schedule versions, review/edit, approval, lock, publish and export | Foundation boundary; workflow capabilities follow MVP tasks    |
-| `JobsModule`       | BullMQ enqueue/status and solver job boundary                      | `POST/GET /optimization-jobs`                                  |
+| `JobsModule`       | BullMQ preflight, enqueue/status and solver job boundary            | `POST /optimization-jobs/preflight`, `POST/GET /optimization-jobs`; provable failures do not enqueue |
 | `HealthModule`     | Liveness surface                                                   | `GET /health`                                                  |
 | `DatabaseModule`   | PostgreSQL pool and lifecycle                                      | Shared infrastructure provider                                 |
 

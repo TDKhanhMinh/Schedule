@@ -8,6 +8,11 @@ import { SolveJobDto } from "./solve-job.dto";
 export class OptimizationJobsController {
   constructor(private readonly queue: OptimizationQueueService) {}
 
+  @Post("preflight")
+  preflight(@Body() payload: SolveJobDto) {
+    return this.queue.preflight(payload);
+  }
+
   @Post()
   enqueue(@Body() payload: SolveJobDto) {
     return this.queue.enqueue(payload);

@@ -9,6 +9,7 @@ from .contracts import (
     SolveJobResult,
 )
 from .teacher_availability import TeacherAvailabilityRule
+from .pre_solve import run_pre_solve_checks
 
 
 def _active_availability_rules(request) -> list[TeacherAvailabilityRule]:
@@ -43,6 +44,32 @@ def _availability_penalty(rule: TeacherAvailabilityRule) -> int:
 
 
 def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
+    pre_solve = run_pre_solve_checks(request)
+    if not pre_solve.canSolve:
+        pre_solve_conflicts = [f"{issue.code}: {issue.message}" for issue in pre_solve.issues]
+        if "No feasible assignment satisfies all hard class and teacher constraints" not in pre_solve_conflicts:
+            pre_solve_conflicts.append("No feasible assignment satisfies all hard class and teacher constraints")
+        return SolveJobResult(
+            schemaVersion=CONTRACT_VERSION,
+            jobId=request.jobId,
+            status="INFEASIBLE",
+            assignments=[],
+            objectiveValue=None,
+            diagnostics={
+                "warnings": pre_solve.warnings,
+                "conflicts": pre_solve_conflicts,
+                "preSolve": pre_solve,
+            },
+            metadata={
+                "solverVersion": SOLVER_VERSION,
+                "contractVersion": CONTRACT_VERSION,
+                "randomSeed": random_seed,
+                "timeLimitSeconds": request.options.timeLimitSeconds if request.options else DEFAULT_TIME_LIMIT_SECONDS,
+                "ruleSnapshotId": request.ruleSnapshotId,
+                "ruleSetVersion": request.ruleSetVersion,
+                "ruleSnapshotHash": request.ruleSnapshotHash,
+            },
+        )
     slot_ids = {slot.id for slot in request.timeSlots}
     lessons_by_id = {lesson.id: lesson for lesson in request.lessons}
     warnings: list[str] = []
@@ -98,7 +125,7 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
             status="INFEASIBLE",
             assignments=[],
             objectiveValue=None,
-            diagnostics={"warnings": warnings, "conflicts": conflicts},
+            diagnostics={"warnings": warnings, "conflicts": conflicts, "preSolve": pre_solve},
             metadata={
                 "solverVersion": SOLVER_VERSION,
                 "contractVersion": CONTRACT_VERSION,
@@ -164,7 +191,7 @@ def solve(request: SolveJobRequest, *, random_seed: int = 0) -> SolveJobResult:
         status=status_name,
         assignments=assignments,
         objectiveValue=solver.ObjectiveValue() if status in (cp_model.OPTIMAL, cp_model.FEASIBLE) else None,
-        diagnostics={"warnings": warnings, "conflicts": conflicts},
+        diagnostics={"warnings": warnings, "conflicts": conflicts, "preSolve": pre_solve},
         metadata={
             "solverVersion": SOLVER_VERSION,
             "contractVersion": CONTRACT_VERSION,

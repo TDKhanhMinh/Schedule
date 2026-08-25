@@ -145,6 +145,9 @@ and adds an independent `RuleSetSnapshot` contract version
 - The current Python solver interprets the versioned availability projection;
   P2.1-T02 covers teacher-load evaluation and P2.1-T03 covers hard filtering
   plus weighted preference penalties against the approved snapshot.
+- P2.1-T04 adds an additive `PRE-SOLVE-1.0.0` request/report boundary for
+  class availability, room capability projections and necessary capacity
+  checks; it does not make `RoomAssignment` a persisted solver entity.
 - Any future addition of `academicPeriodId`, `roomId`, soft constraints or
   schedule-version fields must update JSON Schema, TypeScript, Pydantic, the
   glossary and tests in one change.

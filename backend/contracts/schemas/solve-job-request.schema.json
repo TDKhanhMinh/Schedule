@@ -44,7 +44,9 @@
           "teacherId": { "type": "string", "minLength": 1 },
           "requiredSessions": { "type": "integer", "minimum": 1 },
           "allowedSlotIds": { "type": "array", "items": { "type": "string" } },
-          "fixedSlotId": { "type": "string", "minLength": 1 }
+          "fixedSlotId": { "type": "string", "minLength": 1 },
+          "allowedRoomIds": { "type": "array", "items": { "type": "string" } },
+          "requiredRoomCapabilities": { "type": "array", "items": { "type": "string" } }
         }
       }
     },
@@ -112,6 +114,22 @@
               }
             }
           }
+        }
+      }
+    },
+    "classUnavailableSlotIds": {
+      "type": "object",
+      "additionalProperties": { "type": "array", "items": { "type": "string" } }
+    },
+    "rooms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "capabilities"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "capabilities": { "type": "array", "items": { "type": "string" } }
         }
       }
     },
