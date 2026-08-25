@@ -58,6 +58,9 @@ interface PreviewRow {
 interface PreviewResponse {
   importBatchId: string;
   status: string;
+  templateVersion: string;
+  fileChecksum: string;
+  importToken: string;
   filename: string;
   columns: string[];
   columnMappings: ColumnMapping[];
@@ -75,6 +78,9 @@ interface PreviewResponse {
 interface ConfirmResponse {
   importBatchId: string;
   status: string;
+  templateVersion: string;
+  fileChecksum: string | null;
+  importToken: string | null;
   message: string;
   validRowCount: number;
   auditLog: {
@@ -352,7 +358,7 @@ function ImportScreen() {
     try {
       const response = await fetch(frontendConfig.apiBaseUrl + "/imports/" + preview.importBatchId + "/confirm", {
         method: "POST",
-        headers: authHeaders(),
+        headers: { ...authHeaders(), "Idempotency-Key": preview.importToken },
       });
       const payload: unknown = await response.json();
       if (!response.ok) throw new Error(readApiMessage(payload));

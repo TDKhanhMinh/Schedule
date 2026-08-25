@@ -16,6 +16,10 @@ POST /api/v1/imports/<import-batch-id>/confirm
 ```
 
 `schoolId` is supplied by the API request, not inferred from workbook data.
+Preview returns an opaque `importToken` and the workbook `fileChecksum`. Confirm
+must send the same token in the standard `Idempotency-Key` header (the local
+adapter also accepts `X-Import-Token`). The token is scoped to the selected
+school and remains stable for retries of that previewed batch.
 The current contract version does not include `academicPeriodId`, shifts,
 teacher availability, preferences or room assignment in the solver payload.
 Those fields are explicit follow-ups and must not be silently added to a v1
@@ -90,6 +94,9 @@ The error catalog is part of the workbook and mirrors current API error codes:
 | `UNKNOWN_REFERENCE`       | Data row | `sheet`, `row`, `column`, `cell` and master-data field             |
 | `DUPLICATE`               | Data row | `sheet`, `row`, column range and duplicate natural-key field       |
 | `IMPORT_HAS_ERRORS`       | Confirm  | Import batch                                                       |
+| `IDEMPOTENCY_KEY_REQUIRED` | Confirm  | `Idempotency-Key`/import token header                             |
+| `IDEMPOTENCY_KEY_MISMATCH`| Confirm  | Import batch already bound to another token                      |
+| `IDEMPOTENCY_KEY_REUSED`  | Confirm  | School-scoped token already belongs to another batch             |
 
 For v1, the first sheet is fixed to `LessonRequirements`, while the preview
 summarizes every sheet and marks later guidance sheets as `IGNORED`. Each issue
@@ -109,6 +116,7 @@ fields and additionally returns:
 - `sheetSummaries[]`: sheet name/index, import status, row/column counts and validation counts.
 - `warningCount` and `warnings[]`: non-blocking issues; warnings do not disable Confirm.
 - `rows[].status`, `rows[].normalized` and `rows[].warnings` alongside raw `values` and `errors`.
+- `importToken` and `fileChecksum` for the confirm/idempotency and traceability boundary.
 
 Preview persists only staging rows. `normalized` is the canonical NestJS shape
 (`classId`, `subjectId`, `teacherId`, `requiredSessions`, optional `roomId`) and
@@ -122,9 +130,19 @@ Within one workbook, the current duplicate check uses:
 schoolId + classId + subjectId + teacherId
 ```
 
-The official cross-import upsert/idempotency policy is not yet implemented.
-Until it is approved, a re-import must be treated as a new reviewable batch and
-must not be assumed to update existing lesson requirements automatically.
+Confirm is atomic and idempotent by the school-scoped `Idempotency-Key`: the
+batch is locked, all normalized requirements, batch status, confirmation result
+and `IMPORT_CONFIRMED` audit record are committed in one PostgreSQL transaction.
+A retry with the same key returns the persisted result and does not insert a
+second set of domain rows. A different key for the same batch, or reusing a key
+for another batch, is rejected. A re-import with a new preview token remains a
+new reviewable batch and must not be assumed to update existing lesson
+requirements automatically.
+
+The import log stores the actor, template version, file checksum, row counts
+and batch identifier. The staged rows retain their normalized payload and
+validation errors so the file and any rejected rows can be traced without
+copying the workbook bytes into audit metadata.
 
 ## 7. Version compatibility
 

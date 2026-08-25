@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import ExcelJS from "exceljs";
 import JSZip from "jszip";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import { PG_POOL } from "../database/database.module";
 
@@ -98,13 +98,26 @@ interface ImportBatchRecord {
   school_id: string;
   original_filename: string;
   template_version: string;
+  file_checksum: string | null;
+  idempotency_key: string | null;
   status: "PREVIEWED" | "CONFIRMED" | "REJECTED";
   row_count: number;
   valid_row_count: number;
   error_count: number;
   created_by: string;
   created_at: Date;
+  confirmed_by: string | null;
   confirmed_at: Date | null;
+  confirmation_result: Record<string, unknown> | null;
+}
+
+export interface ImportAuditLog {
+  id: string;
+  action: string;
+  actorId: string;
+  message: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
 }
 
 export interface UploadedExcelFile {
@@ -199,6 +212,8 @@ export class ImportsService {
     }
 
     const batchId = randomUUID();
+    const fileChecksum = createHash("sha256").update(file.buffer).digest("hex");
+    const importToken = randomUUID();
     const errors = parsed.rows.flatMap((row) => row.errors);
     const warnings = parsed.rows.flatMap((row) => row.warnings);
     const validRows = parsed.rows.filter((row) => row.errors.length === 0);
@@ -208,13 +223,16 @@ export class ImportsService {
       await client.query("BEGIN");
       await client.query(
         `INSERT INTO import_batches
-          (id, school_id, original_filename, template_version, status, row_count, valid_row_count, error_count, created_by)
-         VALUES ($1, $2, $3, $4, 'PREVIEWED', $5, $6, $7, $8)`,
+          (id, school_id, original_filename, template_version, file_checksum, idempotency_key,
+           status, row_count, valid_row_count, error_count, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, 'PREVIEWED', $7, $8, $9, $10)`,
         [
           batchId,
           schoolId,
           file.originalname,
           TEMPLATE_VERSION,
+          fileChecksum,
+          importToken,
           parsed.rows.length,
           validRows.length,
           errors.length,
@@ -248,6 +266,8 @@ export class ImportsService {
       importBatchId: batchId,
       status: "PREVIEWED",
       templateVersion: TEMPLATE_VERSION,
+      fileChecksum,
+      importToken,
       filename: file.originalname,
       columns: parsed.columns,
       columnMappings: parsed.columnMappings,
@@ -270,14 +290,32 @@ export class ImportsService {
     };
   }
 
-  async confirm(batchId: string, actorId: string, schoolId: string) {
+  async confirm(batchId: string, actorId: string, schoolId: string, idempotencyKey?: string) {
+    const normalizedIdempotencyKey = idempotencyKey?.trim();
+    if (!normalizedIdempotencyKey) {
+      throw new BadRequestException({
+        code: "IDEMPOTENCY_KEY_REQUIRED",
+        message: "Idempotency-Key hoặc import token là bắt buộc khi Confirm Import.",
+      });
+    }
+    if (normalizedIdempotencyKey.length > 200) {
+      throw new BadRequestException({
+        code: "IDEMPOTENCY_KEY_TOO_LONG",
+        message: "Idempotency-Key không được dài quá 200 ký tự.",
+      });
+    }
+
     const client = await this.pool.connect();
 
     try {
       await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [
+        schoolId + ":" + normalizedIdempotencyKey,
+      ]);
       const batchResult = await client.query<ImportBatchRecord>(
-        `SELECT id, school_id, original_filename, status, row_count, valid_row_count, error_count,
-                created_by, created_at, confirmed_at
+        `SELECT id, school_id, original_filename, template_version, file_checksum, idempotency_key,
+                status, row_count, valid_row_count, error_count, created_by, created_at,
+                confirmed_by, confirmed_at, confirmation_result
            FROM import_batches
           WHERE id = $1 AND school_id = $2
           FOR UPDATE`,
@@ -289,8 +327,44 @@ export class ImportsService {
         throw new NotFoundException("Import batch không tồn tại.");
       }
 
+      if (batch.idempotency_key && batch.idempotency_key !== normalizedIdempotencyKey) {
+        throw new BadRequestException({
+          code: "IDEMPOTENCY_KEY_MISMATCH",
+          message: "Import batch đã được gắn với một idempotency key khác.",
+          importBatchId: batch.id,
+        });
+      }
+
+      const keyOwnerResult = await client.query<{ id: string }>(
+        `SELECT id
+           FROM import_batches
+          WHERE school_id = $1 AND idempotency_key = $2 AND id <> $3
+          FOR UPDATE`,
+        [schoolId, normalizedIdempotencyKey, batch.id],
+      );
+      if (keyOwnerResult.rows[0]) {
+        throw new BadRequestException({
+          code: "IDEMPOTENCY_KEY_REUSED",
+          message: "Idempotency-Key đã được sử dụng cho một import batch khác.",
+          importBatchId: keyOwnerResult.rows[0].id,
+        });
+      }
+
+      if (!batch.idempotency_key) {
+        await client.query(
+          `UPDATE import_batches
+              SET idempotency_key = $2
+            WHERE id = $1 AND school_id = $3 AND idempotency_key IS NULL`,
+          [batch.id, normalizedIdempotencyKey, schoolId],
+        );
+        batch.idempotency_key = normalizedIdempotencyKey;
+      }
+
       if (batch.status === "CONFIRMED") {
         await client.query("COMMIT");
+        if (batch.confirmation_result) {
+          return batch.confirmation_result;
+        }
         return this.buildConfirmedResponse(
           { ...batch, status: "CONFIRMED" as const },
           await this.findAudit(batch.id, schoolId),
@@ -327,34 +401,52 @@ export class ImportsService {
       const confirmedAt = new Date();
       await client.query(
         `UPDATE import_batches
-            SET status = 'CONFIRMED', confirmed_at = $2
+            SET status = 'CONFIRMED', confirmed_at = $2, confirmed_by = $3
           WHERE id = $1`,
-        [batch.id, confirmedAt],
+        [batch.id, confirmedAt, actorId],
       );
 
-      await client.query(
+      const auditResult = await client.query<{
+        id: string;
+        actor_id: string;
+        action: string;
+        metadata: Record<string, unknown>;
+        created_at: Date;
+      }>(
         `INSERT INTO audit_logs (school_id, action, entity_type, entity_id, actor_id, metadata)
          VALUES ($1, 'IMPORT_CONFIRMED', 'import_batch', $2, $3, $4::jsonb)
-         ON CONFLICT DO NOTHING`,
+         RETURNING id, actor_id, action, metadata, created_at`,
         [
           batch.school_id,
           batch.id,
           actorId,
           JSON.stringify({
             filename: batch.original_filename,
+            fileChecksum: batch.file_checksum,
+            templateVersion: batch.template_version,
             rowCount: batch.row_count,
             validRowCount: batch.valid_row_count,
+            errorCount: batch.error_count,
           }),
         ],
       );
 
-      await client.query("COMMIT");
       const confirmedBatch = {
         ...batch,
         status: "CONFIRMED" as const,
+        confirmed_by: actorId,
         confirmed_at: confirmedAt,
       };
-      return this.buildConfirmedResponse(confirmedBatch, await this.findAudit(batch.id, schoolId));
+      const response = this.buildConfirmedResponse(confirmedBatch, this.toAuditLog(auditResult.rows[0]));
+      await client.query(
+        `UPDATE import_batches
+            SET confirmation_result = $2::jsonb
+          WHERE id = $1`,
+        [batch.id, JSON.stringify(response)],
+      );
+
+      await client.query("COMMIT");
+      return response;
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -365,8 +457,9 @@ export class ImportsService {
 
   async getBatch(batchId: string, schoolId: string) {
     const result = await this.pool.query<ImportBatchRecord>(
-      `SELECT id, school_id, original_filename, template_version, status, row_count,
-              valid_row_count, error_count, created_by, created_at, confirmed_at
+      `SELECT id, school_id, original_filename, template_version, file_checksum, idempotency_key,
+              status, row_count, valid_row_count, error_count, created_by, created_at,
+              confirmed_by, confirmed_at, confirmation_result
          FROM import_batches
         WHERE id = $1 AND school_id = $2`,
       [batchId, schoolId],
@@ -388,6 +481,9 @@ export class ImportsService {
       importBatchId: batch.id,
       status: batch.status,
       filename: batch.original_filename,
+      templateVersion: batch.template_version,
+      fileChecksum: batch.file_checksum,
+      importToken: batch.idempotency_key,
       rowCount: batch.row_count,
       validRowCount: batch.valid_row_count,
       errorCount: batch.error_count,
@@ -927,29 +1023,60 @@ export class ImportsService {
       return null;
     }
 
-    return {
+    return this.toAuditLog({
       id: audit.id,
       action: audit.action,
-      actorId: audit.actor_id,
-      message: "User " + audit.actor_id + " đã import danh sách lịch học lúc " + audit.created_at.toISOString(),
+      actor_id: audit.actor_id,
       metadata: audit.metadata,
-      createdAt: audit.created_at.toISOString(),
+      created_at: audit.created_at,
+    });
+  }
+
+  private toAuditLog(row: {
+    id: string;
+    actor_id: string;
+    action: string;
+    metadata: Record<string, unknown>;
+    created_at: Date;
+  }): ImportAuditLog {
+    return {
+      id: row.id,
+      action: row.action,
+      actorId: row.actor_id,
+      message: "User " + row.actor_id + " đã import danh sách lịch học lúc " + row.created_at.toISOString(),
+      metadata: row.metadata,
+      createdAt: row.created_at.toISOString(),
     };
   }
 
   private buildConfirmedResponse(
-    batch: Pick<ImportBatchRecord, "id" | "original_filename" | "row_count" | "valid_row_count" | "confirmed_at"> & {
+    batch: Pick<
+      ImportBatchRecord,
+      | "id"
+      | "original_filename"
+      | "template_version"
+      | "file_checksum"
+      | "idempotency_key"
+      | "row_count"
+      | "valid_row_count"
+      | "confirmed_by"
+      | "confirmed_at"
+    > & {
       status: "CONFIRMED";
     },
-    auditLog: Awaited<ReturnType<ImportsService["findAudit"]>>,
+    auditLog: ImportAuditLog | null,
   ) {
     return {
       importBatchId: batch.id,
       status: batch.status,
       filename: batch.original_filename,
+      templateVersion: batch.template_version,
+      fileChecksum: batch.file_checksum,
+      importToken: batch.idempotency_key,
       message: "Import thành công.",
       rowCount: batch.row_count,
       validRowCount: batch.valid_row_count,
+      confirmedBy: batch.confirmed_by,
       confirmedAt: batch.confirmed_at?.toISOString() ?? null,
       auditLog,
     };

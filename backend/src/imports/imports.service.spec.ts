@@ -109,6 +109,76 @@ function expectBadRequest(error: unknown, code: string) {
   expect((error as BadRequestException).getResponse()).toEqual(expect.objectContaining({ code }));
 }
 
+function createConfirmPoolMock(options: { failOnLessonInsert?: boolean } = {}) {
+  const batch = {
+    id: "00000000-0000-0000-0000-000000009001",
+    school_id: SCHOOL_ID,
+    original_filename: "valid.xlsx",
+    template_version: "1.0",
+    file_checksum: "a".repeat(64),
+    idempotency_key: "import-token-001",
+    status: "PREVIEWED" as "PREVIEWED" | "CONFIRMED",
+    row_count: 1,
+    valid_row_count: 1,
+    error_count: 0,
+    created_by: "preview-user",
+    created_at: new Date("2026-08-25T02:00:00.000Z"),
+    confirmed_by: null as string | null,
+    confirmed_at: null as Date | null,
+    confirmation_result: null as Record<string, unknown> | null,
+  };
+  const audit = {
+    id: "00000000-0000-0000-0000-000000009101",
+    actor_id: "confirm-user",
+    action: "IMPORT_CONFIRMED",
+    metadata: { filename: "valid.xlsx", fileChecksum: batch.file_checksum, templateVersion: "1.0" },
+    created_at: new Date("2026-08-25T02:01:00.000Z"),
+  };
+  const clientQueries: string[] = [];
+  const clientQuery = jest.fn(async (sql: string, params?: unknown[]) => {
+    clientQueries.push(sql);
+    if (options.failOnLessonInsert && sql.includes("INSERT INTO lesson_requirements")) {
+      throw new Error("simulated domain write failure");
+    }
+    if (sql.includes("SELECT id, school_id") && sql.includes("WHERE id = $1 AND school_id = $2")) {
+      return { rows: [batch], rowCount: 1 };
+    }
+    if (sql.includes("SELECT id") && sql.includes("idempotency_key = $2")) return { rows: [], rowCount: 0 };
+    if (sql.includes("SELECT id, payload")) {
+      return {
+        rows: [
+          {
+            id: "00000000-0000-0000-0000-000000009201",
+            payload: {
+              id: "00000000-0000-0000-0000-000000009201",
+              classId: "00000000-0000-0000-0000-000000000201",
+              subjectId: "00000000-0000-0000-0000-000000000401",
+              teacherId: "00000000-0000-0000-0000-000000000301",
+              requiredSessions: 2,
+            },
+          },
+        ],
+        rowCount: 1,
+      };
+    }
+    if (sql.includes("SET status = 'CONFIRMED'")) {
+      batch.status = "CONFIRMED";
+      batch.confirmed_at = params?.[1] as Date;
+      batch.confirmed_by = params?.[2] as string;
+    }
+    if (sql.includes("SET confirmation_result")) {
+      batch.confirmation_result = JSON.parse(String(params?.[1]));
+    }
+    if (sql.includes("INSERT INTO audit_logs")) return { rows: [audit], rowCount: 1 };
+    return { rows: [], rowCount: 1 };
+  });
+  const pool = {
+    query: jest.fn(async () => ({ rows: [], rowCount: 0 })),
+    connect: jest.fn(async () => ({ query: clientQuery, release: jest.fn() })),
+  } as unknown as Pool;
+  return { pool, batch, clientQueries };
+}
+
 describe("ImportsService secure workbook boundary", () => {
   it("parses a valid workbook and stages only import rows before confirm", async () => {
     const { pool, clientQueries } = createPoolMock();
@@ -121,6 +191,9 @@ describe("ImportsService secure workbook boundary", () => {
     );
 
     expect(result).toMatchObject({
+      templateVersion: "1.0",
+      fileChecksum: expect.stringMatching(/^[0-9a-f]{64}$/),
+      importToken: expect.any(String),
       rowCount: 1,
       validRowCount: 1,
       errorCount: 0,
@@ -312,5 +385,49 @@ describe("ImportsService secure workbook boundary", () => {
     await expect(withTimeout(new Promise((resolve) => setTimeout(resolve, 20)), 1, () => timeout)).rejects.toBe(
       timeout,
     );
+  });
+
+  it("requires an idempotency key before opening the confirm transaction", async () => {
+    const { pool } = createConfirmPoolMock();
+    const service = new ImportsService(pool);
+
+    await expect(service.confirm("batch-001", "confirm-user", SCHOOL_ID)).rejects.toMatchObject({
+      response: expect.objectContaining({ code: "IDEMPOTENCY_KEY_REQUIRED" }),
+    });
+    expect(pool.connect).not.toHaveBeenCalled();
+  });
+
+  it("confirms atomically and returns the persisted result on the same-key retry", async () => {
+    const { pool, batch, clientQueries } = createConfirmPoolMock();
+    const service = new ImportsService(pool);
+
+    const first = await service.confirm(batch.id, "confirm-user", SCHOOL_ID, "import-token-001");
+    const second = await service.confirm(batch.id, "confirm-user", SCHOOL_ID, "import-token-001");
+
+    expect(first).toMatchObject({
+      importBatchId: batch.id,
+      status: "CONFIRMED",
+      templateVersion: "1.0",
+      fileChecksum: "a".repeat(64),
+      importToken: "import-token-001",
+      confirmedBy: "confirm-user",
+      auditLog: expect.objectContaining({ action: "IMPORT_CONFIRMED", actorId: "confirm-user" }),
+    });
+    expect(second).toEqual(first);
+    expect(clientQueries.filter((sql) => sql.includes("INSERT INTO lesson_requirements"))).toHaveLength(1);
+    expect(clientQueries.filter((sql) => sql.includes("INSERT INTO audit_logs"))).toHaveLength(1);
+    expect(clientQueries.filter((sql) => sql.includes("SET status = 'CONFIRMED'"))).toHaveLength(1);
+  });
+
+  it("rolls back every write when a domain insert fails", async () => {
+    const { pool, batch, clientQueries } = createConfirmPoolMock({ failOnLessonInsert: true });
+    const service = new ImportsService(pool);
+
+    await expect(service.confirm(batch.id, "confirm-user", SCHOOL_ID, "import-token-001")).rejects.toThrow(
+      "simulated domain write failure",
+    );
+    expect(clientQueries).toContain("ROLLBACK");
+    expect(clientQueries.some((sql) => sql.includes("SET status = 'CONFIRMED'"))).toBe(false);
+    expect(clientQueries.some((sql) => sql.includes("INSERT INTO audit_logs"))).toBe(false);
   });
 });

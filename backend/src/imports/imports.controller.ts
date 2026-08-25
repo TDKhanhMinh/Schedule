@@ -28,8 +28,10 @@ export class ImportsController {
     @Param("batchId") batchId: string,
     @Headers("x-user-id") actorId: string | undefined,
     @Headers("x-school-id") schoolId: string,
+    @Headers("idempotency-key") idempotencyKey: string | undefined,
+    @Headers("x-import-token") importToken: string | undefined,
   ) {
-    return this.imports.confirm(batchId, actorId || "local-qc-user", schoolId);
+    return this.imports.confirm(batchId, actorId || "local-qc-user", schoolId, idempotencyKey || importToken);
   }
 
   @Get(":batchId")

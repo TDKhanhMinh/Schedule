@@ -45,4 +45,18 @@ describe("AuditInterceptor", () => {
 
     expect(record).toHaveBeenCalledWith(expect.objectContaining({ action }));
   });
+
+  it("does not add a second generic audit event when confirm returns its domain audit log", async () => {
+    const record = jest.fn().mockResolvedValue({});
+    const interceptor = new AuditInterceptor({ record } as unknown as AuditLogService);
+    const { context } = makeContext("POST", "/imports/batch-001/confirm");
+
+    await firstValueFrom(
+      interceptor.intercept(context, {
+        handle: () => of({ importBatchId: "batch-001", auditLog: { action: "IMPORT_CONFIRMED" } }),
+      }),
+    );
+
+    expect(record).not.toHaveBeenCalled();
+  });
 });

@@ -34,6 +34,7 @@ export class AuditInterceptor implements NestInterceptor {
     const entityType = this.entityTypeFor(path);
     const resultRecord =
       result && typeof result === "object" && !Array.isArray(result) ? (result as Record<string, unknown>) : {};
+    if (path.toLowerCase().includes("/imports") && resultRecord.auditLog) return;
     const entityId = this.stringValue(resultRecord.id ?? resultRecord.importBatchId ?? resultRecord.jobId);
     await this.auditLogs.record({
       schoolId: auth.schoolId,
