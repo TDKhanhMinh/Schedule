@@ -1471,6 +1471,102 @@ tr.has-warning td {
   font-weight: 900;
   white-space: nowrap;
 }
+.optimization-job-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+.optimization-job-heading,
+.optimization-job-controls,
+.optimization-job-actions,
+.optimization-job-metrics {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.optimization-job-heading {
+  justify-content: space-between;
+  align-items: start;
+}
+.optimization-job-heading h2 {
+  margin: 3px 0 0;
+}
+.optimization-job-controls {
+  flex-wrap: wrap;
+}
+.optimization-job-controls label {
+  display: grid;
+  gap: 5px;
+  min-width: min(420px, 100%);
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.optimization-job-controls input {
+  min-width: 0;
+}
+.optimization-job-metrics {
+  flex-wrap: wrap;
+}
+.optimization-job-metrics span {
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--muted);
+  background: #fbfcff;
+  font-size: 0.7rem;
+}
+.optimization-job-metrics b {
+  color: var(--ink);
+}
+.optimization-job-progress {
+  width: 100%;
+  height: 9px;
+  accent-color: var(--blue);
+}
+.optimization-job-notice,
+.optimization-job-warning,
+.optimization-job-error {
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+}
+.optimization-job-notice {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+.optimization-job-warning {
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+.optimization-job-error {
+  color: var(--red);
+  background: var(--red-soft);
+}
+.job-state-optimal,
+.job-state-feasible {
+  color: var(--green);
+  background: var(--green-soft);
+}
+.job-state-running,
+.job-state-queued {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+.job-state-failed,
+.job-state-cancelled,
+.job-state-infeasible,
+.job-state-invalid {
+  color: var(--red);
+  background: var(--red-soft);
+}
 .feasible-status {
   color: var(--green);
   background: var(--green-soft);

@@ -10,12 +10,20 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
   Matches,
   Min,
   ValidateIf,
   ValidateNested,
 } from "class-validator";
 import type { SolveJobRequest } from "../contracts";
+
+export class CancelOptimizationJobDto {
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  reason?: string;
+}
 
 export class TimeSlotDto {
   @IsString()

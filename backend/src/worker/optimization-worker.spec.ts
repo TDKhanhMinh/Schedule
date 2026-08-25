@@ -35,6 +35,10 @@ describe("optimization worker boundary", () => {
       markRetryPending: jest.fn(),
       markFailed: jest.fn(),
       persistResult: jest.fn(),
+      touchHeartbeat: jest.fn(),
+      isCancelRequested: jest.fn().mockResolvedValue(false),
+      markPersisting: jest.fn(),
+      markCancelled: jest.fn(),
     };
 
     const processed = await processOptimizationJob(job(), {
@@ -44,7 +48,7 @@ describe("optimization worker boundary", () => {
 
     expect(store.markRunning).toHaveBeenCalledWith("run-001", 1);
     expect(store.persistResult).toHaveBeenCalledWith("run-001", result, expect.stringMatching(/^[0-9a-f]{64}$/));
-    expect(processed.provenance).toEqual({
+    expect("provenance" in processed ? processed.provenance : null).toEqual({
       runId: "run-001",
       inputChecksum: "a".repeat(64),
       outputChecksum: expect.stringMatching(/^[0-9a-f]{64}$/),
@@ -58,6 +62,10 @@ describe("optimization worker boundary", () => {
       markRetryPending: jest.fn(),
       markFailed: jest.fn(),
       persistResult: jest.fn(),
+      touchHeartbeat: jest.fn(),
+      isCancelRequested: jest.fn().mockResolvedValue(false),
+      markPersisting: jest.fn(),
+      markCancelled: jest.fn(),
     };
 
     await expect(processOptimizationJob(job(), { store, solve: jest.fn().mockRejectedValue(error) })).rejects.toThrow(
@@ -74,6 +82,10 @@ describe("optimization worker boundary", () => {
       markRetryPending: jest.fn(),
       markFailed: jest.fn(),
       persistResult: jest.fn(),
+      touchHeartbeat: jest.fn(),
+      isCancelRequested: jest.fn().mockResolvedValue(false),
+      markPersisting: jest.fn(),
+      markCancelled: jest.fn(),
     };
 
     await expect(
@@ -81,5 +93,27 @@ describe("optimization worker boundary", () => {
     ).rejects.toThrow("python exited");
     expect(store.markFailed).toHaveBeenCalledWith("run-001", 3, error);
     expect(store.markRetryPending).not.toHaveBeenCalled();
+  });
+
+  it("cancels safely when the durable run is already marked for cancellation", async () => {
+    const store = {
+      markRunning: jest.fn(),
+      markRetryPending: jest.fn(),
+      markFailed: jest.fn(),
+      persistResult: jest.fn(),
+      touchHeartbeat: jest.fn(),
+      isCancelRequested: jest.fn().mockResolvedValue(true),
+      markPersisting: jest.fn(),
+      markCancelled: jest.fn(),
+    };
+
+    const processed = await processOptimizationJob(job(), {
+      store,
+      solve: jest.fn(),
+    });
+
+    expect(processed).toEqual({ cancelled: true, runId: "run-001" });
+    expect(store.markCancelled).toHaveBeenCalledWith("run-001", 1);
+    expect(store.persistResult).not.toHaveBeenCalled();
   });
 });

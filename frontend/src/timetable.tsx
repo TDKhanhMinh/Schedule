@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   type LockedAssignments,
   type ObjectiveBreakdown,
@@ -91,6 +91,210 @@ interface ManualHistoryEntry {
   summary: string;
   detail: string;
   createdAt: string;
+}
+
+type OptimizationJobState =
+  "QUEUED" | "RUNNING" | "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "UNKNOWN" | "INVALID" | "FAILED" | "CANCELLED";
+
+interface OptimizationJobStatus {
+  statusContractVersion: string;
+  jobId: string;
+  runId: string | null;
+  state: OptimizationJobState | string;
+  result: unknown;
+  failedReason: string | null;
+  inputChecksum: string | null;
+  outputChecksum: string | null;
+  attempts: number;
+  maxAttempts: number;
+  requestedAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  cancelRequested: boolean;
+  retryOfRunId: string | null;
+  progress: {
+    stage: string;
+    percent: number | null;
+    heartbeatAt: string | null;
+    isStalled: boolean;
+  };
+  canCancel: boolean;
+  canRetry: boolean;
+}
+
+function OptimizationJobPanel() {
+  const initialJobId = (() => {
+    if (typeof window === "undefined") return import.meta.env.VITE_DEMO_JOB_ID?.trim() ?? "";
+    return new URLSearchParams(window.location.search).get("jobId") ?? import.meta.env.VITE_DEMO_JOB_ID?.trim() ?? "";
+  })();
+  const [jobIdInput, setJobIdInput] = useState(initialJobId);
+  const [trackedJobId, setTrackedJobId] = useState(initialJobId);
+  const [status, setStatus] = useState<OptimizationJobStatus | null>(null);
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+
+  useEffect(() => {
+    if (!trackedJobId) return undefined;
+    let disposed = false;
+    const load = async () => {
+      try {
+        const response = await fetch(
+          `${frontendConfig.apiBaseUrl}/optimization-jobs/${encodeURIComponent(trackedJobId)}`,
+          {
+            headers: authHeaders(),
+          },
+        );
+        const payload = (await response.json().catch(() => null)) as
+          OptimizationJobStatus | { message?: string } | null;
+        if (!response.ok)
+          throw new Error(
+            payload && "message" in payload ? payload.message : `Không đọc được job (HTTP ${response.status}).`,
+          );
+        if (!disposed) {
+          setStatus(payload as OptimizationJobStatus);
+          setNotice("");
+        }
+      } catch (error) {
+        if (!disposed) setNotice(error instanceof Error ? error.message : "Không thể đọc trạng thái job.");
+      }
+    };
+    void load();
+    const timer = window.setInterval(() => void load(), 2000);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+    };
+  }, [refreshNonce, trackedJobId]);
+
+  function trackJob() {
+    const nextJobId = jobIdInput.trim();
+    if (!nextJobId) {
+      setNotice("Nhập job ID để theo dõi trạng thái durable.");
+      return;
+    }
+    setStatus(null);
+    setNotice("Đang tải trạng thái job...");
+    setTrackedJobId(nextJobId);
+    window.history.replaceState(null, "", `${window.location.pathname}?jobId=${encodeURIComponent(nextJobId)}`);
+  }
+
+  async function mutateJob(action: "cancel" | "retry") {
+    if (!status) return;
+    setBusy(true);
+    setNotice(action === "cancel" ? "Đang gửi yêu cầu hủy..." : "Đang tạo retry job...");
+    try {
+      const headers: Record<string, string> = { ...authHeaders(), "Content-Type": "application/json" };
+      if (action === "retry") headers["Idempotency-Key"] = `optimization-retry:${status.jobId}`;
+      const response = await fetch(
+        `${frontendConfig.apiBaseUrl}/optimization-jobs/${encodeURIComponent(status.jobId)}/${action}`,
+        {
+          method: "POST",
+          headers,
+          body: action === "cancel" ? JSON.stringify({ reason: "User requested from UI" }) : undefined,
+        },
+      );
+      const payload = (await response.json().catch(() => null)) as OptimizationJobStatus & { message?: string };
+      if (!response.ok) throw new Error(payload?.message ?? `Thao tác thất bại (HTTP ${response.status}).`);
+      const nextJobId = payload.jobId ?? status.jobId;
+      setJobIdInput(nextJobId);
+      setTrackedJobId(nextJobId);
+      setNotice(
+        action === "cancel"
+          ? "Đã ghi nhận yêu cầu hủy; worker sẽ dừng an toàn."
+          : "Đã tạo retry job với idempotency key.",
+      );
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Không thể thực hiện thao tác.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="optimization-job-panel" aria-labelledby="optimization-job-title">
+      <div className="optimization-job-heading">
+        <div>
+          <p className="eyebrow">Durable solve control</p>
+          <h2 id="optimization-job-title">Theo dõi và điều khiển job</h2>
+          <p className="small-note">PostgreSQL là nguồn trạng thái; UI chỉ gọi API và không quyết định correctness.</p>
+        </div>
+        {status ? <span className={`solve-status job-state-${status.state.toLowerCase()}`}>{status.state}</span> : null}
+      </div>
+      <div className="optimization-job-controls">
+        <label>
+          <span>Optimization job ID</span>
+          <input value={jobIdInput} onChange={(event) => setJobIdInput(event.target.value)} placeholder="Nhập job ID" />
+        </label>
+        <button type="button" onClick={trackJob}>
+          Theo dõi job
+        </button>
+        <button
+          className="button-secondary"
+          type="button"
+          onClick={() => setRefreshNonce((current) => current + 1)}
+          disabled={!trackedJobId}
+        >
+          Tải lại
+        </button>
+      </div>
+      {notice ? <p className="optimization-job-notice">{notice}</p> : null}
+      {status ? (
+        <>
+          <div className="optimization-job-metrics">
+            <span>
+              Stage <b>{status.progress.stage}</b>
+            </span>
+            <span>
+              Attempt{" "}
+              <b>
+                {status.attempts}/{status.maxAttempts}
+              </b>
+            </span>
+            <span>
+              Heartbeat{" "}
+              <b>{status.progress.heartbeatAt ? new Date(status.progress.heartbeatAt).toLocaleString("vi-VN") : "—"}</b>
+            </span>
+            <span>
+              Contract <b>{status.statusContractVersion}</b>
+            </span>
+          </div>
+          <progress
+            className="optimization-job-progress"
+            max={100}
+            value={status.progress.percent ?? undefined}
+            aria-label={`Tiến độ ${status.progress.stage}`}
+          />
+          {status.progress.isStalled ? (
+            <p className="optimization-job-warning">
+              Phát hiện job stalled/zombie; cần kiểm tra worker và execution log.
+            </p>
+          ) : null}
+          {status.failedReason ? <p className="optimization-job-error">{status.failedReason}</p> : null}
+          {status.cancelRequested ? (
+            <p className="optimization-job-notice">
+              {status.state === "CANCELLED"
+                ? "Worker đã xác nhận hủy solve an toàn."
+                : "Đã ghi nhận yêu cầu hủy; chờ worker xác nhận."}
+            </p>
+          ) : null}
+          <div className="optimization-job-actions">
+            <button type="button" onClick={() => void mutateJob("cancel")} disabled={busy || !status.canCancel}>
+              Hủy solve
+            </button>
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={() => void mutateJob("retry")}
+              disabled={busy || !status.canRetry}
+            >
+              Retry job
+            </button>
+          </div>
+        </>
+      ) : null}
+    </section>
+  );
 }
 
 const DAYS = [
@@ -1031,6 +1235,8 @@ export function TimetableScreen() {
           </button>
         </div>
       </div>
+
+      <OptimizationJobPanel />
 
       <section className="panel timetable-shell" aria-labelledby="timetable-title">
         <div className="timetable-toolbar">

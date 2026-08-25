@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/optimization-job-status.schema.json",
+  "title": "Optimization job status and control response",
+  "description": "Durable PostgreSQL-backed status projection for progress, cancel and retry controls.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "statusContractVersion",
+    "jobId",
+    "runId",
+    "state",
+    "progress",
+    "cancelRequested",
+    "canCancel",
+    "canRetry"
+  ],
+  "properties": {
+    "statusContractVersion": { "const": "OPTIMIZATION-JOB-STATUS-1.0.0" },
+    "jobId": { "type": "string", "minLength": 1 },
+    "runId": { "type": ["string", "null"] },
+    "state": {
+      "enum": ["QUEUED", "RUNNING", "OPTIMAL", "FEASIBLE", "INFEASIBLE", "UNKNOWN", "INVALID", "FAILED", "CANCELLED"]
+    },
+    "progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "percent", "heartbeatAt", "isStalled"],
+      "properties": {
+        "stage": { "enum": ["QUEUED", "SOLVING", "PERSISTING", "RETRY_WAITING", "CANCELLED", "COMPLETED", "FAILED"] },
+        "percent": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+        "heartbeatAt": { "type": ["string", "null"], "format": "date-time" },
+        "isStalled": { "type": "boolean" }
+      }
+    },
+    "cancelRequested": { "type": "boolean" },
+    "retryOfRunId": { "type": ["string", "null"] },
+    "failedReason": { "type": ["string", "null"] },
+    "canCancel": { "type": "boolean" },
+    "canRetry": { "type": "boolean" }
+  }
+}

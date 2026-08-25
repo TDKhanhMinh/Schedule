@@ -21,7 +21,9 @@ const worker = new Worker<OptimizationJobData>(
 );
 
 worker.on("ready", () => console.log(`[solver-worker] listening on ${OPTIMIZATION_QUEUE}`));
-worker.on("completed", (job, result) => console.log(`[solver-worker] completed ${job.id}: ${result.status}`));
+worker.on("completed", (job, result) =>
+  console.log(`[solver-worker] completed ${job.id}: ${"status" in result ? result.status : "CANCELLED"}`),
+);
 worker.on("failed", (job, error) => console.error(`[solver-worker] failed ${job?.id ?? "unknown"}: ${error.message}`));
 
 const shutdown = async () => {
