@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/schedule-version-copy-1.0.0.json",
+  "title": "Schedule version clone and rollback result",
+  "type": "object",
+  "required": [
+    "contractVersion",
+    "operation",
+    "sourceVersionId",
+    "rollbackTargetVersionId",
+    "reason",
+    "version",
+    "snapshot"
+  ],
+  "properties": {
+    "contractVersion": { "const": "SCHEDULE-VERSION-OPS-1.0.0" },
+    "operation": { "enum": ["CLONE", "ROLLBACK"] },
+    "sourceVersionId": { "type": "string" },
+    "rollbackTargetVersionId": { "type": ["string", "null"] },
+    "reason": { "type": ["string", "null"] },
+    "version": { "$ref": "#/$defs/version" },
+    "snapshot": {
+      "type": "object",
+      "required": [
+        "contractVersion",
+        "id",
+        "schoolId",
+        "academicPeriodId",
+        "revision",
+        "etag",
+        "status",
+        "assignments"
+      ],
+      "properties": {
+        "contractVersion": { "const": "SCHEDULE-EDIT-1.0.0" },
+        "id": { "type": "string" },
+        "schoolId": { "type": "string" },
+        "academicPeriodId": { "type": "string" },
+        "revision": { "type": "integer", "minimum": 1 },
+        "etag": { "type": "string" },
+        "status": { "type": "string" },
+        "assignments": { "type": "array" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "version": {
+      "type": "object",
+      "required": ["id", "schoolId", "academicPeriodId", "versionNumber", "status", "revision", "etag"],
+      "properties": {
+        "id": { "type": "string" },
+        "schoolId": { "type": "string" },
+        "academicPeriodId": { "type": "string" },
+        "versionNumber": { "type": "integer", "minimum": 1 },
+        "status": { "type": "string" },
+        "revision": { "type": "integer", "minimum": 1 },
+        "etag": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

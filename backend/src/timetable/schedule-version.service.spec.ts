@@ -45,6 +45,7 @@ describe("ScheduleVersionService", () => {
   beforeEach(() => {
     query.mockReset();
     clientQuery.mockReset();
+    (pool.connect as jest.Mock).mockClear();
     client.release.mockReset();
     (auditLogs.recordInTransaction as jest.Mock).mockReset();
     service = new ScheduleVersionService(pool, auditLogs);
@@ -137,6 +138,104 @@ describe("ScheduleVersionService", () => {
       expect.objectContaining({ fromStatus: null, toStatus: "DRAFT", actorId: "scheduler-001" }),
     ]);
     expect(query).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns lesson-level move diff and score delta between snapshots", async () => {
+    const from = versionRow({ id: "version-001", version_number: 1, source_run_id: "run-001" });
+    const to = versionRow({ id: "version-002", version_number: 2, source_run_id: "run-002" });
+    const assignment = {
+      id: "assignment-001",
+      lesson_id: "lesson-001",
+      session_index: 0,
+      time_slot_id: "slot-001",
+      room_id: "room-001",
+      subject_label: "Toán",
+      class_label: "7A1",
+      teacher_label: "GV An",
+      room_label: "Phòng A",
+      slot_label: "day-1-period-1",
+    };
+    query
+      .mockResolvedValueOnce({ rows: [from] })
+      .mockResolvedValueOnce({ rows: [to] })
+      .mockResolvedValueOnce({ rows: [assignment] })
+      .mockResolvedValueOnce({ rows: [{ ...assignment, time_slot_id: "slot-002", slot_label: "day-2-period-1" }] })
+      .mockResolvedValueOnce({ rows: [{ diagnostics: { objectiveBreakdown: { weightedTotal: 4000 } } }] })
+      .mockResolvedValueOnce({ rows: [{ diagnostics: { objectiveBreakdown: { weightedTotal: 3500 } } }] });
+
+    await expect(service.compare("school-001", "version-001", "version-002")).resolves.toMatchObject({
+      contractVersion: "SCHEDULE-VERSION-OPS-1.0.0",
+      summary: { moves: 1, additions: 0, removals: 0, changedAssignments: 1 },
+      score: { from: 4000, to: 3500, delta: -500, available: true },
+      diffs: [
+        expect.objectContaining({
+          operation: "MOVE",
+          before: expect.objectContaining({ timeSlotId: "slot-001" }),
+          after: expect.objectContaining({ timeSlotId: "slot-002" }),
+        }),
+      ],
+    });
+  });
+
+  it("clones a published snapshot into a new draft without mutating the source", async () => {
+    const source = versionRow({ id: "version-001", version_number: 1, status: "PUBLISHED" });
+    const created = versionRow({ id: "version-002", version_number: 2, status: "DRAFT", created_by: "scheduler-002" });
+    const assignment = {
+      id: "assignment-001",
+      lesson_id: "lesson-001",
+      session_index: 0,
+      time_slot_id: "slot-001",
+      room_id: "room-001",
+    };
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [source] })
+      .mockResolvedValueOnce({ rows: [assignment] })
+      .mockResolvedValueOnce({ rows: [{ id: "period-001" }] })
+      .mockResolvedValueOnce({ rows: [{ next_version_number: 2 }] })
+      .mockResolvedValueOnce({ rows: [created] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [assignment] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await expect(
+      service.clone(
+        "school-001",
+        "version-001",
+        "scheduler-002",
+        { reason: "Thử phương án mới" },
+        "SCHEDULER",
+        "req-clone",
+      ),
+    ).resolves.toMatchObject({
+      operation: "CLONE",
+      sourceVersionId: "version-001",
+      version: { id: "version-002", status: "DRAFT" },
+      snapshot: { assignments: [expect.objectContaining({ lessonId: "lesson-001" })] },
+    });
+    expect(clientQuery).toHaveBeenCalledWith("COMMIT");
+    expect(auditLogs.recordInTransaction).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({
+        entityType: "schedule_version",
+        metadata: expect.objectContaining({
+          operation: "CLONE",
+          sourceVersionId: "version-001",
+          reason: "Thử phương án mới",
+        }),
+      }),
+    );
+    expect(clientQuery.mock.calls.some(([sql]) => String(sql).includes("UPDATE schedule_versions"))).toBe(false);
+  });
+
+  it("requires a distinct source snapshot and a reason for rollback", async () => {
+    await expect(
+      service.rollback("school-001", "version-001", "scheduler-001", {
+        sourceVersionId: "version-001",
+        reason: "Rollback test",
+      }),
+    ).rejects.toMatchObject({ response: expect.objectContaining({ code: "SCHEDULE_VERSION_ROLLBACK_SAME_VERSION" }) });
+    expect(pool.connect).toHaveBeenCalledTimes(0);
   });
 
   it("rejects a stale ETag with the current snapshot and performs no write", async () => {

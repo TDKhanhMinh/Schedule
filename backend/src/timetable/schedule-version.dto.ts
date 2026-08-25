@@ -43,3 +43,19 @@ export class TransitionScheduleVersionDto {
   @IsOptional()
   reason?: string;
 }
+
+export class CloneScheduleVersionDto {
+  @IsString()
+  @IsOptional()
+  reason?: string;
+}
+
+export class RollbackScheduleVersionDto {
+  @IsString()
+  @IsNotEmpty()
+  sourceVersionId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  reason!: string;
+}

@@ -1078,10 +1078,120 @@ tr.has-warning td {
   background: #6a4dd8;
 }
 .history-kind-unlock,
-.history-kind-undo {
+.history-kind-undo,
+.history-kind-clone,
+.history-kind-rollback {
   background: #64748b;
 }
 .history-empty {
+  margin: 0;
+}
+.version-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 15px;
+  border: 1px solid #d9e2f1;
+  border-radius: 12px;
+  background: #fff;
+}
+.version-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.version-heading h3 {
+  margin: 3px 0 5px;
+  font-size: 0.96rem;
+}
+.version-heading .small-note {
+  max-width: 780px;
+}
+.version-contract-badge {
+  padding: 6px 9px;
+  border: 1px solid #b7e8d0;
+  border-radius: 999px;
+  color: var(--green);
+  background: var(--green-soft);
+  font-size: 0.62rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.version-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.version-notice {
+  padding: 8px 10px;
+  border-radius: 7px;
+  color: var(--muted);
+  background: #f5f7fb;
+  font-size: 0.68rem;
+}
+.version-score-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.version-score-grid span {
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--muted);
+  background: #fbfcff;
+  font-size: 0.68rem;
+}
+.version-score-grid b {
+  color: var(--ink);
+}
+.version-diff-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+.version-diff-item {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #edf1f7;
+}
+.version-diff-item:last-child {
+  border-bottom: 0;
+}
+.version-diff-item strong {
+  color: var(--ink);
+  font-size: 0.72rem;
+}
+.version-diff-item p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+.diff-operation {
+  justify-self: start;
+  padding: 4px 6px;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 900;
+}
+.diff-operation-move {
+  background: var(--blue);
+}
+.diff-operation-add {
+  background: var(--green);
+}
+.diff-operation-remove {
+  background: var(--red);
+}
+.version-empty {
   margin: 0;
 }
 .solve-status {
@@ -1889,6 +1999,12 @@ tr.has-warning td {
   }
   .quality-heading {
     display: grid;
+  }
+  .version-heading {
+    display: grid;
+  }
+  .version-contract-badge {
+    justify-self: start;
   }
   .move-review-panel {
     display: grid;

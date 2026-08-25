@@ -4,6 +4,7 @@ import type { PreSolveReport, RoomCapability } from "./pre-solve";
 export const CONTRACT_VERSION = "1.0" as const;
 export const SOLVER_OBJECTIVE_CONTRACT_VERSION = "SOLVER-OBJECTIVE-1.0.0" as const;
 export const LOCKED_ASSIGNMENTS_CONTRACT_VERSION = "LOCKED-ASSIGNMENTS-1.0.0" as const;
+export const SCHEDULE_VERSION_OPERATIONS_CONTRACT_VERSION = "SCHEDULE-VERSION-OPS-1.0.0" as const;
 export const OPTIMIZATION_QUEUE = "optimization" as const;
 export const OPTIMIZATION_JOB_NAME = "optimization.solve" as const;
 
@@ -151,4 +152,42 @@ export interface SolveJobResult {
   objectiveValue: number | null;
   diagnostics: SolveDiagnostics;
   metadata: SolverMetadata;
+}
+
+export type ScheduleVersionDiffOperation = "MOVE" | "ADD" | "REMOVE";
+
+export interface ScheduleVersionDiffAssignment {
+  id: string | null;
+  lessonId: string;
+  sessionIndex: number;
+  timeSlotId: string | null;
+  roomId: string | null;
+  subjectLabel: string | null;
+  classLabel: string | null;
+  teacherLabel: string | null;
+  roomLabel: string | null;
+  slotLabel: string | null;
+}
+
+export interface ScheduleVersionDiffEntry {
+  operation: ScheduleVersionDiffOperation;
+  lessonId: string;
+  sessionIndex: number;
+  before: ScheduleVersionDiffAssignment | null;
+  after: ScheduleVersionDiffAssignment | null;
+}
+
+export interface ScheduleVersionCompareResult {
+  contractVersion: typeof SCHEDULE_VERSION_OPERATIONS_CONTRACT_VERSION;
+  fromVersion: { id: string; versionNumber: number; status: string; revision: number; etag: string };
+  toVersion: { id: string; versionNumber: number; status: string; revision: number; etag: string };
+  summary: { moves: number; additions: number; removals: number; changedAssignments: number };
+  score: {
+    from: number | null;
+    to: number | null;
+    delta: number | null;
+    available: boolean;
+    lowerIsBetter: true;
+  };
+  diffs: ScheduleVersionDiffEntry[];
 }

@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/schedule-version-operations-1.0.0.json",
+  "title": "Schedule version operations contract",
+  "description": "Compare, clone and rollback responses for immutable schedule snapshots.",
+  "type": "object",
+  "required": ["contractVersion", "fromVersion", "toVersion", "summary", "score", "diffs"],
+  "properties": {
+    "contractVersion": { "const": "SCHEDULE-VERSION-OPS-1.0.0" },
+    "fromVersion": { "$ref": "#/$defs/version" },
+    "toVersion": { "$ref": "#/$defs/version" },
+    "summary": {
+      "type": "object",
+      "required": ["moves", "additions", "removals", "changedAssignments"],
+      "properties": {
+        "moves": { "type": "integer", "minimum": 0 },
+        "additions": { "type": "integer", "minimum": 0 },
+        "removals": { "type": "integer", "minimum": 0 },
+        "changedAssignments": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "score": {
+      "type": "object",
+      "required": ["from", "to", "delta", "available", "lowerIsBetter"],
+      "properties": {
+        "from": { "type": ["number", "null"] },
+        "to": { "type": ["number", "null"] },
+        "delta": { "type": ["number", "null"] },
+        "available": { "type": "boolean" },
+        "lowerIsBetter": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "diffs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["operation", "lessonId", "sessionIndex", "before", "after"],
+        "properties": {
+          "operation": { "enum": ["MOVE", "ADD", "REMOVE"] },
+          "lessonId": { "type": "string" },
+          "sessionIndex": { "type": "integer", "minimum": 0 },
+          "before": { "anyOf": [{ "$ref": "#/$defs/assignment" }, { "type": "null" }] },
+          "after": { "anyOf": [{ "$ref": "#/$defs/assignment" }, { "type": "null" }] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "version": {
+      "type": "object",
+      "required": ["id", "versionNumber", "status", "revision", "etag"],
+      "properties": {
+        "id": { "type": "string" },
+        "versionNumber": { "type": "integer", "minimum": 1 },
+        "status": { "type": "string" },
+        "revision": { "type": "integer", "minimum": 1 },
+        "etag": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "assignment": {
+      "type": "object",
+      "required": [
+        "id",
+        "lessonId",
+        "sessionIndex",
+        "timeSlotId",
+        "roomId",
+        "subjectLabel",
+        "classLabel",
+        "teacherLabel",
+        "roomLabel",
+        "slotLabel"
+      ],
+      "properties": {
+        "id": { "type": ["string", "null"] },
+        "lessonId": { "type": "string" },
+        "sessionIndex": { "type": "integer", "minimum": 0 },
+        "timeSlotId": { "type": ["string", "null"] },
+        "roomId": { "type": ["string", "null"] },
+        "subjectLabel": { "type": ["string", "null"] },
+        "classLabel": { "type": ["string", "null"] },
+        "teacherLabel": { "type": ["string", "null"] },
+        "roomLabel": { "type": ["string", "null"] },
+        "slotLabel": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

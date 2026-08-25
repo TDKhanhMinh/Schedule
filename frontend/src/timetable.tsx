@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
-import { type LockedAssignments, type ObjectiveBreakdown } from "@schedule/backend/contracts";
+import {
+  type LockedAssignments,
+  type ObjectiveBreakdown,
+  type ScheduleVersionCompareResult,
+  type ScheduleVersionDiffEntry,
+} from "@schedule/backend/contracts";
 import { frontendConfig } from "./config";
 import { navigateTo } from "./routing";
 
@@ -77,7 +82,7 @@ interface LockUndoState {
   message: string;
 }
 
-type ManualHistoryKind = "MOVE" | "LOCK" | "UNLOCK" | "UNDO";
+type ManualHistoryKind = "MOVE" | "LOCK" | "UNLOCK" | "UNDO" | "CLONE" | "ROLLBACK";
 
 interface ManualHistoryEntry {
   id: string;
@@ -443,6 +448,90 @@ function readInitialState(): TimetableState {
   return state === "loading" || state === "empty" || state === "error" ? state : "ready";
 }
 
+function buildLocalCompare(currentLessons: TimetableLesson[]): ScheduleVersionCompareResult {
+  const baselineByKey = new Map(DEMO_LESSONS.map((lesson) => [`${lesson.id}:0`, lesson]));
+  const currentByKey = new Map(currentLessons.map((lesson) => [`${lesson.id}:0`, lesson]));
+  const keys = [...new Set([...baselineByKey.keys(), ...currentByKey.keys()])].sort();
+  const toDiffAssignment = (lesson: TimetableLesson | undefined) => {
+    if (!lesson) return null;
+    const slot = SLOTS.find((candidate) => candidate.id === lesson.slotId);
+    return {
+      id: lesson.id,
+      lessonId: lesson.id,
+      sessionIndex: 0,
+      timeSlotId: lesson.slotId,
+      roomId: lesson.roomId,
+      subjectLabel: lesson.subjectLabel,
+      classLabel: lesson.classLabel,
+      teacherLabel: lesson.teacherLabel,
+      roomLabel: lesson.roomLabel,
+      slotLabel: slot ? `${slot.dayLabel} · Tiết ${slot.period}` : lesson.slotId,
+    };
+  };
+  const diffs: ScheduleVersionDiffEntry[] = keys.flatMap((key): ScheduleVersionDiffEntry[] => {
+    const before = baselineByKey.get(key);
+    const after = currentByKey.get(key);
+    if (!before && after)
+      return [
+        {
+          operation: "ADD" as const,
+          lessonId: after.id,
+          sessionIndex: 0,
+          before: null,
+          after: toDiffAssignment(after),
+        },
+      ];
+    if (before && !after)
+      return [
+        {
+          operation: "REMOVE" as const,
+          lessonId: before.id,
+          sessionIndex: 0,
+          before: toDiffAssignment(before),
+          after: null,
+        },
+      ];
+    if (before && after && before.slotId !== after.slotId) {
+      return [
+        {
+          operation: "MOVE" as const,
+          lessonId: after.id,
+          sessionIndex: 0,
+          before: toDiffAssignment(before),
+          after: toDiffAssignment(after),
+        },
+      ];
+    }
+    return [];
+  });
+  const scoreDelta = currentLessons.reduce(
+    (total, lesson) =>
+      total +
+      getSlotPenalty(lesson.slotId) -
+      getSlotPenalty(DEMO_LESSONS.find((base) => base.id === lesson.id)?.slotId ?? lesson.slotId),
+    0,
+  );
+  return {
+    contractVersion: "SCHEDULE-VERSION-OPS-1.0.0",
+    fromVersion: { id: "demo-v1", versionNumber: 1, status: "PUBLISHED", revision: 1, etag: '"demo-v1:1"' },
+    toVersion: { id: "demo-draft", versionNumber: 2, status: "DRAFT", revision: 1, etag: '"demo-draft:1"' },
+    summary: {
+      moves: diffs.filter((diff) => diff.operation === "MOVE").length,
+      additions: diffs.filter((diff) => diff.operation === "ADD").length,
+      removals: diffs.filter((diff) => diff.operation === "REMOVE").length,
+      changedAssignments: diffs.length,
+    },
+    score: {
+      from: DEMO_OBJECTIVE.weightedTotal,
+      to: DEMO_OBJECTIVE.weightedTotal + scoreDelta * 100,
+      delta: scoreDelta * 100,
+      available: true,
+      lowerIsBetter: true,
+    },
+    diffs,
+  };
+}
+
 function getEntityOptions(view: TimetableView, lessons: TimetableLesson[]): TimetableEntity[] {
   const key = viewKeys[view];
   const entities = new Map<string, TimetableEntity>();
@@ -690,6 +779,11 @@ export function TimetableScreen() {
   const [lockRecords, setLockRecords] = useState<TimetableLockRecord[]>([]);
   const [lastLockAction, setLastLockAction] = useState<LockUndoState | null>(null);
   const [manualHistory, setManualHistory] = useState<ManualHistoryEntry[]>([]);
+  const [compareResult, setCompareResult] = useState<ScheduleVersionCompareResult>(() =>
+    buildLocalCompare(DEMO_LESSONS),
+  );
+  const [versionNotice, setVersionNotice] = useState("Đang xem draft local từ bản published v1.");
+  const [draftVersionLabel, setDraftVersionLabel] = useState("Draft v2 · clone từ Published v1");
 
   const entities = useMemo(() => getEntityOptions(view, lessons), [lessons, view]);
   const selectedEntity = entities.find((entity) => entity.id === selectedEntityId) ?? entities[0];
@@ -759,6 +853,13 @@ export function TimetableScreen() {
       "MOVE",
       `Di chuyển ${previewLesson?.subjectLabel ?? "lesson"}`,
       `${movePreview.fromSlotId} → ${movePreview.targetSlotId} · draft local; server sẽ revalidate`,
+    );
+    setCompareResult(
+      buildLocalCompare(
+        lessons.map((lesson) =>
+          lesson.id === movePreview.lessonId ? { ...lesson, slotId: movePreview.targetSlotId } : lesson,
+        ),
+      ),
     );
     setMovePreview(null);
   }
@@ -838,6 +939,27 @@ export function TimetableScreen() {
     setLockRecords(lastLockAction.previousLocks);
     recordManualHistory("UNDO", "Hoàn tác lock", "Khôi phục trạng thái lock trước đó · draft local");
     setLastLockAction(null);
+  }
+
+  function refreshCompare() {
+    setCompareResult(buildLocalCompare(lessons));
+    setVersionNotice("Đã tính lại diff theo snapshot draft local; API server sẽ là nguồn chính thức.");
+  }
+
+  function cloneDraft() {
+    setDraftVersionLabel("Draft v3 · clone từ Published v1");
+    setVersionNotice("Đã tạo draft mới từ snapshot published; bản published vẫn immutable.");
+    recordManualHistory("CLONE", "Clone phương án", "Published v1 → Draft v3 · actor local-qc-user");
+  }
+
+  function rollbackToPublished() {
+    setLessons(DEMO_LESSONS);
+    setLockRecords([]);
+    setLastMove(null);
+    setDraftVersionLabel("Draft v4 · rollback từ Published v1");
+    setVersionNotice("Đã tạo draft mới từ snapshot published; không mutate bản published.");
+    setCompareResult(buildLocalCompare(DEMO_LESSONS));
+    recordManualHistory("ROLLBACK", "Rollback phương án", "Draft hiện tại → Published v1 · reason bắt buộc");
   }
 
   function handleViewChange(nextView: TimetableView) {
@@ -1094,6 +1216,78 @@ export function TimetableScreen() {
             ))}
             <span className="heatmap-legend-note">Màu luôn đi kèm nhãn Soft N để không phụ thuộc vào màu sắc.</span>
           </div>
+        </section>
+
+        <section className="version-panel" aria-labelledby="version-panel-title">
+          <div className="version-heading">
+            <div>
+              <p className="eyebrow">P2.4-T02 · Scenario management</p>
+              <h3 id="version-panel-title">Compare / clone / rollback phương án</h3>
+              <p className="small-note">
+                <b>{draftVersionLabel}</b> · Published v1 luôn immutable; mọi clone/rollback tạo draft mới và ghi actor,
+                reason, source version ở server audit.
+              </p>
+            </div>
+            <span className="version-contract-badge">SCHEDULE-VERSION-OPS-1.0.0</span>
+          </div>
+          <div className="version-actions">
+            <button type="button" onClick={refreshCompare}>
+              Compare snapshot
+            </button>
+            <button className="button-secondary" type="button" onClick={cloneDraft}>
+              Clone thành draft
+            </button>
+            <button className="button-secondary" type="button" onClick={rollbackToPublished}>
+              Rollback snapshot cũ
+            </button>
+          </div>
+          <div className="version-notice" role="status" aria-live="polite">
+            {versionNotice}
+          </div>
+          <div className="version-score-grid" aria-label="Score delta giữa hai phương án">
+            <span>
+              Thay đổi <b>{compareResult.summary.changedAssignments}</b>
+            </span>
+            <span>
+              Move <b>{compareResult.summary.moves}</b>
+            </span>
+            <span>
+              Add / remove{" "}
+              <b>
+                {compareResult.summary.additions} / {compareResult.summary.removals}
+              </b>
+            </span>
+            <span>
+              Score delta{" "}
+              <b>
+                {compareResult.score.delta === null
+                  ? "N/A"
+                  : `${compareResult.score.delta > 0 ? "+" : ""}${compareResult.score.delta}`}
+              </b>
+            </span>
+          </div>
+          {compareResult.diffs.length > 0 ? (
+            <ol className="version-diff-list" aria-label="Bản chênh lệch phương án">
+              {compareResult.diffs.map((diff) => (
+                <li key={`${diff.lessonId}-${diff.sessionIndex}`} className="version-diff-item">
+                  <span className={`diff-operation diff-operation-${diff.operation.toLowerCase()}`}>
+                    {diff.operation}
+                  </span>
+                  <div>
+                    <strong>{diff.after?.subjectLabel ?? diff.before?.subjectLabel ?? diff.lessonId}</strong>
+                    <p>
+                      {diff.before?.slotLabel ?? "—"} → {diff.after?.slotLabel ?? "—"}
+                      {diff.before?.roomLabel || diff.after?.roomLabel
+                        ? ` · ${diff.before?.roomLabel ?? "—"} → ${diff.after?.roomLabel ?? "—"}`
+                        : ""}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="small-note version-empty">Hai snapshot không có thay đổi assignment.</p>
+          )}
         </section>
 
         {movePreview && previewLesson && previewTargetSlot ? (

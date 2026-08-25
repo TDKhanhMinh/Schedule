@@ -89,9 +89,14 @@ export class AuditLogService {
     const result = await this.pool.query<AuditLogRow>(
       `SELECT id::text, school_id::text, action, entity_type, entity_id::text, entity_key,
               actor_id, actor_role, correlation_id, metadata, created_at
-         FROM audit_logs
+        FROM audit_logs
         WHERE school_id = $1
-          AND (entity_key = $2 OR metadata ->> 'scheduleVersionId' = $2)
+          AND (
+            entity_key = $2
+            OR metadata ->> 'scheduleVersionId' = $2
+            OR metadata ->> 'sourceVersionId' = $2
+            OR metadata ->> 'rollbackTargetVersionId' = $2
+          )
         ORDER BY created_at DESC, id DESC
         LIMIT $3`,
       [schoolId, scheduleVersionId, boundedLimit],

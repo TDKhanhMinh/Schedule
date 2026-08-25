@@ -3,7 +3,12 @@ import type { Response } from "express";
 import { AuditLogService } from "../auth/audit-log.service";
 import { AuthGuard } from "../auth/auth.guard";
 import type { RequestWithAuth } from "../auth/auth.types";
-import { CreateScheduleVersionDto, TransitionScheduleVersionDto } from "./schedule-version.dto";
+import {
+  CloneScheduleVersionDto,
+  CreateScheduleVersionDto,
+  RollbackScheduleVersionDto,
+  TransitionScheduleVersionDto,
+} from "./schedule-version.dto";
 import { UpdateScheduleAssignmentDto } from "./schedule-edit.dto";
 import { ScheduleVersionService } from "./schedule-version.service";
 
@@ -44,6 +49,49 @@ export class ScheduleVersionController {
   ) {
     await this.scheduleVersions.get(schoolId, versionId);
     return this.auditLogs.listByScheduleVersion(schoolId, versionId, limit ? Number(limit) : 100);
+  }
+
+  @Get("schedule-versions/:versionId/compare/:againstVersionId")
+  compare(
+    @Param("schoolId") schoolId: string,
+    @Param("versionId") versionId: string,
+    @Param("againstVersionId") againstVersionId: string,
+  ) {
+    return this.scheduleVersions.compare(schoolId, versionId, againstVersionId);
+  }
+
+  @Post("schedule-versions/:versionId/clone")
+  clone(
+    @Param("schoolId") schoolId: string,
+    @Param("versionId") versionId: string,
+    @Body() dto: CloneScheduleVersionDto,
+    @Req() request: RequestWithAuth,
+  ) {
+    return this.scheduleVersions.clone(
+      schoolId,
+      versionId,
+      request.auth!.userId,
+      dto,
+      request.auth!.role,
+      request.requestId ?? "unknown",
+    );
+  }
+
+  @Post("schedule-versions/:versionId/rollback")
+  rollback(
+    @Param("schoolId") schoolId: string,
+    @Param("versionId") versionId: string,
+    @Body() dto: RollbackScheduleVersionDto,
+    @Req() request: RequestWithAuth,
+  ) {
+    return this.scheduleVersions.rollback(
+      schoolId,
+      versionId,
+      request.auth!.userId,
+      dto,
+      request.auth!.role,
+      request.requestId ?? "unknown",
+    );
   }
 
   @Patch("schedule-versions/:versionId/assignments/:lessonId/:sessionIndex")

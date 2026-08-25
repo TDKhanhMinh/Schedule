@@ -27,6 +27,8 @@ for (const marker of [
   "LOCKED-ASSIGNMENTS-1.0.0",
   "Lịch sử chỉnh tay",
   "P2.3-T06",
+  "Compare / clone / rollback phương án",
+  "SCHEDULE-VERSION-OPS-1.0.0",
 ]) {
   assert.ok(bundle.includes(marker), `bundle marker missing: ${marker}`);
 }

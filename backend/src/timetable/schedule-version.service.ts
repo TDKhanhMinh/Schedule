@@ -8,16 +8,28 @@ import {
   NotFoundException,
   Optional,
 } from "@nestjs/common";
+import { createHash } from "node:crypto";
 import type { Pool } from "pg";
 import { PG_POOL } from "../database/database.module";
 import { AuditLogService } from "../auth/audit-log.service";
 import type { Role } from "../auth/auth.constants";
 import {
+  SCHEDULE_VERSION_OPERATIONS_CONTRACT_VERSION,
+  type ScheduleVersionCompareResult,
+  type ScheduleVersionDiffAssignment,
+  type ScheduleVersionDiffEntry,
+} from "../contracts";
+import {
   canTransitionScheduleVersion,
   isScheduleVersionStatus,
   type ScheduleVersionStatus,
 } from "./schedule-version.types";
-import type { CreateScheduleVersionDto, TransitionScheduleVersionDto } from "./schedule-version.dto";
+import type {
+  CloneScheduleVersionDto,
+  CreateScheduleVersionDto,
+  RollbackScheduleVersionDto,
+  TransitionScheduleVersionDto,
+} from "./schedule-version.dto";
 import type { UpdateScheduleAssignmentDto } from "./schedule-edit.dto";
 import {
   SCHEDULE_EDIT_CONTRACT_VERSION,
@@ -62,6 +74,18 @@ interface AssignmentRow {
 interface AssignmentValidationRow extends AssignmentRow {
   class_id: string;
   teacher_id: string;
+}
+
+interface ComparisonAssignmentRow extends AssignmentRow {
+  subject_label: string;
+  class_label: string;
+  teacher_label: string;
+  room_label: string | null;
+  slot_label: string;
+}
+
+interface OptimizationDiagnosticsRow {
+  diagnostics: Record<string, unknown> | null;
 }
 
 type Queryable = Pick<Pool, "query">;
@@ -175,6 +199,243 @@ export class ScheduleVersionService {
   async getSnapshot(schoolId: string, versionId: string): Promise<ScheduleVersionSnapshot> {
     const current = await this.getRow(schoolId, versionId);
     return this.toSnapshot(current, await this.listAssignments(this.pool, schoolId, versionId));
+  }
+
+  async compare(schoolId: string, fromVersionId: string, toVersionId: string): Promise<ScheduleVersionCompareResult> {
+    if (fromVersionId === toVersionId) {
+      throw new BadRequestException({
+        code: "SCHEDULE_VERSION_COMPARE_SAME_VERSION",
+        message: "Không thể compare một schedule version với chính nó.",
+      });
+    }
+
+    const [from, to] = await Promise.all([this.getRow(schoolId, fromVersionId), this.getRow(schoolId, toVersionId)]);
+    if (from.academic_period_id !== to.academic_period_id) {
+      throw new ConflictException({
+        code: "SCHEDULE_VERSION_COMPARE_PERIOD_MISMATCH",
+        message: "Chỉ compare được các version trong cùng academic period.",
+      });
+    }
+
+    const [fromAssignments, toAssignments, fromScore, toScore] = await Promise.all([
+      this.listComparisonAssignments(this.pool, schoolId, fromVersionId),
+      this.listComparisonAssignments(this.pool, schoolId, toVersionId),
+      this.qualityScore(schoolId, from.source_run_id),
+      this.qualityScore(schoolId, to.source_run_id),
+    ]);
+    const fromByKey = new Map(fromAssignments.map((assignment) => [this.assignmentKey(assignment), assignment]));
+    const toByKey = new Map(toAssignments.map((assignment) => [this.assignmentKey(assignment), assignment]));
+    const keys = [...new Set([...fromByKey.keys(), ...toByKey.keys()])].sort();
+    const diffs: ScheduleVersionDiffEntry[] = [];
+
+    for (const key of keys) {
+      const before = fromByKey.get(key);
+      const after = toByKey.get(key);
+      if (!before && after) {
+        diffs.push({
+          operation: "ADD",
+          lessonId: after.lesson_id,
+          sessionIndex: after.session_index,
+          before: null,
+          after: this.toDiffAssignment(after),
+        });
+      } else if (before && !after) {
+        diffs.push({
+          operation: "REMOVE",
+          lessonId: before.lesson_id,
+          sessionIndex: before.session_index,
+          before: this.toDiffAssignment(before),
+          after: null,
+        });
+      } else if (
+        before &&
+        after &&
+        (before.time_slot_id !== after.time_slot_id || (before.room_id ?? null) !== (after.room_id ?? null))
+      ) {
+        diffs.push({
+          operation: "MOVE",
+          lessonId: after.lesson_id,
+          sessionIndex: after.session_index,
+          before: this.toDiffAssignment(before),
+          after: this.toDiffAssignment(after),
+        });
+      }
+    }
+
+    const scoreAvailable = fromScore !== null && toScore !== null;
+    return {
+      contractVersion: SCHEDULE_VERSION_OPERATIONS_CONTRACT_VERSION,
+      fromVersion: this.compareVersion(from),
+      toVersion: this.compareVersion(to),
+      summary: {
+        moves: diffs.filter((diff) => diff.operation === "MOVE").length,
+        additions: diffs.filter((diff) => diff.operation === "ADD").length,
+        removals: diffs.filter((diff) => diff.operation === "REMOVE").length,
+        changedAssignments: diffs.length,
+      },
+      score: {
+        from: fromScore,
+        to: toScore,
+        delta: scoreAvailable ? Number((toScore! - fromScore!).toFixed(6)) : null,
+        available: scoreAvailable,
+        lowerIsBetter: true,
+      },
+      diffs: diffs.map((diff) => ({
+        ...diff,
+        before: diff.before,
+        after: diff.after,
+      })),
+    };
+  }
+
+  async clone(
+    schoolId: string,
+    sourceVersionId: string,
+    actorId: string,
+    dto: CloneScheduleVersionDto,
+    actorRole: Role = "SCHEDULER",
+    correlationId = "unknown",
+  ) {
+    return this.copyVersion(
+      schoolId,
+      sourceVersionId,
+      actorId,
+      dto.reason?.trim() || null,
+      "CLONE",
+      actorRole,
+      correlationId,
+    );
+  }
+
+  async rollback(
+    schoolId: string,
+    targetVersionId: string,
+    actorId: string,
+    dto: RollbackScheduleVersionDto,
+    actorRole: Role = "SCHEDULER",
+    correlationId = "unknown",
+  ) {
+    if (targetVersionId === dto.sourceVersionId) {
+      throw new BadRequestException({
+        code: "SCHEDULE_VERSION_ROLLBACK_SAME_VERSION",
+        message: "Rollback cần một source version khác target version.",
+      });
+    }
+    await this.get(schoolId, targetVersionId);
+    return this.copyVersion(
+      schoolId,
+      dto.sourceVersionId,
+      actorId,
+      dto.reason.trim(),
+      "ROLLBACK",
+      actorRole,
+      correlationId,
+      targetVersionId,
+    );
+  }
+
+  private async copyVersion(
+    schoolId: string,
+    sourceVersionId: string,
+    actorId: string,
+    reason: string | null,
+    operation: "CLONE" | "ROLLBACK",
+    actorRole: Role,
+    correlationId: string,
+    rollbackTargetVersionId?: string,
+  ) {
+    const client = await this.pool.connect();
+    let inTransaction = false;
+    try {
+      await client.query("BEGIN");
+      inTransaction = true;
+      const source = await this.selectVersionForUpdate(client, schoolId, sourceVersionId);
+      const assignments = await this.listAssignments(client, schoolId, sourceVersionId);
+      const nextVersionNumber = await this.nextVersionNumber(client, schoolId, source.academic_period_id);
+      const scheduleSnapshotHash = this.hashAssignments(assignments);
+      const result = await client.query<ScheduleVersionRow>(
+        `INSERT INTO schedule_versions
+          (school_id, academic_period_id, version_number, status, source_run_id,
+           created_by, rule_snapshot_id, rule_set_version, rule_snapshot_hash,
+           input_snapshot_hash, schedule_snapshot_hash, status_changed_by,
+           status_changed_at, status_reason)
+         VALUES ($1, $2, $3, 'DRAFT', $4, $5, $6, $7, $8, $9, $10, $5, now(), $11)
+         RETURNING id::text, school_id::text, academic_period_id::text, version_number,
+                   status, source_run_id::text, created_by, approved_by, approved_at,
+                   locked_at, published_at, archived_at, rule_snapshot_id::text,
+                   rule_set_version, rule_snapshot_hash, input_snapshot_hash,
+                   schedule_snapshot_hash, status_changed_by, status_changed_at,
+                   revision, status_reason, created_at, updated_at`,
+        [
+          schoolId,
+          source.academic_period_id,
+          nextVersionNumber,
+          source.source_run_id,
+          actorId,
+          source.rule_snapshot_id,
+          source.rule_set_version,
+          source.rule_snapshot_hash,
+          source.input_snapshot_hash,
+          scheduleSnapshotHash,
+          reason,
+        ],
+      );
+      if (result.rows.length === 0) {
+        throw new ConflictException({
+          code: "SCHEDULE_VERSION_COPY_FAILED",
+          message: "Không thể tạo draft từ snapshot nguồn.",
+        });
+      }
+      const created = result.rows[0];
+      await client.query(
+        `INSERT INTO schedule_assignments (schedule_version_id, lesson_id, session_index, time_slot_id, room_id)
+         SELECT $1, lesson_id, session_index, time_slot_id, room_id
+           FROM schedule_assignments
+          WHERE schedule_version_id = $2
+          ORDER BY lesson_id, session_index`,
+        [created.id, sourceVersionId],
+      );
+      if (this.auditLogs) {
+        await this.auditLogs.recordInTransaction(client, {
+          schoolId,
+          action: "CREATE",
+          entityType: "schedule_version",
+          entityId: created.id,
+          entityKey: created.id,
+          actorId,
+          actorRole,
+          correlationId,
+          metadata: {
+            operation,
+            sourceVersionId,
+            sourceVersionNumber: source.version_number,
+            createdVersionId: created.id,
+            createdVersionNumber: created.version_number,
+            rollbackTargetVersionId: rollbackTargetVersionId ?? null,
+            reason,
+            assignmentCount: assignments.length,
+            scheduleSnapshotHash,
+          },
+        });
+      }
+      const snapshot = await this.snapshotFromClient(client, created);
+      await client.query("COMMIT");
+      inTransaction = false;
+      return {
+        contractVersion: SCHEDULE_VERSION_OPERATIONS_CONTRACT_VERSION,
+        operation,
+        sourceVersionId,
+        rollbackTargetVersionId: rollbackTargetVersionId ?? null,
+        reason,
+        version: this.toScheduleVersion(created),
+        snapshot,
+      };
+    } catch (error) {
+      if (inTransaction) await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async updateAssignment(
@@ -399,6 +660,105 @@ export class ScheduleVersionService {
       correlationId: row.correlation_id,
       createdAt: new Date(row.created_at).toISOString(),
     }));
+  }
+
+  private async listComparisonAssignments(client: Queryable, schoolId: string, versionId: string) {
+    const result = await client.query<ComparisonAssignmentRow>(
+      `SELECT a.id::text, a.lesson_id::text, a.session_index, a.time_slot_id::text,
+              a.room_id::text, subject.name AS subject_label, class.name AS class_label,
+              teacher.display_name AS teacher_label, room.name AS room_label,
+              ('day-' || slot.day::text || '-period-' || slot.period::text) AS slot_label
+         FROM schedule_assignments a
+         JOIN lesson_requirements lesson ON lesson.id = a.lesson_id
+          AND lesson.school_id = $1
+         JOIN subjects subject ON subject.id = lesson.subject_id
+          AND subject.school_id = $1
+         JOIN classes class ON class.id = lesson.class_id
+          AND class.school_id = $1
+         JOIN teachers teacher ON teacher.id = lesson.teacher_id
+          AND teacher.school_id = $1
+         LEFT JOIN rooms room ON room.id = a.room_id
+          AND room.school_id = $1
+         JOIN time_slots slot ON slot.id = a.time_slot_id
+          AND slot.school_id = $1
+        WHERE a.schedule_version_id = $2
+        ORDER BY a.lesson_id, a.session_index`,
+      [schoolId, versionId],
+    );
+    return result.rows;
+  }
+
+  private async qualityScore(schoolId: string, sourceRunId: string | null) {
+    if (!sourceRunId) return null;
+    const result = await this.pool.query<OptimizationDiagnosticsRow>(
+      `SELECT diagnostics
+         FROM optimization_runs
+        WHERE id = $1 AND school_id = $2`,
+      [sourceRunId, schoolId],
+    );
+    const diagnostics = result.rows[0]?.diagnostics;
+    if (!diagnostics) return null;
+    const objectiveValue = diagnostics.objectiveValue;
+    if (typeof objectiveValue === "number" && Number.isFinite(objectiveValue)) return objectiveValue;
+    const breakdown = diagnostics.objectiveBreakdown;
+    if (!breakdown || typeof breakdown !== "object") return null;
+    const weightedTotal = (breakdown as Record<string, unknown>).weightedTotal;
+    return typeof weightedTotal === "number" && Number.isFinite(weightedTotal) ? weightedTotal : null;
+  }
+
+  private assignmentKey(assignment: AssignmentRow) {
+    return `${assignment.lesson_id}:${assignment.session_index}`;
+  }
+
+  private toDiffAssignment(assignment: ComparisonAssignmentRow): ScheduleVersionDiffAssignment {
+    return {
+      id: assignment.id,
+      lessonId: assignment.lesson_id,
+      sessionIndex: assignment.session_index,
+      timeSlotId: assignment.time_slot_id,
+      roomId: assignment.room_id,
+      subjectLabel: assignment.subject_label,
+      classLabel: assignment.class_label,
+      teacherLabel: assignment.teacher_label,
+      roomLabel: assignment.room_label,
+      slotLabel: assignment.slot_label,
+    };
+  }
+
+  private compareVersion(row: ScheduleVersionRow) {
+    return {
+      id: row.id,
+      versionNumber: row.version_number,
+      status: row.status,
+      revision: this.revisionOf(row),
+      etag: this.etagOf(row),
+    };
+  }
+
+  private async nextVersionNumber(client: Queryable, schoolId: string, academicPeriodId: string) {
+    await client.query(
+      `SELECT id FROM academic_periods
+        WHERE id = $1 AND school_id = $2
+        FOR UPDATE`,
+      [academicPeriodId, schoolId],
+    );
+    const result = await client.query<{ next_version_number: number }>(
+      `SELECT COALESCE(MAX(version_number), 0) + 1 AS next_version_number
+         FROM schedule_versions
+        WHERE school_id = $1 AND academic_period_id = $2`,
+      [schoolId, academicPeriodId],
+    );
+    return Number(result.rows[0]?.next_version_number ?? 1);
+  }
+
+  private hashAssignments(assignments: ScheduleAssignmentSnapshot[]) {
+    const canonical = assignments.map((assignment) => ({
+      lessonId: assignment.lessonId,
+      sessionIndex: assignment.sessionIndex,
+      timeSlotId: assignment.timeSlotId,
+      roomId: assignment.roomId,
+    }));
+    return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
   }
 
   private async getRow(schoolId: string, versionId: string) {
