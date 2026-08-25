@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { ObjectiveBreakdown } from "@schedule/backend/contracts";
 import { navigateTo } from "./routing";
 
 type TimetableView = "class" | "teacher" | "room";
@@ -31,6 +32,15 @@ interface TimetableEntity {
   id: string;
   label: string;
   detail: string;
+}
+
+type ObjectiveKey = Exclude<keyof ObjectiveBreakdown, "weightedTotal">;
+type FocusFilter = "all" | "conflict" | "penalty";
+
+interface ObjectiveGroup {
+  key: ObjectiveKey;
+  label: string;
+  description: string;
 }
 
 const DAYS = [
@@ -195,6 +205,60 @@ const viewKeys: Record<TimetableView, keyof Pick<TimetableLesson, "classId" | "t
   room: "roomId",
 };
 
+const DEMO_OBJECTIVE: ObjectiveBreakdown = {
+  teacherGap: 0,
+  compactness: 0,
+  dayDistribution: 2,
+  undesirableSlots: 0,
+  preferredDays: 0,
+  fairness: 2,
+  weightedTotal: 4000,
+};
+
+const OBJECTIVE_GROUPS: ObjectiveGroup[] = [
+  { key: "teacherGap", label: "Khoảng trống GV", description: "teacherGap" },
+  { key: "compactness", label: "Liền mạch lớp", description: "compactness" },
+  { key: "dayDistribution", label: "Phân bố ngày", description: "dayDistribution" },
+  { key: "undesirableSlots", label: "Slot không mong muốn", description: "undesirableSlots" },
+  { key: "preferredDays", label: "Ngày ưu tiên", description: "preferredDays" },
+  { key: "fairness", label: "Cân bằng tải", description: "fairness" },
+];
+
+const DEMO_SLOT_PENALTIES: Record<string, number> = {
+  "mon-p1": 0,
+  "mon-p2": 0,
+  "tue-p2": 1,
+  "wed-p1": 1,
+  "wed-p2": 0,
+  "wed-p3": 2,
+  "thu-p1": 1,
+  "fri-p2": 2,
+};
+
+function getSlotPenalty(slotId: string) {
+  return DEMO_SLOT_PENALTIES[slotId] ?? 0;
+}
+
+function getHeatLevel(penalty: number): 0 | 1 | 2 | 3 {
+  if (penalty >= 3) return 3;
+  if (penalty === 2) return 2;
+  if (penalty === 1) return 1;
+  return 0;
+}
+
+function lessonMatchesSearch(lesson: TimetableLesson, query: string) {
+  if (!query.trim()) return true;
+  const normalizedQuery = query.trim().toLocaleLowerCase("vi");
+  return [lesson.subjectLabel, lesson.classLabel, lesson.teacherLabel, lesson.roomLabel]
+    .join(" ")
+    .toLocaleLowerCase("vi")
+    .includes(normalizedQuery);
+}
+
+function formatMetric(value: number) {
+  return new Intl.NumberFormat("vi-VN").format(value);
+}
+
 function readInitialState(): TimetableState {
   const state = new URLSearchParams(window.location.search).get("state");
   return state === "loading" || state === "empty" || state === "error" ? state : "ready";
@@ -262,13 +326,18 @@ function TimetableGrid({
   view,
   selectedEntityId,
   lessons,
+  heatmapEnabled,
 }: {
   view: TimetableView;
   selectedEntityId: string;
   lessons: TimetableLesson[];
+  heatmapEnabled: boolean;
 }) {
   const visibleLessons = lessons.filter((lesson) => lesson[viewKeys[view]] === selectedEntityId);
-  const lessonBySlot = new Map(visibleLessons.map((lesson) => [lesson.slotId, lesson]));
+  const lessonBySlot = new Map<string, TimetableLesson[]>();
+  visibleLessons.forEach((lesson) => {
+    lessonBySlot.set(lesson.slotId, [...(lessonBySlot.get(lesson.slotId) ?? []), lesson]);
+  });
   const periodRows = [...new Set(SLOTS.map((slot) => slot.period))].map((period) =>
     SLOTS.find((slot) => slot.period === period),
   );
@@ -299,28 +368,47 @@ function TimetableGrid({
                 const slot = SLOTS.find(
                   (candidate) => candidate.day === day.day && candidate.period === firstSlot.period,
                 );
-                const lesson = slot ? lessonBySlot.get(slot.id) : undefined;
+                const lessonsAtSlot = slot ? (lessonBySlot.get(slot.id) ?? []) : [];
+                const slotPenalty = slot ? getSlotPenalty(slot.id) : 0;
+                const heatLevel = heatmapEnabled ? getHeatLevel(slotPenalty) : 0;
                 return (
-                  <div className="timetable-cell" role="gridcell" key={day.day}>
-                    {lesson ? (
-                      <article className={`lesson-card ${lesson.status === "CONFLICT" ? "conflict-card" : ""}`}>
-                        <div className="lesson-card-topline">
-                          <strong>{lesson.subjectLabel}</strong>
-                          {lesson.status === "CONFLICT" ? (
-                            <span className="conflict-marker" title={lesson.conflictMessage} aria-label="Có xung đột">
-                              !
-                            </span>
-                          ) : null}
-                        </div>
-                        <span>{formatViewSubject(lesson, view)}</span>
-                        <small>{lesson.roomLabel}</small>
-                        {lesson.conflictMessage ? <em>{lesson.conflictMessage}</em> : null}
-                      </article>
-                    ) : (
-                      <span className="empty-cell" aria-label="Trống">
-                        ·
-                      </span>
-                    )}
+                  <div
+                    className={`timetable-cell heat-level-${heatLevel}`}
+                    role="gridcell"
+                    aria-label={`${day.label} · Tiết ${firstSlot.period} · soft penalty ${slotPenalty}`}
+                    key={day.day}
+                  >
+                    <div className="cell-content">
+                      {lessonsAtSlot.length > 0 ? (
+                        lessonsAtSlot.map((lesson) => (
+                          <article
+                            className={`lesson-card ${lesson.status === "CONFLICT" ? "conflict-card" : ""}`}
+                            key={lesson.id}
+                          >
+                            <div className="lesson-card-topline">
+                              <strong>{lesson.subjectLabel}</strong>
+                              {lesson.status === "CONFLICT" ? (
+                                <span
+                                  className="conflict-marker"
+                                  title={lesson.conflictMessage}
+                                  aria-label="Có xung đột"
+                                >
+                                  !
+                                </span>
+                              ) : null}
+                            </div>
+                            <span>{formatViewSubject(lesson, view)}</span>
+                            <small>{lesson.roomLabel}</small>
+                            {lesson.conflictMessage ? <em>{lesson.conflictMessage}</em> : null}
+                          </article>
+                        ))
+                      ) : (
+                        <span className="empty-cell" aria-label="Trống">
+                          ·
+                        </span>
+                      )}
+                      {heatmapEnabled ? <span className="heatmap-label">Soft {slotPenalty}</span> : null}
+                    </div>
                   </div>
                 );
               })}
@@ -336,14 +424,28 @@ export function TimetableScreen() {
   const [view, setView] = useState<TimetableView>("class");
   const [selectedEntityId, setSelectedEntityId] = useState("class-7a1");
   const [state, setState] = useState<TimetableState>(readInitialState);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [focusFilter, setFocusFilter] = useState<FocusFilter>("all");
+  const [heatmapEnabled, setHeatmapEnabled] = useState(true);
 
   const entities = useMemo(() => getEntityOptions(view, DEMO_LESSONS), [view]);
   const selectedEntity = entities.find((entity) => entity.id === selectedEntityId) ?? entities[0];
   const selectedId = selectedEntity?.id ?? "";
-  const visibleCount = DEMO_LESSONS.filter((lesson) => lesson[viewKeys[view]] === selectedId).length;
-  const conflictCount = DEMO_LESSONS.filter(
-    (lesson) => lesson[viewKeys[view]] === selectedId && lesson.status === "CONFLICT",
-  ).length;
+  const filteredLessons = useMemo(
+    () =>
+      DEMO_LESSONS.filter((lesson) => {
+        if (!lessonMatchesSearch(lesson, searchQuery)) return false;
+        if (focusFilter === "conflict" && lesson.status !== "CONFLICT") return false;
+        if (focusFilter === "penalty" && getSlotPenalty(lesson.slotId) < 1) return false;
+        return true;
+      }),
+    [focusFilter, searchQuery],
+  );
+  const selectedLessons = filteredLessons.filter((lesson) => lesson[viewKeys[view]] === selectedId);
+  const visibleCount = selectedLessons.length;
+  const conflictCount = selectedLessons.filter((lesson) => lesson.status === "CONFLICT").length;
+  const workloadDays = new Set(selectedLessons.map((lesson) => SLOTS.find((slot) => slot.id === lesson.slotId)?.day))
+    .size;
 
   function handleViewChange(nextView: TimetableView) {
     const nextEntities = getEntityOptions(nextView, DEMO_LESSONS);
@@ -395,7 +497,11 @@ export function TimetableScreen() {
           </div>
           <label className="entity-picker">
             <span>{viewLabels[view]}</span>
-            <select value={selectedId} onChange={(event) => setSelectedEntityId(event.target.value)}>
+            <select
+              aria-label={`${viewLabels[view]} chọn`}
+              value={selectedId}
+              onChange={(event) => setSelectedEntityId(event.target.value)}
+            >
               {entities.map((entity) => (
                 <option value={entity.id} key={entity.id}>
                   {entity.label}
@@ -403,14 +509,48 @@ export function TimetableScreen() {
               ))}
             </select>
           </label>
+          <label className="search-picker">
+            <span>Tìm trong timetable</span>
+            <input
+              type="search"
+              value={searchQuery}
+              placeholder="Môn, lớp, GV, phòng"
+              aria-label="Tìm trong timetable"
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+          </label>
+          <label className="focus-picker">
+            <span>Lọc nhanh</span>
+            <select
+              aria-label="Lọc nhanh"
+              value={focusFilter}
+              onChange={(event) => setFocusFilter(event.target.value as FocusFilter)}
+            >
+              <option value="all">Tất cả lesson</option>
+              <option value="conflict">Chỉ conflict</option>
+              <option value="penalty">Có soft penalty</option>
+            </select>
+          </label>
           <label className="state-picker">
             <span>Trạng thái demo</span>
-            <select value={state} onChange={(event) => setState(event.target.value as TimetableState)}>
+            <select
+              aria-label="Trạng thái demo"
+              value={state}
+              onChange={(event) => setState(event.target.value as TimetableState)}
+            >
               <option value="ready">Có dữ liệu</option>
               <option value="loading">Đang tải</option>
               <option value="empty">Trống</option>
               <option value="error">Lỗi API</option>
             </select>
+          </label>
+          <label className="heatmap-toggle">
+            <input
+              type="checkbox"
+              checked={heatmapEnabled}
+              onChange={(event) => setHeatmapEnabled(event.target.checked)}
+            />
+            <span>Heatmap soft penalty</span>
           </label>
         </div>
 
@@ -419,14 +559,65 @@ export function TimetableScreen() {
             <b>{selectedEntity?.label ?? "—"}</b> · {selectedEntity?.detail ?? "Chưa chọn"}
           </span>
           <span>{visibleCount} lesson</span>
+          <span>
+            Workload <b>{workloadDays}/5 ngày</b>
+          </span>
+          <span>
+            Teacher gap <b>{formatMetric(DEMO_OBJECTIVE.teacherGap)} penalty</b>
+          </span>
           <span className={conflictCount > 0 ? "summary-warning" : "summary-ok"}>
             {conflictCount > 0 ? `${conflictCount} conflict cần review` : "Không có conflict"}
           </span>
-          <span>Objective 4,000 · gap 0%</span>
+          <span>Objective {formatMetric(DEMO_OBJECTIVE.weightedTotal)} · gap 0%</span>
         </div>
 
+        <section className="quality-panel" aria-labelledby="quality-title">
+          <div className="quality-heading">
+            <div>
+              <p className="eyebrow">Quality indicators</p>
+              <h3 id="quality-title">Soft score breakdown</h3>
+              <p className="small-note">
+                Đồng bộ theo `diagnostics.objectiveBreakdown`; thấp hơn là tốt hơn sau khi đã đạt hard feasibility.
+              </p>
+            </div>
+            <div className="objective-total">
+              <span>Weighted total</span>
+              <strong>{formatMetric(DEMO_OBJECTIVE.weightedTotal)}</strong>
+              <small>SOLVER-OBJECTIVE-1.0.0</small>
+            </div>
+          </div>
+          <div className="quality-metrics">
+            {OBJECTIVE_GROUPS.map((group) => (
+              <div className="quality-metric" key={group.key} title={group.description}>
+                <div className="quality-metric-label">
+                  <span>{group.label}</span>
+                  <b>{formatMetric(DEMO_OBJECTIVE[group.key])}</b>
+                </div>
+                <div className="quality-meter" aria-label={`${group.label}: ${DEMO_OBJECTIVE[group.key]}`}>
+                  <span style={{ width: `${Math.min(100, DEMO_OBJECTIVE[group.key] * 8)}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="heatmap-legend" aria-label="Chú thích heatmap soft penalty">
+            <span>Heatmap cell</span>
+            {[0, 1, 2, 3].map((level) => (
+              <span className="heatmap-key" key={level}>
+                <i className={`heatmap-swatch heat-level-${level}`} aria-hidden="true" />
+                {level === 0 ? "0 · không phạt" : level === 3 ? "3+ · cao" : `${level} · thấp`}
+              </span>
+            ))}
+            <span className="heatmap-legend-note">Màu luôn đi kèm nhãn Soft N để không phụ thuộc vào màu sắc.</span>
+          </div>
+        </section>
+
         {state === "ready" ? (
-          <TimetableGrid view={view} selectedEntityId={selectedId} lessons={DEMO_LESSONS} />
+          <TimetableGrid
+            view={view}
+            selectedEntityId={selectedId}
+            lessons={filteredLessons}
+            heatmapEnabled={heatmapEnabled}
+          />
         ) : (
           <StatePanel state={state} />
         )}

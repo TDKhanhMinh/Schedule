@@ -869,7 +869,9 @@ tr.has-warning td {
   box-shadow: 0 2px 6px rgb(24 39 75 / 7%);
 }
 .entity-picker,
-.state-picker {
+.state-picker,
+.focus-picker,
+.search-picker {
   display: grid;
   min-width: 145px;
   gap: 5px;
@@ -882,7 +884,9 @@ tr.has-warning td {
   margin-left: auto;
 }
 .entity-picker select,
-.state-picker select {
+.state-picker select,
+.focus-picker select,
+.search-picker input {
   min-width: 145px;
   padding: 8px 9px;
   border: 1px solid #cbd5e3;
@@ -890,6 +894,28 @@ tr.has-warning td {
   color: var(--ink);
   background: #fff;
   font-size: 0.75rem;
+}
+.search-picker {
+  min-width: 190px;
+}
+.search-picker input {
+  min-width: 190px;
+}
+.heatmap-toggle {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 7px;
+  padding: 8px 2px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.heatmap-toggle input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--blue);
 }
 .solve-status {
   display: inline-flex;
@@ -930,6 +956,111 @@ tr.has-warning td {
   color: var(--green) !important;
   border-color: #b7e8d0 !important;
   background: var(--green-soft) !important;
+}
+.quality-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fbfcff;
+}
+.quality-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.quality-heading .eyebrow {
+  margin-bottom: 6px;
+}
+.quality-heading h3 {
+  font-size: 0.95rem;
+}
+.quality-heading .small-note {
+  max-width: 620px;
+}
+.objective-total {
+  display: grid;
+  min-width: 135px;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid #cbd7ff;
+  border-radius: 9px;
+  color: var(--blue);
+  background: var(--blue-soft);
+  text-align: right;
+}
+.objective-total span,
+.objective-total small {
+  font-size: 0.63rem;
+  font-weight: 800;
+}
+.objective-total strong {
+  font-size: 1.15rem;
+  line-height: 1.1;
+}
+.objective-total small {
+  color: var(--muted);
+  font-weight: 700;
+}
+.quality-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 18px;
+}
+.quality-metric {
+  display: grid;
+  gap: 6px;
+}
+.quality-metric-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+.quality-metric-label b {
+  color: var(--ink);
+}
+.quality-meter {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7edf6;
+}
+.quality-meter span {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: var(--blue);
+}
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+.heatmap-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.heatmap-swatch {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 1px solid rgb(49 94 251 / 12%);
+  border-radius: 4px;
+}
+.heatmap-legend-note {
+  margin-left: auto;
 }
 .timetable-grid-scroll {
   overflow-x: auto;
@@ -997,6 +1128,34 @@ tr.has-warning td {
   min-height: 104px;
   padding: 6px;
   background: #fff;
+}
+.timetable-cell.heat-level-1,
+.heatmap-swatch.heat-level-1 {
+  background: #f4f6ff;
+}
+.timetable-cell.heat-level-2,
+.heatmap-swatch.heat-level-2 {
+  background: #e8edff;
+}
+.timetable-cell.heat-level-3,
+.heatmap-swatch.heat-level-3 {
+  background: #d8e1ff;
+}
+.heatmap-swatch.heat-level-0 {
+  background: #fff;
+}
+.cell-content {
+  display: grid;
+  height: 100%;
+  align-content: start;
+  gap: 5px;
+}
+.heatmap-label {
+  color: #5870ad;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: right;
 }
 .lesson-card {
   display: grid;
@@ -1406,6 +1565,38 @@ tr.has-warning td {
   }
   .toolbar-filters button {
     flex: 1;
+  }
+  .timetable-controls {
+    align-items: stretch;
+  }
+  .view-switcher,
+  .entity-picker,
+  .search-picker,
+  .focus-picker,
+  .state-picker,
+  .heatmap-toggle {
+    width: 100%;
+  }
+  .entity-picker {
+    margin-left: 0;
+  }
+  .entity-picker select,
+  .search-picker input,
+  .focus-picker select,
+  .state-picker select {
+    width: 100%;
+  }
+  .quality-heading {
+    display: grid;
+  }
+  .objective-total {
+    text-align: left;
+  }
+  .quality-metrics {
+    grid-template-columns: 1fr;
+  }
+  .heatmap-legend-note {
+    margin-left: 0;
   }
 }
 
