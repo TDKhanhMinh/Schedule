@@ -1,14 +1,22 @@
 import "reflect-metadata";
+import { Pool } from "pg";
 import { Worker } from "bullmq";
-import { OPTIMIZATION_QUEUE, type SolveJobRequest, type SolveJobResult } from "../contracts";
+import { OPTIMIZATION_QUEUE } from "../contracts";
 import { parseRedisConnection } from "../jobs/redis-connection";
+import type { OptimizationJobData } from "../jobs/optimization-job.contract";
+import { OptimizationRunStore } from "../jobs/optimization-run.store";
+import { processOptimizationJob } from "./optimization-worker";
 import { runPythonSolver } from "./solver-process";
 
 const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) throw new Error("DATABASE_URL is required for the solver worker.");
+const pool = new Pool({ connectionString: databaseUrl });
+const store = new OptimizationRunStore(pool);
 
-const worker = new Worker<SolveJobRequest, SolveJobResult>(
+const worker = new Worker<OptimizationJobData>(
   OPTIMIZATION_QUEUE,
-  async (job) => runPythonSolver(job.data),
+  async (job) => processOptimizationJob(job, { store, solve: runPythonSolver }),
   { connection: parseRedisConnection(redisUrl) },
 );
 
@@ -18,6 +26,7 @@ worker.on("failed", (job, error) => console.error(`[solver-worker] failed ${job?
 
 const shutdown = async () => {
   await worker.close();
+  await pool.end();
   process.exit(0);
 };
 

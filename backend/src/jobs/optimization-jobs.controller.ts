@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
+import type { RequestWithAuth } from "../auth/auth.types";
 import { OptimizationQueueService } from "./optimization-queue.service";
 import { SolveJobDto } from "./solve-job.dto";
 
@@ -19,7 +20,7 @@ export class OptimizationJobsController {
   }
 
   @Get(":jobId")
-  getStatus(@Param("jobId") jobId: string) {
-    return this.queue.getStatus(jobId);
+  getStatus(@Param("jobId") jobId: string, @Req() request: RequestWithAuth) {
+    return this.queue.getStatus(jobId, request.auth!.schoolId);
   }
 }

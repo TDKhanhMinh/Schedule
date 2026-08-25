@@ -261,6 +261,18 @@ export class SolveJobDto implements SolveJobRequest {
   schoolId!: string;
 
   @IsString()
+  @IsOptional()
+  academicPeriodId?: string;
+
+  @IsString()
+  @IsOptional()
+  templateVersion?: string;
+
+  @IsInt()
+  @IsOptional()
+  randomSeed?: number;
+
+  @IsString()
   @IsNotEmpty()
   @ValidateIf((payload) => Boolean(payload.ruleSnapshotId || payload.ruleSetVersion || payload.ruleSnapshotHash))
   @IsDefined()
