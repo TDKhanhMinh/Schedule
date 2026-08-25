@@ -4,6 +4,7 @@
 **Scope:** V0.1 — trường THCS/THPT  
 **Register version:** `RULE-REGISTER-0.1.0`  
 **Checked on:** `2026-08-24`  
+**Revalidated on:** `2026-08-25`
 **Status:** Source-verified baseline; business approval pending
 
 Tài liệu này là register phiên bản đầu cho các quy tắc pháp lý và quy tắc vận
@@ -44,9 +45,24 @@ duyệt và mapping triển khai.
 | `SRC-TT05-2025` | Thông tư `05/2025/TT-BGDĐT` quy định chế độ làm việc đối với giáo viên phổ thông, dự bị đại học | `2025-03-07` | `2025-04-22` | Thời gian làm việc, số tuần giảng dạy và định mức tiết dạy giáo viên phổ thông | [Cổng TTĐT Chính phủ — metadata văn bản](https://vanban.chinhphu.vn/?classid=1&docid=213113&orggroupid=4&pageid=27160); [toàn văn trên Chinhphu.vn](https://xaydungchinhsach.chinhphu.vn/toan-van-thong-tu-05-2025-tt-bgddt-quy-dinh-che-do-lam-viec-doi-voi-giao-vien-pho-thong-du-bi-dai-hoc-119250311185323893.htm) |
 | `SRC-CTGDPT-2018-CONSOLIDATED` | Văn bản hợp nhất chương trình GDPT ban hành từ Thông tư `32/2018/TT-BGDĐT`, có cập nhật `20/2021/TT-BGDĐT` và `13/2022/TT-BGDĐT` | Gốc `2018-12-26`; cập nhật `2021-07-01`, `2022-08-03` | Gốc `2019-02-15`; cập nhật tương ứng `2021-08-16`, `2022-08-03` | Thời lượng tiết học và profile số tiết trong buổi của THCS/THPT | [Bản hợp nhất trên website Bộ GDĐT](https://moet.gov.vn/content/vanban/Lists/VBPQ/Attachments/1483/vbhn-ttu-322018-202021-132022-ttbgddt.pdf); [chương trình tổng thể PDF](https://moet.gov.vn/content/vanban/Lists/VBPQ/Attachments/1483/vbhn-chuong-trinh-tong-the.pdf) |
 
-`checkedOn` của cả hai nguồn là `2026-08-24`. Trước pilot và production phải
+`checkedOn` của cả hai nguồn là `2026-08-25` sau lần revalidation hiện tại. Trước pilot và production phải
 kiểm tra lại hiệu lực, văn bản sửa đổi/thay thế và quy định triển khai của địa
 phương/trường.
+
+### Revalidation log — 2026-08-25
+
+- Cổng Thông tin điện tử Chính phủ vẫn ghi nhận Thông tư `05/2025/TT-BGDĐT`
+  ban hành ngày `2025-03-07`, có hiệu lực ngày `2025-04-22`, là nguồn hiện hành
+  cho thời gian làm việc và định mức tiết dạy của giáo viên phổ thông.
+- Bản hợp nhất Chương trình GDPT trên website Bộ GDĐT vẫn là nguồn được dùng
+  cho profile THCS/THPT: mỗi tiết `45` phút và một buổi không bố trí quá `5`
+  tiết trong profile một buổi/ngày.
+- Lần kiểm tra này không thay đổi semantics của `RULE-REGISTER-0.1.0`, không
+  thêm giá trị `45`, `5`, `19`, `17` hoặc công thức tải dạy vào CP-SAT v1, và
+  không biến nguồn pháp lý thành approval của trường pilot.
+- Nguồn chính thức được kiểm tra lại:
+  `https://vanban.chinhphu.vn/?classid=1&docid=213113&pageid=27160&typegroupid=6`
+  và các bản hợp nhất CTGDPT đã nêu trong bảng nguồn ở trên.
 
 ## 3. Register phiên bản đầu
 
