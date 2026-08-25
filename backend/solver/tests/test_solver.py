@@ -91,7 +91,8 @@ class SolverTest(unittest.TestCase):
                             "strength": "HARD_UNAVAILABLE",
                             "weight": None,
                             "dayOfWeek": 1,
-                            "blockedSlotIds": ["mon-1"],
+                            "shiftCode": "MORNING",
+                            "blockedSlotIds": [],
                             "effectiveFrom": "2026-09-01",
                             "source": {
                                 "sourceUrl": "https://schedule.local/rules",
@@ -181,6 +182,97 @@ class SolverTest(unittest.TestCase):
         self.assertEqual(result.diagnostics.modelMetrics.variableCount, 2)
         self.assertEqual(result.diagnostics.modelMetrics.candidatePairCount, 2)
         self.assertEqual(result.diagnostics.conflictDetails[0].code, "NO_FEASIBLE_ASSIGNMENT")
+
+    def test_class_unavailability_prunes_non_fixed_slot(self):
+        request = SolveJobRequest.model_validate(
+            {
+                "schemaVersion": "1.0",
+                "jobId": "job-class-unavailable",
+                "schoolId": "school-1",
+                "timeSlots": [
+                    {"id": "mon-1", "day": 1, "period": 1},
+                    {"id": "tue-1", "day": 2, "period": 1},
+                ],
+                "classUnavailableSlotIds": {"class-7a": ["mon-1"]},
+                "lessons": [
+                    {
+                        "id": "lesson-a",
+                        "classId": "class-7a",
+                        "subjectId": "math",
+                        "teacherId": "teacher-1",
+                        "requiredSessions": 1,
+                    }
+                ],
+            }
+        )
+
+        result = solve(request)
+
+        self.assertEqual(result.status, "OPTIMAL")
+        self.assertEqual(result.assignments[0].slotId, "tue-1")
+        self.assertEqual(result.diagnostics.modelMetrics.domainPrunedCount, 1)
+
+    def test_fixed_slot_conflict_with_class_unavailability_is_diagnostic(self):
+        request = SolveJobRequest.model_validate(
+            {
+                "schemaVersion": "1.0",
+                "jobId": "job-fixed-class-conflict",
+                "schoolId": "school-1",
+                "timeSlots": [{"id": "mon-1", "day": 1, "period": 1}],
+                "classUnavailableSlotIds": {"class-7a": ["mon-1"]},
+                "lessons": [
+                    {
+                        "id": "lesson-a",
+                        "classId": "class-7a",
+                        "subjectId": "math",
+                        "teacherId": "teacher-1",
+                        "requiredSessions": 1,
+                        "fixedSlotId": "mon-1",
+                    }
+                ],
+            }
+        )
+
+        result = solve(request)
+
+        self.assertEqual(result.status, "INFEASIBLE")
+        self.assertTrue(any("CLASS_AVAILABILITY_CONFLICT" in conflict for conflict in result.diagnostics.conflicts))
+
+    def test_room_unavailability_prunes_room_slot_pair(self):
+        request = SolveJobRequest.model_validate(
+            {
+                "schemaVersion": "1.0",
+                "jobId": "job-room-unavailable",
+                "schoolId": "school-1",
+                "timeSlots": [
+                    {"id": "mon-1", "day": 1, "period": 1},
+                    {"id": "tue-1", "day": 2, "period": 1},
+                ],
+                "rooms": [
+                    {
+                        "id": "room-1",
+                        "capabilities": ["STANDARD"],
+                        "unavailableSlotIds": ["mon-1"],
+                    }
+                ],
+                "lessons": [
+                    {
+                        "id": "lesson-a",
+                        "classId": "class-7a",
+                        "subjectId": "math",
+                        "teacherId": "teacher-1",
+                        "requiredSessions": 1,
+                    }
+                ],
+            }
+        )
+
+        result = solve(request)
+
+        self.assertEqual(result.status, "OPTIMAL")
+        self.assertEqual(result.assignments[0].slotId, "tue-1")
+        self.assertEqual(result.assignments[0].roomId, "room-1")
+        self.assertEqual(result.diagnostics.modelMetrics.domainPrunedCount, 1)
 
     def test_audit_rejects_duplicate_occurrence_and_resource_overlap(self):
         request = SolveJobRequest.model_validate(

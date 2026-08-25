@@ -84,6 +84,11 @@ export class RoomCapabilityDto {
   @IsArray()
   @IsString({ each: true })
   capabilities!: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  unavailableSlotIds?: string[];
 }
 
 export class TeacherAvailabilityRuleSourceDto {

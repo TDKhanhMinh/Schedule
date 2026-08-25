@@ -38,6 +38,8 @@ _CATALOG = [
     ("TEACHER_SLOT_CAPACITY_EXCEEDED", "ERROR", "TEACHER", "Giáo viên cần nhiều session hơn số slot khả dụng.", "Mở rộng lịch khả dụng hoặc điều chỉnh phân công giáo viên."),
     ("FIXED_RESOURCE_CONFLICT", "ERROR", "JOB", "Hai lesson dùng cùng tài nguyên tại một fixed slot.", "Đổi fixed slot hoặc bỏ cố định một trong các lesson bị trùng."),
     ("ROOM_CAPABILITY_UNSATISFIED", "ERROR", "ROOM", "Không có phòng đáp ứng capability yêu cầu.", "Khai báo phòng có đủ capability hoặc điều chỉnh yêu cầu phòng."),
+    ("ROOM_AVAILABILITY_CONFLICT", "ERROR", "ROOM", "Không còn phòng khả dụng cho lesson tại các slot được phép.", "Mở rộng lịch phòng hoặc chọn slot/phòng khác cho lesson."),
+    ("CLASS_AVAILABILITY_CONFLICT", "ERROR", "CLASS", "Lớp bị chặn tại các slot mà lesson đang yêu cầu.", "Mở rộng lịch lớp hoặc điều chỉnh fixed/allowed slot của lesson."),
     ("HARD_AVAILABILITY_CONFLICT", "ERROR", "TEACHER", "Không còn slot sau khi áp dụng ràng buộc availability cứng.", "Mở rộng slot hoặc điều chỉnh rule availability đã approve."),
     ("NO_FEASIBLE_ASSIGNMENT", "ERROR", "JOB", "Không tìm được assignment thỏa mãn các hard constraints.", "Xem các conflict theo lesson/lớp/giáo viên và nới input hoặc rule phù hợp."),
     ("PREFERENCE_VIOLATED", "WARNING", "TEACHER", "Solver phải vi phạm một preference mềm.", "Review lịch kết quả hoặc giảm mức ưu tiên của preference nếu cần."),

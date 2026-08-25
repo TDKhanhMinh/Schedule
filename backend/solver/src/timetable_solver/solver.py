@@ -188,18 +188,37 @@ def solve(
             eligible_room_ids = [None]
 
         domain_pruned_count += len(unknown) * len(eligible_room_ids) * lesson.requiredSessions
+        class_blocked = set((request.classUnavailableSlotIds or {}).get(lesson.classId, []))
 
         for session_index in range(lesson.requiredSessions):
             choices = []
+            class_blocked_slots = 0
+            teacher_blocked_slots = 0
+            room_blocked_slots = 0
             for slot_id in sorted(allowed):
                 slot = slots_by_id[slot_id]
+                if slot_id in class_blocked:
+                    class_blocked_slots += 1
+                    domain_pruned_count += len(eligible_room_ids)
+                    continue
                 if any(
                     rule.teacherId == lesson.teacherId and _rule_matches_slot(rule, slot)
                     for rule in hard_unavailable
                 ):
+                    teacher_blocked_slots += 1
                     domain_pruned_count += len(eligible_room_ids)
                     continue
-                for room_id in eligible_room_ids:
+                available_room_ids = [
+                    room_id
+                    for room_id in eligible_room_ids
+                    if room_id is None or slot_id not in (rooms_by_id[room_id].unavailableSlotIds or [])
+                ]
+                if not available_room_ids:
+                    room_blocked_slots += 1
+                    domain_pruned_count += len(eligible_room_ids)
+                    continue
+                domain_pruned_count += len(eligible_room_ids) - len(available_room_ids)
+                for room_id in available_room_ids:
                     room_label = room_id or "no-room"
                     variable = model.NewBoolVar(f"{lesson.id}_{session_index}_{slot_id}_{room_label}")
                     variables[(lesson.id, session_index, slot_id, room_id)] = variable
@@ -213,13 +232,20 @@ def solve(
             if choices:
                 model.AddExactlyOne(choices)
             else:
-                conflicts.append(
-                    f"Lesson {lesson.id} session {session_index} has no allowed slots after hard teacher availability rules"
-                )
+                if class_blocked_slots == len(allowed) and allowed:
+                    code = "CLASS_AVAILABILITY_CONFLICT"
+                    message = f"Lesson {lesson.id} session {session_index} has no slots after class unavailability rules"
+                elif room_blocked_slots == len(allowed) and allowed and room_model_enabled:
+                    code = "ROOM_AVAILABILITY_CONFLICT"
+                    message = f"Lesson {lesson.id} session {session_index} has no rooms available in its allowed slots"
+                else:
+                    code = "HARD_AVAILABILITY_CONFLICT"
+                    message = f"Lesson {lesson.id} session {session_index} has no allowed slots after hard availability rules"
+                conflicts.append(message)
                 conflict_details.append(
                     conflict_diagnostic(
-                        "HARD_AVAILABILITY_CONFLICT",
-                        f"Lesson {lesson.id} session {session_index} has no allowed slots after hard teacher availability rules",
+                        code,
+                        message,
                         {"lessonId": lesson.id},
                     )
                 )

@@ -188,6 +188,20 @@ export const CONFLICT_CATALOG = [
     remediationHintVi: "Khai báo phòng có đủ capability hoặc điều chỉnh yêu cầu phòng.",
   },
   {
+    code: "ROOM_AVAILABILITY_CONFLICT",
+    severity: "ERROR",
+    entity: "ROOM",
+    messageTemplateVi: "Không còn phòng khả dụng cho lesson tại các slot được phép.",
+    remediationHintVi: "Mở rộng lịch phòng hoặc chọn slot/phòng khác cho lesson.",
+  },
+  {
+    code: "CLASS_AVAILABILITY_CONFLICT",
+    severity: "ERROR",
+    entity: "CLASS",
+    messageTemplateVi: "Lớp bị chặn tại các slot mà lesson đang yêu cầu.",
+    remediationHintVi: "Mở rộng lịch lớp hoặc điều chỉnh fixed/allowed slot của lesson.",
+  },
+  {
     code: "HARD_AVAILABILITY_CONFLICT",
     severity: "ERROR",
     entity: "TEACHER",

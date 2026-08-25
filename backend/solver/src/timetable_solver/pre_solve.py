@@ -79,6 +79,30 @@ def _candidate_slots(request: SolveJobRequest, lesson, slots_by_id, hard_rules):
         if slot_id not in class_blocked
         and not any(_matches_slot(rule, slots_by_id[slot_id]) for rule in teacher_rules)
     ]
+    if candidates == [] and allowed:
+        if any(slot_id in class_blocked for slot_id in allowed):
+            issues.append(
+                PreSolveIssue(
+                    code="CLASS_AVAILABILITY_CONFLICT",
+                    severity="ERROR",
+                    lessonId=lesson.id,
+                    message=f"Lesson {lesson.id} has no slot after class unavailability rules.",
+                    details={"classId": lesson.classId, "blockedSlotIds": sorted(class_blocked & allowed)},
+                )
+            )
+        if any(
+            any(_matches_slot(rule, slots_by_id[slot_id]) for rule in teacher_rules)
+            for slot_id in allowed
+        ):
+            issues.append(
+                PreSolveIssue(
+                    code="HARD_AVAILABILITY_CONFLICT",
+                    severity="ERROR",
+                    lessonId=lesson.id,
+                    message=f"Lesson {lesson.id} has no slot after hard teacher availability rules.",
+                    details={"teacherId": lesson.teacherId},
+                )
+            )
     return candidates, issues
 
 
@@ -122,13 +146,12 @@ def run_pre_solve_checks(request: SolveJobRequest) -> PreSolveReport:
                 )
             )
 
-        if lesson.requiredRoomCapabilities:
-            rooms = request.rooms or []
+        if request.rooms is not None:
             eligible = [
                 room
-                for room in rooms
+                for room in request.rooms
                 if (not lesson.allowedRoomIds or room.id in lesson.allowedRoomIds)
-                and all(capability in room.capabilities for capability in lesson.requiredRoomCapabilities)
+                and all(capability in room.capabilities for capability in (lesson.requiredRoomCapabilities or []))
             ]
             if not eligible:
                 issues.append(
@@ -138,9 +161,23 @@ def run_pre_solve_checks(request: SolveJobRequest) -> PreSolveReport:
                         lessonId=lesson.id,
                         message=f"Lesson {lesson.id} has no room matching required capabilities.",
                         details={
-                            "requiredRoomCapabilities": lesson.requiredRoomCapabilities,
+                            "requiredRoomCapabilities": lesson.requiredRoomCapabilities or [],
                             "allowedRoomIds": lesson.allowedRoomIds or [],
                         },
+                    )
+                )
+            elif not any(
+                slot_id not in (room.unavailableSlotIds or [])
+                for slot_id in lesson_candidates
+                for room in eligible
+            ):
+                issues.append(
+                    PreSolveIssue(
+                        code="ROOM_AVAILABILITY_CONFLICT",
+                        severity="ERROR",
+                        lessonId=lesson.id,
+                        message=f"Lesson {lesson.id} has no room available in its candidate slots.",
+                        details={"roomIds": [room.id for room in eligible]},
                     )
                 )
 

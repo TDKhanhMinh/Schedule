@@ -91,6 +91,37 @@ class PreSolveTest(unittest.TestCase):
         )
         self.assertIn("FIXED_RESOURCE_CONFLICT", {issue.code for issue in report.issues})
 
+    def test_class_and_room_unavailability_are_specific(self):
+        class_report = run_pre_solve_checks(
+            request(
+                classUnavailableSlotIds={"class-1": ["mon-1", "tue-1"]},
+                lessons=[
+                    {
+                        "id": "lesson-1",
+                        "classId": "class-1",
+                        "subjectId": "subject-1",
+                        "teacherId": "teacher-1",
+                        "requiredSessions": 1,
+                        "fixedSlotId": "mon-1",
+                    }
+                ],
+            )
+        )
+        self.assertIn("CLASS_AVAILABILITY_CONFLICT", {issue.code for issue in class_report.issues})
+
+        room_report = run_pre_solve_checks(
+            request(
+                rooms=[
+                    {
+                        "id": "room-1",
+                        "capabilities": ["STANDARD"],
+                        "unavailableSlotIds": ["mon-1", "tue-1"],
+                    }
+                ]
+            )
+        )
+        self.assertIn("ROOM_AVAILABILITY_CONFLICT", {issue.code for issue in room_report.issues})
+
 
 if __name__ == "__main__":
     unittest.main()

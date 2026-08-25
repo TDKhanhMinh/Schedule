@@ -7,12 +7,13 @@ The solver builds one Boolean decision variable for each feasible tuple:
 When the request omits `rooms`, the model stays compatible with the original
 no-room contract and uses one virtual `null` room per slot. When `rooms` is
 provided, a lesson's room domain is filtered by `allowedRoomIds` and
-`requiredRoomCapabilities`; every remaining room is represented in the
-variable index.
+`requiredRoomCapabilities`, then by each room's `unavailableSlotIds`; every
+remaining room is represented in the variable index.
 
-Before creating a variable, the builder prunes unknown slots, rooms that do
-not satisfy the lesson's room requirements, and slots blocked by a hard
-teacher-availability rule. It then applies these hard constraints:
+Before creating a variable, the builder prunes unknown slots, class-unavailable
+slots, rooms that do not satisfy the lesson's room requirements,
+room-unavailable slot pairs, and slots blocked by a hard teacher-availability
+rule. It then applies these hard constraints:
 
 - exactly one candidate per lesson session;
 - at most one lesson for a class in a slot;

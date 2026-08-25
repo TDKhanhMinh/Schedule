@@ -7,6 +7,7 @@ export const PRE_SOLVE_CONTRACT_VERSION = "PRE-SOLVE-1.0.0" as const;
 export interface RoomCapability {
   id: string;
   capabilities: string[];
+  unavailableSlotIds?: string[];
 }
 
 export interface PreSolveIssue {
@@ -93,6 +94,31 @@ function candidateSlots(request: SolveJobRequest, lesson: LessonRequirement, slo
     const slot = slotsById.get(slotId)!;
     return !classBlocked.has(slotId) && !teacherRules.some((rule) => availabilityRuleMatchesSlot(rule, slot));
   });
+  if (filtered.length === 0 && allowed.size > 0) {
+    const blockedByClass = [...allowed].filter((slotId) => classBlocked.has(slotId));
+    if (blockedByClass.length) {
+      issues.push({
+        code: "CLASS_AVAILABILITY_CONFLICT",
+        severity: "ERROR",
+        lessonId: lesson.id,
+        message: `Lesson ${lesson.id} không còn slot sau khi áp dụng lịch unavailable của lớp.`,
+        details: { classId: lesson.classId, blockedSlotIds: blockedByClass },
+      });
+    }
+    if (
+      [...allowed].some((slotId) =>
+        teacherRules.some((rule) => availabilityRuleMatchesSlot(rule, slotsById.get(slotId)!)),
+      )
+    ) {
+      issues.push({
+        code: "HARD_AVAILABILITY_CONFLICT",
+        severity: "ERROR",
+        lessonId: lesson.id,
+        message: `Lesson ${lesson.id} không còn slot sau khi áp dụng availability cứng của giáo viên.`,
+        details: { teacherId: lesson.teacherId },
+      });
+    }
+  }
   return { slots: filtered, issues };
 }
 
@@ -139,12 +165,12 @@ export function runPreSolveChecks(request: SolveJobRequest): PreSolveReport {
       });
     }
 
-    if (lesson.requiredRoomCapabilities?.length) {
-      const rooms = request.rooms ?? [];
+    if (request.rooms !== undefined) {
+      const rooms = request.rooms;
       const eligibleRooms = rooms.filter(
         (room) =>
           (!lesson.allowedRoomIds?.length || lesson.allowedRoomIds.includes(room.id)) &&
-          lesson.requiredRoomCapabilities!.every((capability) => room.capabilities.includes(capability)),
+          (lesson.requiredRoomCapabilities ?? []).every((capability) => room.capabilities.includes(capability)),
       );
       if (!eligibleRooms.length) {
         issues.push({
@@ -153,9 +179,19 @@ export function runPreSolveChecks(request: SolveJobRequest): PreSolveReport {
           lessonId: lesson.id,
           message: `Lesson ${lesson.id} không có phòng đáp ứng capability yêu cầu.`,
           details: {
-            requiredRoomCapabilities: lesson.requiredRoomCapabilities,
+            requiredRoomCapabilities: lesson.requiredRoomCapabilities ?? [],
             allowedRoomIds: lesson.allowedRoomIds ?? [],
           },
+        });
+      } else if (
+        !result.slots.some((slotId) => eligibleRooms.some((room) => !room.unavailableSlotIds?.includes(slotId)))
+      ) {
+        issues.push({
+          code: "ROOM_AVAILABILITY_CONFLICT",
+          severity: "ERROR",
+          lessonId: lesson.id,
+          message: `Lesson ${lesson.id} không có phòng khả dụng trong các slot ứng viên.`,
+          details: { roomIds: eligibleRooms.map((room) => room.id) },
         });
       }
     }

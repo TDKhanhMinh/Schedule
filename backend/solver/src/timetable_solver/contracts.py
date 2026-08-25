@@ -39,6 +39,7 @@ class RoomCapability(BaseModel):
 
     id: str = Field(min_length=1)
     capabilities: list[str]
+    unavailableSlotIds: list[str] | None = None
 
 
 class SolveJobOptions(BaseModel):
