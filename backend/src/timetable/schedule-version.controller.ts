@@ -10,6 +10,8 @@ import {
   TransitionScheduleVersionDto,
 } from "./schedule-version.dto";
 import { UpdateScheduleAssignmentDto } from "./schedule-edit.dto";
+import { ScheduleExportQueryDto } from "./schedule-export.dto";
+import { ScheduleExportService } from "./schedule-export.service";
 import { ScheduleVersionService } from "./schedule-version.service";
 
 @Controller("schools/:schoolId")
@@ -17,6 +19,7 @@ import { ScheduleVersionService } from "./schedule-version.service";
 export class ScheduleVersionController {
   constructor(
     private readonly scheduleVersions: ScheduleVersionService,
+    private readonly scheduleExports: ScheduleExportService,
     private readonly auditLogs: AuditLogService,
   ) {}
 
@@ -39,6 +42,28 @@ export class ScheduleVersionController {
     const snapshot = await this.scheduleVersions.getSnapshot(schoolId, versionId);
     response.setHeader("ETag", snapshot.etag);
     return snapshot;
+  }
+
+  @Get("schedule-versions/:versionId/export.xlsx")
+  async exportWorkbook(
+    @Param("schoolId") schoolId: string,
+    @Param("versionId") versionId: string,
+    @Query() query: ScheduleExportQueryDto,
+    @Req() request: RequestWithAuth,
+    @Res() response: Response,
+  ) {
+    const exported = await this.scheduleExports.build(
+      schoolId,
+      versionId,
+      request.auth!.userId,
+      request.auth!.role,
+      query.view ?? "all",
+    );
+    response.setHeader("Content-Type", exported.contentType);
+    response.setHeader("Content-Disposition", `attachment; filename="${exported.filename}"`);
+    response.setHeader("X-Export-Contract-Version", exported.metadata.contractVersion);
+    response.setHeader("X-Export-Assignment-Count", String(exported.metadata.snapshotAssignmentCount));
+    response.send(exported.buffer);
   }
 
   @Get("schedule-versions/:versionId/history")

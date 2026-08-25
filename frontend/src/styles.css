@@ -1241,6 +1241,50 @@ tr.has-warning td {
 .workflow-note {
   margin: 0;
 }
+.export-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 15px;
+  border: 1px solid #b7e8d0;
+  border-radius: 12px;
+  background: #f7fffb;
+}
+.export-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.export-heading h3 {
+  margin: 3px 0 5px;
+  font-size: 0.96rem;
+}
+.export-heading .small-note {
+  max-width: 800px;
+}
+.export-contract-badge {
+  padding: 6px 9px;
+  border: 1px solid #b7e8d0;
+  border-radius: 999px;
+  color: var(--green);
+  background: var(--green-soft);
+  font-size: 0.62rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.export-notice {
+  padding: 8px 10px;
+  border-radius: 7px;
+  color: var(--muted);
+  background: #edfdf5;
+  font-size: 0.68rem;
+}
 .solve-status {
   display: inline-flex;
   align-items: center;

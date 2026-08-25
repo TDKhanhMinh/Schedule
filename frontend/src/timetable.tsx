@@ -5,7 +5,7 @@ import {
   type ScheduleVersionCompareResult,
   type ScheduleVersionDiffEntry,
 } from "@schedule/backend/contracts";
-import { frontendConfig } from "./config";
+import { authHeaders, frontendConfig } from "./config";
 import { navigateTo } from "./routing";
 
 const LOCKED_ASSIGNMENTS_CONTRACT_VERSION = "LOCKED-ASSIGNMENTS-1.0.0" as const;
@@ -786,6 +786,8 @@ export function TimetableScreen() {
   const [versionNotice, setVersionNotice] = useState("Đang xem draft local từ bản published v1.");
   const [draftVersionLabel, setDraftVersionLabel] = useState("Draft v2 · clone từ Published v1");
   const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>("LOCKED");
+  const [exportNotice, setExportNotice] = useState("Sẵn sàng xuất từ schedule version được chọn ở server.");
+  const [exportingView, setExportingView] = useState<"all" | TimetableView | null>(null);
 
   const entities = useMemo(() => getEntityOptions(view, lessons), [lessons, view]);
   const selectedEntity = entities.find((entity) => entity.id === selectedEntityId) ?? entities[0];
@@ -975,6 +977,35 @@ export function TimetableScreen() {
       target === "APPROVED" ? "Approval phương án" : "Publish phương án",
       `${target} · actor ${frontendConfig.actorId} · server sẽ kiểm tra gate và ghi timestamp`,
     );
+  }
+
+  async function exportWorkbook(viewToExport: "all" | TimetableView) {
+    setExportingView(viewToExport);
+    setExportNotice("Đang tạo workbook từ snapshot server...");
+    try {
+      const response = await fetch(
+        `${frontendConfig.apiBaseUrl}/schools/${frontendConfig.schoolId}/schedule-versions/${frontendConfig.scheduleVersionId}/export.xlsx?view=${viewToExport}`,
+        { headers: authHeaders() },
+      );
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(payload?.message ?? `Export thất bại (HTTP ${response.status}).`);
+      }
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("content-disposition") ?? "";
+      const filename = contentDisposition.match(/filename="([^"]+)"/)?.[1] ?? `schedule-version-${viewToExport}.xlsx`;
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setExportNotice(`Đã tải ${filename}; workbook giữ nguyên metadata version/status và đối soát snapshot.`);
+    } catch (error) {
+      setExportNotice(error instanceof Error ? error.message : "Không thể export workbook.");
+    } finally {
+      setExportingView(null);
+    }
   }
 
   function handleViewChange(nextView: TimetableView) {
@@ -1338,6 +1369,41 @@ export function TimetableScreen() {
             Preview local chỉ mô phỏng state; scheduler không thể tự approve. Publish thật chỉ thành công sau
             completeness, scope và hard class/teacher/room gate ở NestJS/PostgreSQL.
           </p>
+        </section>
+
+        <section className="export-panel" aria-labelledby="export-panel-title">
+          <div className="export-heading">
+            <div>
+              <p className="eyebrow">P2.4-T04 · Official workbook</p>
+              <h3 id="export-panel-title">Xuất Excel theo lớp, giáo viên và phòng</h3>
+              <p className="small-note">
+                Server export từ version <b>{frontendConfig.scheduleVersionId}</b>; UI chỉ khởi chạy request, không thay
+                thế permission hoặc hard-constraint gate.
+              </p>
+            </div>
+            <span className="export-contract-badge">SCHEDULE-EXPORT-1.0.0</span>
+          </div>
+          <div className="export-actions">
+            <button type="button" onClick={() => exportWorkbook("all")} disabled={exportingView !== null}>
+              {exportingView === "all" ? "Đang xuất..." : "Xuất đủ 3 góc nhìn"}
+            </button>
+            {(["class", "teacher", "room"] as const).map((viewToExport) => (
+              <button
+                className="button-secondary"
+                type="button"
+                key={viewToExport}
+                onClick={() => exportWorkbook(viewToExport)}
+                disabled={exportingView !== null}
+              >
+                {exportingView === viewToExport
+                  ? "Đang xuất..."
+                  : `Theo ${viewToExport === "class" ? "lớp" : viewToExport === "teacher" ? "giáo viên" : "phòng"}`}
+              </button>
+            ))}
+          </div>
+          <div className="export-notice" role="status" aria-live="polite">
+            {exportNotice}
+          </div>
         </section>
 
         {movePreview && previewLesson && previewTargetSlot ? (

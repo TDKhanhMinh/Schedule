@@ -14,6 +14,7 @@ export * from "./pre-solve";
 export * from "./solver-adapter";
 export * from "./teacher-availability";
 export * from "./teacher-load";
+export * from "./schedule-export";
 
 export type SolveStatus = "INVALID" | "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "UNKNOWN";
 

@@ -12,7 +12,13 @@ export async function createApp() {
   const corsOrigin = config.get<string>("CORS_ORIGIN");
   app.enableCors({
     origin: corsOrigin ? corsOrigin.split(",").map((origin) => origin.trim()) : true,
-    exposedHeaders: ["ETag", "x-request-id"],
+    exposedHeaders: [
+      "ETag",
+      "x-request-id",
+      "Content-Disposition",
+      "X-Export-Contract-Version",
+      "X-Export-Assignment-Count",
+    ],
   });
   app.useGlobalPipes(
     new ValidationPipe({

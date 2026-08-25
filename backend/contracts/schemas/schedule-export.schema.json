@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/schedule-export-1.0.0.json",
+  "title": "Schedule export metadata contract",
+  "description": "Metadata and reconciliation contract embedded in the official Excel workbook export.",
+  "type": "object",
+  "required": [
+    "contractVersion",
+    "school",
+    "academicPeriod",
+    "scheduleVersion",
+    "generatedAt",
+    "generatedBy",
+    "generatedByRole",
+    "view",
+    "snapshotAssignmentCount",
+    "requiredLessonSessions",
+    "snapshotReconciles",
+    "hardConstraintCheck",
+    "sheets"
+  ],
+  "properties": {
+    "contractVersion": { "const": "SCHEDULE-EXPORT-1.0.0" },
+    "school": { "$ref": "#/$defs/school" },
+    "academicPeriod": { "$ref": "#/$defs/academicPeriod" },
+    "scheduleVersion": { "$ref": "#/$defs/scheduleVersion" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "generatedBy": { "type": "string", "minLength": 1 },
+    "generatedByRole": { "enum": ["ADMIN", "SCHEDULER", "REVIEWER", "VIEWER"] },
+    "view": { "enum": ["all", "class", "teacher", "room"] },
+    "snapshotAssignmentCount": { "type": "integer", "minimum": 0 },
+    "requiredLessonSessions": { "type": "integer", "minimum": 0 },
+    "snapshotReconciles": { "type": "boolean" },
+    "hardConstraintCheck": { "const": "PASSED" },
+    "sheets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sheet", "view", "assignmentCount"],
+        "properties": {
+          "sheet": { "type": "string" },
+          "view": { "enum": ["class", "teacher", "room"] },
+          "assignmentCount": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "school": {
+      "type": "object",
+      "required": ["id", "code", "name"],
+      "properties": { "id": { "type": "string" }, "code": { "type": "string" }, "name": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "academicPeriod": {
+      "type": "object",
+      "required": ["id", "name", "academicYear", "termCode"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "academicYear": { "type": "string" },
+        "termCode": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "scheduleVersion": {
+      "type": "object",
+      "required": ["id", "number", "status", "revision"],
+      "properties": {
+        "id": { "type": "string" },
+        "number": { "type": "integer", "minimum": 1 },
+        "status": { "type": "string" },
+        "revision": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

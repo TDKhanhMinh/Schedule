@@ -30,6 +30,8 @@ for (const marker of [
   "Compare / clone / rollback phương án",
   "SCHEDULE-VERSION-OPS-1.0.0",
   "Approval và publish permissions",
+  "Xuất Excel theo lớp, giáo viên và phòng",
+  "SCHEDULE-EXPORT-1.0.0",
 ]) {
   assert.ok(bundle.includes(marker), `bundle marker missing: ${marker}`);
 }
