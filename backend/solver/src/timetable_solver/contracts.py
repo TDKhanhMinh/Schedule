@@ -10,6 +10,7 @@ CONTRACT_VERSION = "1.0"
 SOLVER_VERSION = "0.1.0"
 OBJECTIVE_CONTRACT_VERSION = "SOLVER-OBJECTIVE-1.0.0"
 DEFAULT_TIME_LIMIT_SECONDS = 10.0
+LOCKED_ASSIGNMENTS_CONTRACT_VERSION = "LOCKED-ASSIGNMENTS-1.0.0"
 
 
 class TimeSlot(BaseModel):
@@ -49,6 +50,31 @@ class SolveJobOptions(BaseModel):
     timeLimitSeconds: float = Field(default=DEFAULT_TIME_LIMIT_SECONDS, gt=0)
 
 
+class LockedAssignment(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    lessonId: str = Field(min_length=1)
+    sessionIndex: int = Field(ge=0)
+    slotId: str = Field(min_length=1)
+    roomId: str | None = None
+    scope: Literal["LESSON", "TEACHER", "DAY"]
+    scopeId: str = Field(min_length=1)
+
+
+class LockedAssignments(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    contractVersion: Literal["LOCKED-ASSIGNMENTS-1.0.0"]
+    assignments: list[LockedAssignment]
+
+    @model_validator(mode="after")
+    def validate_unique_occurrences(self) -> "LockedAssignments":
+        keys = [(item.lessonId, item.sessionIndex) for item in self.assignments]
+        if len(keys) != len(set(keys)):
+            raise ValueError("locked assignments cannot repeat the same lesson session")
+        return self
+
+
 class SolverObjectiveWeights(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -81,6 +107,7 @@ class SolveJobRequest(BaseModel):
     teacherAvailability: TeacherAvailabilitySet | None = None
     classUnavailableSlotIds: dict[str, list[str]] | None = None
     rooms: list[RoomCapability] | None = None
+    lockedAssignments: LockedAssignments | None = None
     options: SolveJobOptions | None = None
     objective: SolverObjective | None = None
 

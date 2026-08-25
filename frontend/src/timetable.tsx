@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
-import type { ObjectiveBreakdown } from "@schedule/backend/contracts";
+import { type LockedAssignments, type ObjectiveBreakdown } from "@schedule/backend/contracts";
+import { frontendConfig } from "./config";
 import { navigateTo } from "./routing";
+
+const LOCKED_ASSIGNMENTS_CONTRACT_VERSION = "LOCKED-ASSIGNMENTS-1.0.0" as const;
 
 type TimetableView = "class" | "teacher" | "room";
 type TimetableState = "loading" | "ready" | "empty" | "error";
@@ -57,6 +60,21 @@ interface CommittedMove {
   lessonId: string;
   fromSlotId: string;
   targetSlotId: string;
+}
+
+type LockScope = "lesson" | "teacher" | "day";
+
+interface TimetableLockRecord {
+  id: string;
+  scope: LockScope;
+  scopeId: string;
+  scopeLabel: string;
+  lessonIds: string[];
+}
+
+interface LockUndoState {
+  previousLocks: TimetableLockRecord[];
+  message: string;
 }
 
 const DAYS = [
@@ -340,6 +358,76 @@ function moveTargetByKeyboard(lessonId: string, direction: MoveDirection, lesson
   return targetSlot ? createMovePreview(lessonId, targetSlot.id, lessons) : null;
 }
 
+function createLockRecords(scope: LockScope, lessonIds: string[], lessons: TimetableLesson[]): TimetableLockRecord[] {
+  const selectedLessons = lessons.filter((lesson) => lessonIds.includes(lesson.id));
+  const groups = new Map<string, TimetableLesson[]>();
+  selectedLessons.forEach((lesson) => {
+    const slot = SLOTS.find((candidate) => candidate.id === lesson.slotId);
+    const scopeId = scope === "lesson" ? lesson.id : scope === "teacher" ? lesson.teacherId : String(slot?.day ?? "");
+    if (!scopeId) return;
+    groups.set(scopeId, [...(groups.get(scopeId) ?? []), lesson]);
+  });
+
+  return [...groups.entries()].map(([scopeId, group]) => {
+    const firstLesson = group[0];
+    const slot = SLOTS.find((candidate) => candidate.id === firstLesson.slotId);
+    const scopeLabel =
+      scope === "lesson"
+        ? `${firstLesson.subjectLabel} · ${firstLesson.classLabel}`
+        : scope === "teacher"
+          ? firstLesson.teacherLabel
+          : (slot?.dayLabel ?? `Ngày ${scopeId}`);
+    return {
+      id: `${scope}:${scopeId}`,
+      scope,
+      scopeId,
+      scopeLabel,
+      lessonIds: group.map((lesson) => lesson.id),
+    };
+  });
+}
+
+function buildLockedAssignmentsContract(records: TimetableLockRecord[], lessons: TimetableLesson[]): LockedAssignments {
+  const assignments = new Map<string, LockedAssignments["assignments"][number]>();
+  records.forEach((record) => {
+    record.lessonIds.forEach((lessonId) => {
+      const lesson = lessons.find((candidate) => candidate.id === lessonId);
+      if (!lesson) return;
+      const sessionIndex = 0;
+      assignments.set(`${lesson.id}:${sessionIndex}`, {
+        lessonId: lesson.id,
+        sessionIndex,
+        slotId: lesson.slotId,
+        roomId: lesson.roomId,
+        scope: record.scope === "lesson" ? "LESSON" : record.scope === "teacher" ? "TEACHER" : "DAY",
+        scopeId: record.scopeId,
+      });
+    });
+  });
+  return {
+    contractVersion: LOCKED_ASSIGNMENTS_CONTRACT_VERSION,
+    assignments: [...assignments.values()],
+  };
+}
+
+function createLockedMovePreview(
+  lessonId: string,
+  targetSlotId: string,
+  lessons: TimetableLesson[],
+): MovePreview | null {
+  const lesson = lessons.find((candidate) => candidate.id === lessonId);
+  const targetSlot = SLOTS.find((slot) => slot.id === targetSlotId);
+  if (!lesson || !targetSlot) return null;
+  return {
+    lessonId,
+    fromSlotId: lesson.slotId,
+    targetSlotId,
+    eligible: false,
+    reason: "Lesson đang khóa; hãy mở khóa trước khi đề xuất thay đổi.",
+    softPenaltyDelta: getSlotPenalty(targetSlotId) - getSlotPenalty(lesson.slotId),
+  };
+}
+
 function readInitialState(): TimetableState {
   const state = new URLSearchParams(window.location.search).get("state");
   return state === "loading" || state === "empty" || state === "error" ? state : "ready";
@@ -410,11 +498,14 @@ function TimetableGrid({
   heatmapEnabled,
   preview,
   draggedLessonId,
+  lockedLessonIds,
+  selectedLessonIds,
   onDragStart,
   onDragEnd,
   onDragOver,
   onDrop,
   onKeyboardMove,
+  onToggleSelection,
 }: {
   view: TimetableView;
   selectedEntityId: string;
@@ -422,11 +513,14 @@ function TimetableGrid({
   heatmapEnabled: boolean;
   preview: MovePreview | null;
   draggedLessonId: string | null;
+  lockedLessonIds: Set<string>;
+  selectedLessonIds: Set<string>;
   onDragStart: (lessonId: string) => void;
   onDragEnd: () => void;
   onDragOver: (targetSlotId: string) => void;
   onDrop: (targetSlotId: string) => void;
   onKeyboardMove: (lessonId: string, direction: MoveDirection) => void;
+  onToggleSelection: (lessonId: string) => void;
 }) {
   const visibleLessons = lessons.filter((lesson) => lesson[viewKeys[view]] === selectedEntityId);
   const lessonBySlot = new Map<string, TimetableLesson[]>();
@@ -489,11 +583,15 @@ function TimetableGrid({
                       {lessonsAtSlot.length > 0 ? (
                         lessonsAtSlot.map((lesson) => (
                           <article
-                            className={`lesson-card ${lesson.status === "CONFLICT" ? "conflict-card" : ""} ${draggedLessonId === lesson.id ? "dragging-card" : ""}`}
-                            draggable
+                            className={`lesson-card ${lesson.status === "CONFLICT" ? "conflict-card" : ""} ${draggedLessonId === lesson.id ? "dragging-card" : ""} ${lockedLessonIds.has(lesson.id) ? "locked-card" : ""} ${selectedLessonIds.has(lesson.id) ? "selected-card" : ""}`}
+                            draggable={!lockedLessonIds.has(lesson.id)}
                             tabIndex={0}
-                            aria-label={`${lesson.subjectLabel} · ${formatViewSubject(lesson, view)}. Dùng phím mũi tên để đề xuất chuyển slot.`}
+                            aria-label={`${lesson.subjectLabel} · ${formatViewSubject(lesson, view)}. ${lockedLessonIds.has(lesson.id) ? "Đang khóa." : "Dùng phím mũi tên để đề xuất chuyển slot."}`}
                             onDragStart={(event) => {
+                              if (lockedLessonIds.has(lesson.id)) {
+                                event.preventDefault();
+                                return;
+                              }
                               event.dataTransfer.effectAllowed = "move";
                               event.dataTransfer.setData("text/plain", lesson.id);
                               onDragStart(lesson.id);
@@ -502,12 +600,27 @@ function TimetableGrid({
                             onKeyDown={(event) => {
                               if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
                               event.preventDefault();
+                              if (lockedLessonIds.has(lesson.id)) return;
                               onKeyboardMove(lesson.id, event.key as MoveDirection);
                             }}
                             key={lesson.id}
                           >
                             <div className="lesson-card-topline">
-                              <strong>{lesson.subjectLabel}</strong>
+                              <label className="lesson-select">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedLessonIds.has(lesson.id)}
+                                  aria-label={`Chọn ${lesson.subjectLabel} ${lesson.classLabel}`}
+                                  onChange={() => onToggleSelection(lesson.id)}
+                                  onClick={(event) => event.stopPropagation()}
+                                />
+                                <strong>{lesson.subjectLabel}</strong>
+                              </label>
+                              {lockedLessonIds.has(lesson.id) ? (
+                                <span className="lock-badge" title="Lesson đang khóa" aria-label="Đang khóa">
+                                  🔒
+                                </span>
+                              ) : null}
                               {lesson.status === "CONFLICT" ? (
                                 <span
                                   className="conflict-marker"
@@ -562,6 +675,10 @@ export function TimetableScreen() {
   const [draggedLessonId, setDraggedLessonId] = useState<string | null>(null);
   const [movePreview, setMovePreview] = useState<MovePreview | null>(null);
   const [lastMove, setLastMove] = useState<CommittedMove | null>(null);
+  const [lockScope, setLockScope] = useState<LockScope>("lesson");
+  const [selectedLessonIds, setSelectedLessonIds] = useState<string[]>([]);
+  const [lockRecords, setLockRecords] = useState<TimetableLockRecord[]>([]);
+  const [lastLockAction, setLastLockAction] = useState<LockUndoState | null>(null);
 
   const entities = useMemo(() => getEntityOptions(view, lessons), [lessons, view]);
   const selectedEntity = entities.find((entity) => entity.id === selectedEntityId) ?? entities[0];
@@ -577,13 +694,29 @@ export function TimetableScreen() {
     [focusFilter, lessons, searchQuery],
   );
   const selectedLessons = filteredLessons.filter((lesson) => lesson[viewKeys[view]] === selectedId);
+  const selectedLessonIdSet = useMemo(() => new Set(selectedLessonIds), [selectedLessonIds]);
+  const lockedLessonIds = useMemo(() => new Set(lockRecords.flatMap((record) => record.lessonIds)), [lockRecords]);
+  const solverLockInput = useMemo(() => buildLockedAssignmentsContract(lockRecords, lessons), [lessons, lockRecords]);
+  const lockPlan = useMemo(
+    () => createLockRecords(lockScope, selectedLessonIds, lessons),
+    [lessons, lockScope, selectedLessonIds],
+  );
+  const newLockPlan = lockPlan.filter((record) => !lockRecords.some((existing) => existing.id === record.id));
+  const unlockPlan = lockRecords.filter((record) =>
+    record.lessonIds.some((lessonId) => selectedLessonIdSet.has(lessonId)),
+  );
+  const canManageLocks = frontendConfig.actorRole === "ADMIN" || frontendConfig.actorRole === "SCHEDULER";
   const visibleCount = selectedLessons.length;
   const conflictCount = selectedLessons.filter((lesson) => lesson.status === "CONFLICT").length;
   const workloadDays = new Set(selectedLessons.map((lesson) => SLOTS.find((slot) => slot.id === lesson.slotId)?.day))
     .size;
 
   function previewMove(lessonId: string, targetSlotId: string) {
-    setMovePreview(createMovePreview(lessonId, targetSlotId, lessons));
+    setMovePreview(
+      lockedLessonIds.has(lessonId)
+        ? createLockedMovePreview(lessonId, targetSlotId, lessons)
+        : createMovePreview(lessonId, targetSlotId, lessons),
+    );
   }
 
   function handleConfirmMove() {
@@ -612,8 +745,58 @@ export function TimetableScreen() {
   }
 
   function handleKeyboardMove(lessonId: string, direction: MoveDirection) {
+    if (lockedLessonIds.has(lessonId)) {
+      const lesson = lessons.find((candidate) => candidate.id === lessonId);
+      const sourceSlot = SLOTS.find((slot) => slot.id === lesson?.slotId);
+      const targetSlot = sourceSlot
+        ? SLOTS.find(
+            (slot) =>
+              slot.day === sourceSlot.day + (direction === "ArrowLeft" ? -1 : direction === "ArrowRight" ? 1 : 0) &&
+              slot.period === sourceSlot.period + (direction === "ArrowUp" ? -1 : direction === "ArrowDown" ? 1 : 0),
+          )
+        : null;
+      if (targetSlot) setMovePreview(createLockedMovePreview(lessonId, targetSlot.id, lessons));
+      return;
+    }
     const preview = moveTargetByKeyboard(lessonId, direction, lessons);
     if (preview) setMovePreview(preview);
+  }
+
+  function toggleLessonSelection(lessonId: string) {
+    setSelectedLessonIds((current) =>
+      current.includes(lessonId) ? current.filter((id) => id !== lessonId) : [...current, lessonId],
+    );
+  }
+
+  function selectVisibleLessons() {
+    setSelectedLessonIds((current) => [...new Set([...current, ...selectedLessons.map((lesson) => lesson.id)])]);
+  }
+
+  function clearLessonSelection() {
+    setSelectedLessonIds([]);
+  }
+
+  function applyLockAction(action: "lock" | "unlock") {
+    if (!canManageLocks || selectedLessonIds.length === 0) return;
+    const previousLocks = lockRecords;
+    if (action === "lock") {
+      if (newLockPlan.length === 0) return;
+      setLockRecords((current) => [...current, ...newLockPlan]);
+      setLastLockAction({
+        previousLocks,
+        message: `Đã khóa ${newLockPlan.reduce((total, record) => total + record.lessonIds.length, 0)} lesson theo scope ${lockScope}.`,
+      });
+      return;
+    }
+    if (unlockPlan.length === 0) return;
+    setLockRecords((current) => current.filter((record) => !unlockPlan.some((target) => target.id === record.id)));
+    setLastLockAction({ previousLocks, message: `Đã mở khóa ${unlockPlan.length} scope.` });
+  }
+
+  function undoLockAction() {
+    if (!lastLockAction) return;
+    setLockRecords(lastLockAction.previousLocks);
+    setLastLockAction(null);
   }
 
   function handleViewChange(nextView: TimetableView) {
@@ -726,6 +909,95 @@ export function TimetableScreen() {
           </label>
         </div>
 
+        <section className="lock-panel" aria-labelledby="lock-panel-title">
+          <div className="lock-panel-heading">
+            <div>
+              <p className="eyebrow">P2.3-T04 · Freeze scope</p>
+              <h3 id="lock-panel-title">Khóa các lesson đã thống nhất</h3>
+              <p className="small-note">
+                Chọn lesson trên lưới rồi áp dụng scope. Lock được chuẩn bị trong solver input ở contract{" "}
+                {LOCKED_ASSIGNMENTS_CONTRACT_VERSION}; server/solver vẫn là nơi kiểm tra cuối.
+              </p>
+            </div>
+            <span className={canManageLocks ? "permission-chip write" : "permission-chip read"}>
+              {canManageLocks ? "Có quyền lock" : "Chỉ đọc · cần quyền SCHEDULER/ADMIN"}
+            </span>
+          </div>
+          <div className="lock-controls">
+            <label className="lock-scope-picker">
+              <span>Phạm vi lock</span>
+              <select
+                aria-label="Phạm vi lock"
+                value={lockScope}
+                onChange={(event) => setLockScope(event.target.value as LockScope)}
+              >
+                <option value="lesson">Lesson đã chọn</option>
+                <option value="teacher">Toàn bộ giáo viên</option>
+                <option value="day">Toàn bộ ngày</option>
+              </select>
+            </label>
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={selectVisibleLessons}
+              disabled={selectedLessons.length === 0}
+            >
+              Chọn {selectedLessons.length} lesson đang xem
+            </button>
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={clearLessonSelection}
+              disabled={selectedLessonIds.length === 0}
+            >
+              Bỏ chọn
+            </button>
+            <span className="lock-preview-count" role="status" aria-live="polite">
+              Đã chọn <b>{selectedLessonIds.length}</b> · khóa mới <b>{newLockPlan.length}</b> scope · mở khóa{" "}
+              <b>{unlockPlan.length}</b>
+            </span>
+            <button
+              type="button"
+              onClick={() => applyLockAction("lock")}
+              disabled={!canManageLocks || selectedLessonIds.length === 0 || newLockPlan.length === 0}
+            >
+              🔒 Khóa đã chọn
+            </button>
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={() => applyLockAction("unlock")}
+              disabled={!canManageLocks || selectedLessonIds.length === 0 || unlockPlan.length === 0}
+            >
+              Mở khóa
+            </button>
+          </div>
+          {lockRecords.length > 0 ? (
+            <div className="lock-summary" aria-label="Các scope đang khóa">
+              <strong>Đang khóa {lockedLessonIds.size} lesson</strong>
+              <span className="lock-summary-item">
+                Solver input: {solverLockInput.assignments.length} assignment · {solverLockInput.contractVersion}
+              </span>
+              {lockRecords.map((record) => (
+                <span className="lock-summary-item" key={record.id}>
+                  🔒 {record.scopeLabel} · {record.lessonIds.length} lesson
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="small-note lock-empty-note">Chưa có scope nào bị khóa trong draft local.</p>
+          )}
+        </section>
+        {lastLockAction ? (
+          <div className="alert alert-success lock-success" role="status">
+            <strong>{lastLockAction.message}</strong>
+            <span>Preview local; khi submit solve, backend phải xác thực lại quyền và hard constraints.</span>
+            <button className="button-secondary" type="button" onClick={undoLockAction}>
+              Hoàn tác lock
+            </button>
+          </div>
+        ) : null}
+
         <div className="solve-summary" aria-label="Tóm tắt solution">
           <span>
             <b>{selectedEntity?.label ?? "—"}</b> · {selectedEntity?.detail ?? "Chưa chọn"}
@@ -832,6 +1104,8 @@ export function TimetableScreen() {
             heatmapEnabled={heatmapEnabled}
             preview={movePreview}
             draggedLessonId={draggedLessonId}
+            lockedLessonIds={lockedLessonIds}
+            selectedLessonIds={selectedLessonIdSet}
             onDragStart={setDraggedLessonId}
             onDragEnd={() => setDraggedLessonId(null)}
             onDragOver={(targetSlotId) => {
@@ -844,6 +1118,7 @@ export function TimetableScreen() {
               }
             }}
             onKeyboardMove={handleKeyboardMove}
+            onToggleSelection={toggleLessonSelection}
           />
         ) : (
           <StatePanel state={state} />

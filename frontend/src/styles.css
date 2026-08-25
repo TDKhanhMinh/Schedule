@@ -917,6 +917,87 @@ tr.has-warning td {
   height: 15px;
   accent-color: var(--blue);
 }
+.lock-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 15px;
+  border: 1px solid #cbd7ff;
+  border-radius: 12px;
+  background: #f7f9ff;
+}
+.lock-panel-heading,
+.lock-controls,
+.lock-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.lock-panel-heading {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.lock-panel-heading h3 {
+  margin: 3px 0 5px;
+  font-size: 0.96rem;
+}
+.lock-panel-heading .small-note {
+  max-width: 760px;
+}
+.lock-scope-picker {
+  display: grid;
+  min-width: 170px;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+.lock-scope-picker select {
+  padding: 8px 9px;
+  border: 1px solid #cbd5e3;
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  font-size: 0.75rem;
+}
+.lock-preview-count {
+  padding: 8px 10px;
+  border: 1px dashed #a9b9e8;
+  border-radius: 8px;
+  color: var(--muted);
+  background: #fff;
+  font-size: 0.72rem;
+}
+.lock-preview-count b {
+  color: var(--blue);
+}
+.lock-summary {
+  padding-top: 10px;
+  border-top: 1px solid #dfe5f4;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.lock-summary-item {
+  padding: 5px 8px;
+  border: 1px solid #cbd7ff;
+  border-radius: 999px;
+  color: var(--blue);
+  background: #fff;
+}
+.lock-empty-note {
+  margin: 0;
+}
+.lock-success {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.lock-success span {
+  color: var(--muted);
+}
 .solve-status {
   display: inline-flex;
   align-items: center;
@@ -1259,6 +1340,37 @@ tr.has-warning td {
   border-radius: 8px;
   background: var(--blue-soft);
   cursor: grab;
+}
+.lesson-card.locked-card {
+  border-color: #a9b9e8;
+  background: #f3f5ff;
+  box-shadow:
+    inset 3px 0 0 var(--blue),
+    0 5px 12px rgb(63 81 181 / 10%);
+  cursor: not-allowed;
+}
+.lesson-card.selected-card {
+  outline: 2px solid #9eb2ff;
+  outline-offset: 1px;
+}
+.lesson-card-topline {
+  align-items: center;
+}
+.lesson-select {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+}
+.lesson-select input {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  accent-color: var(--blue);
+}
+.lock-badge {
+  margin-left: auto;
+  font-size: 0.75rem;
 }
 .lesson-card:active {
   cursor: grabbing;

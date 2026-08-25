@@ -198,6 +198,9 @@ def solve(
     room_domain_count = 0
     room_model_enabled = request.rooms is not None
     rooms_by_id = {room.id: room for room in request.rooms or []}
+    locked_by_occurrence = {
+        (item.lessonId, item.sessionIndex): item for item in (request.lockedAssignments.assignments if request.lockedAssignments else [])
+    }
     availability_rules = _active_availability_rules(request)
     hard_unavailable = [rule for rule in availability_rules if rule.strength == "HARD_UNAVAILABLE"]
     preference_rules = [rule for rule in availability_rules if rule.strength != "HARD_UNAVAILABLE"]
@@ -274,11 +277,37 @@ def solve(
         class_blocked = set((request.classUnavailableSlotIds or {}).get(lesson.classId, []))
 
         for session_index in range(lesson.requiredSessions):
+            locked_assignment = locked_by_occurrence.get((lesson.id, session_index))
+            session_allowed = set(allowed)
+            if locked_assignment:
+                if locked_assignment.slotId not in slot_ids:
+                    conflicts.append(
+                        f"Locked assignment for lesson {lesson.id} references unknown slot {locked_assignment.slotId}"
+                    )
+                    conflict_details.append(
+                        conflict_diagnostic(
+                            "UNKNOWN_LOCKED_SLOT",
+                            f"Locked assignment for lesson {lesson.id} references unknown slot.",
+                            {"lessonId": lesson.id, "slotId": locked_assignment.slotId},
+                        )
+                    )
+                    continue
+                session_allowed &= {locked_assignment.slotId}
+                if locked_assignment.roomId and not room_model_enabled:
+                    conflicts.append(f"Locked assignment for lesson {lesson.id} requires a room model")
+                    conflict_details.append(
+                        conflict_diagnostic(
+                            "LOCKED_ROOM_MODEL_REQUIRED",
+                            f"Locked assignment for lesson {lesson.id} requires room constraints in the solve input.",
+                            {"lessonId": lesson.id, "roomId": locked_assignment.roomId},
+                        )
+                    )
+                    continue
             choices = []
             class_blocked_slots = 0
             teacher_blocked_slots = 0
             room_blocked_slots = 0
-            for slot_id in sorted(allowed):
+            for slot_id in sorted(session_allowed):
                 slot = slots_by_id[slot_id]
                 if slot_id in class_blocked:
                     class_blocked_slots += 1
@@ -296,6 +325,8 @@ def solve(
                     for room_id in eligible_room_ids
                     if room_id is None or slot_id not in (rooms_by_id[room_id].unavailableSlotIds or [])
                 ]
+                if locked_assignment and locked_assignment.roomId:
+                    available_room_ids = [room_id for room_id in available_room_ids if room_id == locked_assignment.roomId]
                 if not available_room_ids:
                     room_blocked_slots += 1
                     domain_pruned_count += len(eligible_room_ids)
@@ -319,10 +350,10 @@ def solve(
             if choices:
                 model.AddExactlyOne(choices)
             else:
-                if class_blocked_slots == len(allowed) and allowed:
+                if class_blocked_slots == len(session_allowed) and session_allowed:
                     code = "CLASS_AVAILABILITY_CONFLICT"
                     message = f"Lesson {lesson.id} session {session_index} has no slots after class unavailability rules"
-                elif room_blocked_slots == len(allowed) and allowed and room_model_enabled:
+                elif room_blocked_slots == len(session_allowed) and session_allowed and room_model_enabled:
                     code = "ROOM_AVAILABILITY_CONFLICT"
                     message = f"Lesson {lesson.id} session {session_index} has no rooms available in its allowed slots"
                 else:

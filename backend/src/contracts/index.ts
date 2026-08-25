@@ -3,6 +3,7 @@ import type { PreSolveReport, RoomCapability } from "./pre-solve";
 
 export const CONTRACT_VERSION = "1.0" as const;
 export const SOLVER_OBJECTIVE_CONTRACT_VERSION = "SOLVER-OBJECTIVE-1.0.0" as const;
+export const LOCKED_ASSIGNMENTS_CONTRACT_VERSION = "LOCKED-ASSIGNMENTS-1.0.0" as const;
 export const OPTIMIZATION_QUEUE = "optimization" as const;
 export const OPTIMIZATION_JOB_NAME = "optimization.solve" as const;
 
@@ -38,6 +39,22 @@ export interface SolveJobOptions {
   timeLimitSeconds?: number;
 }
 
+export type LockScope = "LESSON" | "TEACHER" | "DAY";
+
+export interface LockedAssignment {
+  lessonId: string;
+  sessionIndex: number;
+  slotId: string;
+  roomId?: string | null;
+  scope: LockScope;
+  scopeId: string;
+}
+
+export interface LockedAssignments {
+  contractVersion: typeof LOCKED_ASSIGNMENTS_CONTRACT_VERSION;
+  assignments: LockedAssignment[];
+}
+
 export interface SolverObjectiveWeights {
   teacherGap: number;
   compactness: number;
@@ -64,6 +81,7 @@ export interface SolveJobRequest {
   teacherAvailability?: TeacherAvailabilitySet;
   classUnavailableSlotIds?: Record<string, string[]>;
   rooms?: RoomCapability[];
+  lockedAssignments?: LockedAssignments;
   options?: SolveJobOptions;
   objective?: SolverObjective;
 }

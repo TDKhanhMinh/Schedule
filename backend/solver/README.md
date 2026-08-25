@@ -42,6 +42,11 @@ rule is not effective. The objective ranks only hard-feasible assignments; the
 hard class/teacher/room/availability constraints and post-solve audit remain
 authoritative.
 
+`lockedAssignments` is an optional `LOCKED-ASSIGNMENTS-1.0.0` input contract.
+Each locked lesson session carries its slot, optional room and the originating
+lesson/teacher/day scope. CP-SAT treats those assignments as hard fixed values;
+unknown slots, missing room model and collisions remain server/solver errors.
+
 Invalid JSON or a payload that fails the Pydantic contract exits with code `2`
 and writes a machine-readable error to stderr with `INVALID_JSON` or
 `INVALID_SOLVE_REQUEST`.

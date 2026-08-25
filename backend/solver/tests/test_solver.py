@@ -62,6 +62,60 @@ class SolverTest(unittest.TestCase):
         self.assertTrue(result.diagnostics.conflictDetails)
         self.assertEqual(result.metadata.solverVersion, "0.1.0")
 
+    def test_locked_assignment_is_hard_fixed_by_solver(self):
+        request = SolveJobRequest.model_validate(
+            {
+                "schemaVersion": "1.0",
+                "jobId": "job-locked-assignment",
+                "schoolId": "school-1",
+                "timeSlots": [
+                    {"id": "mon-1", "day": 1, "period": 1},
+                    {"id": "tue-1", "day": 2, "period": 1},
+                ],
+                "lessons": [
+                    {"id": "lesson-a", "classId": "class-7a", "subjectId": "math", "teacherId": "teacher-1", "requiredSessions": 1}
+                ],
+                "lockedAssignments": {
+                    "contractVersion": "LOCKED-ASSIGNMENTS-1.0.0",
+                    "assignments": [
+                        {
+                            "lessonId": "lesson-a",
+                            "sessionIndex": 0,
+                            "slotId": "tue-1",
+                            "scope": "LESSON",
+                            "scopeId": "lesson-a",
+                        }
+                    ],
+                },
+            }
+        )
+
+        result = solve(request)
+
+        self.assertEqual(result.status, "OPTIMAL")
+        self.assertEqual([(item.lessonId, item.sessionIndex, item.slotId) for item in result.assignments], [("lesson-a", 0, "tue-1")])
+
+    def test_locked_assignment_contract_rejects_duplicate_occurrence(self):
+        with self.assertRaises(ValueError):
+            SolveJobRequest.model_validate(
+                {
+                    "schemaVersion": "1.0",
+                    "jobId": "job-duplicate-lock",
+                    "schoolId": "school-1",
+                    "timeSlots": [{"id": "mon-1", "day": 1, "period": 1}],
+                    "lessons": [
+                        {"id": "lesson-a", "classId": "class-7a", "subjectId": "math", "teacherId": "teacher-1", "requiredSessions": 1}
+                    ],
+                    "lockedAssignments": {
+                        "contractVersion": "LOCKED-ASSIGNMENTS-1.0.0",
+                        "assignments": [
+                            {"lessonId": "lesson-a", "sessionIndex": 0, "slotId": "mon-1", "scope": "LESSON", "scopeId": "lesson-a"},
+                            {"lessonId": "lesson-a", "sessionIndex": 0, "slotId": "mon-1", "scope": "LESSON", "scopeId": "lesson-a"},
+                        ],
+                    },
+                }
+            )
+
     def test_hard_teacher_unavailable_is_never_assigned(self):
         request = SolveJobRequest.model_validate(
             {

@@ -23,6 +23,8 @@ for (const marker of [
   "Upload & Preview",
   "Tải báo cáo lỗi Excel",
   "Nhập tay & chỉnh sửa dữ liệu",
+  "Khóa các lesson đã thống nhất",
+  "LOCKED-ASSIGNMENTS-1.0.0",
 ]) {
   assert.ok(bundle.includes(marker), `bundle marker missing: ${marker}`);
 }
