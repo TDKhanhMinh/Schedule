@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 
-import { BadRequestException, ConflictException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException } from "@nestjs/common";
 import type { Pool } from "pg";
 import type { AuditLogService } from "../auth/audit-log.service";
 import { ScheduleVersionService } from "./schedule-version.service";
@@ -101,20 +101,92 @@ describe("ScheduleVersionService", () => {
   });
 
   it("moves a version through a valid transition and records the actor reason", async () => {
-    query
+    query.mockResolvedValueOnce({ rows: [versionRow({ status: "LOCKED" })] });
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [versionRow({ status: "LOCKED" })] })
-      .mockResolvedValueOnce({ rows: [versionRow({ status: "PUBLISHED", published_at: timestamp })] });
+      .mockResolvedValueOnce({ rows: [{ expected_assignments: 0, actual_assignments: 0 }] })
+      .mockResolvedValueOnce({ rows: [{ invalid_count: 0 }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [versionRow({ status: "PUBLISHED", published_at: timestamp, revision: 2 })] })
+      .mockResolvedValueOnce({ rows: [] });
 
     await expect(
-      service.transition("school-001", "version-001", "publisher-001", {
-        toStatus: "PUBLISHED",
-        reason: "Pilot review approved",
-      }),
+      service.transition(
+        "school-001",
+        "version-001",
+        "publisher-001",
+        {
+          toStatus: "PUBLISHED",
+          reason: "Pilot review approved",
+        },
+        "REVIEWER",
+        "req-publish",
+      ),
     ).resolves.toMatchObject({ status: "PUBLISHED", publishedAt: timestamp });
-    expect(query).toHaveBeenLastCalledWith(
+    expect(clientQuery).toHaveBeenCalledWith(
       expect.stringContaining("WHERE id = $1 AND school_id = $2 AND status = $6"),
-      ["version-001", "school-001", "PUBLISHED", "publisher-001", "Pilot review approved", "LOCKED"],
+      [
+        "version-001",
+        "school-001",
+        "PUBLISHED",
+        "publisher-001",
+        "Pilot review approved",
+        "LOCKED",
+        expect.any(String),
+      ],
     );
+    expect(clientQuery).toHaveBeenCalledWith("COMMIT");
+    expect(auditLogs.recordInTransaction).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({
+        action: "PUBLISH",
+        metadata: expect.objectContaining({ publish: true, reason: "Pilot review approved" }),
+      }),
+    );
+  });
+
+  it("blocks scheduler approval at the service boundary even if the HTTP guard is bypassed", async () => {
+    query.mockResolvedValueOnce({ rows: [versionRow({ status: "IN_REVIEW" })] });
+
+    await expect(
+      service.transition(
+        "school-001",
+        "version-001",
+        "scheduler-001",
+        { toStatus: "APPROVED", reason: "Scheduler must not self-approve" },
+        "SCHEDULER",
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(pool.connect).not.toHaveBeenCalled();
+  });
+
+  it("rejects publish when the hard-validity gate finds a conflict", async () => {
+    query.mockResolvedValueOnce({ rows: [versionRow({ status: "LOCKED" })] });
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [versionRow({ status: "LOCKED" })] })
+      .mockResolvedValueOnce({ rows: [{ expected_assignments: 1, actual_assignments: 1 }] })
+      .mockResolvedValueOnce({ rows: [{ invalid_count: 0 }] })
+      .mockResolvedValueOnce({
+        rows: [{ kind: "TEACHER", time_slot_id: "slot-001", resource_id: "teacher-001", occurrences: 2 }],
+      })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await expect(
+      service.transition(
+        "school-001",
+        "version-001",
+        "reviewer-001",
+        { toStatus: "PUBLISHED", reason: "Publish gate test" },
+        "REVIEWER",
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ code: "SCHEDULE_VERSION_PUBLISH_GATE_FAILED", gate: "HARD_CONSTRAINTS" }),
+    });
+    expect(clientQuery).toHaveBeenCalledWith("ROLLBACK");
+    expect(clientQuery.mock.calls.some(([sql]) => String(sql).includes("UPDATE schedule_versions"))).toBe(false);
   });
 
   it("returns append-only lifecycle audit in chronological order", async () => {

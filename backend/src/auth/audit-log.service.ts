@@ -3,7 +3,7 @@ import type { Pool } from "pg";
 import { PG_POOL } from "../database/database.module";
 import type { Role } from "./auth.constants";
 
-export const AUDIT_ACTIONS = ["CREATE", "UPDATE", "DELETE", "IMPORT", "SOLVE", "PUBLISH"] as const;
+export const AUDIT_ACTIONS = ["CREATE", "UPDATE", "DELETE", "IMPORT", "SOLVE", "APPROVE", "PUBLISH"] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
 export interface AuditEventInput {

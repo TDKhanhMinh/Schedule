@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Inject,
@@ -590,7 +591,14 @@ export class ScheduleVersionService {
     }
   }
 
-  async transition(schoolId: string, versionId: string, actorId: string, dto: TransitionScheduleVersionDto) {
+  async transition(
+    schoolId: string,
+    versionId: string,
+    actorId: string,
+    dto: TransitionScheduleVersionDto,
+    actorRole: Role = "SCHEDULER",
+    correlationId = "unknown",
+  ) {
     const current = await this.getRow(schoolId, versionId);
     if (!isScheduleVersionStatus(dto.toStatus)) {
       throw new BadRequestException({
@@ -605,6 +613,24 @@ export class ScheduleVersionService {
         fromStatus: current.status,
         toStatus: dto.toStatus,
       });
+    }
+    this.assertTransitionPolicy(dto.toStatus, actorRole);
+    if (["APPROVED", "PUBLISHED"].includes(dto.toStatus) && !dto.reason?.trim()) {
+      throw new BadRequestException({
+        code: "SCHEDULE_VERSION_REASON_REQUIRED",
+        message: "Approval và publish phải có reason để audit.",
+      });
+    }
+    if (dto.toStatus === "APPROVED" || dto.toStatus === "PUBLISHED") {
+      return this.transitionWithApprovalOrPublishGate(
+        schoolId,
+        versionId,
+        actorId,
+        actorRole,
+        correlationId,
+        current,
+        dto,
+      );
     }
 
     const result = await this.pool.query<ScheduleVersionRow>(
@@ -637,6 +663,208 @@ export class ScheduleVersionService {
       });
     }
     return this.toScheduleVersion(result.rows[0]);
+  }
+
+  private async transitionWithApprovalOrPublishGate(
+    schoolId: string,
+    versionId: string,
+    actorId: string,
+    actorRole: Role,
+    correlationId: string,
+    current: ScheduleVersionRow,
+    dto: TransitionScheduleVersionDto,
+  ) {
+    const client = await this.pool.connect();
+    let inTransaction = false;
+    try {
+      await client.query("BEGIN");
+      inTransaction = true;
+      const locked = await this.selectVersionForUpdate(client, schoolId, versionId);
+      if (locked.status !== current.status || !canTransitionScheduleVersion(locked.status, dto.toStatus)) {
+        throw new ConflictException({
+          code: "SCHEDULE_VERSION_CONCURRENT_UPDATE",
+          message: "Schedule version đã thay đổi; hãy tải lại trước khi approval/publish.",
+        });
+      }
+
+      const publishGate =
+        dto.toStatus === "PUBLISHED" ? await this.validatePublishGate(client, schoolId, versionId, locked) : null;
+      const result = await client.query<ScheduleVersionRow>(
+        `UPDATE schedule_versions
+            SET status = $3,
+                status_changed_by = $4,
+                status_changed_at = now(),
+                status_reason = $5,
+                approved_by = CASE WHEN $3 = 'APPROVED' THEN $4 ELSE approved_by END,
+                approved_at = CASE WHEN $3 = 'APPROVED' THEN now() ELSE approved_at END,
+                published_at = CASE WHEN $3 = 'PUBLISHED' THEN now() ELSE published_at END,
+                schedule_snapshot_hash = COALESCE($7, schedule_snapshot_hash),
+                updated_at = now(),
+                revision = revision + 1
+          WHERE id = $1 AND school_id = $2 AND status = $6
+         RETURNING id::text, school_id::text, academic_period_id::text, version_number,
+                   status, source_run_id::text, created_by, approved_by, approved_at,
+                   locked_at, published_at, archived_at, rule_snapshot_id::text,
+                   rule_set_version, rule_snapshot_hash, input_snapshot_hash,
+                   schedule_snapshot_hash, status_changed_by, status_changed_at,
+                   revision, status_reason, created_at, updated_at`,
+        [
+          versionId,
+          schoolId,
+          dto.toStatus,
+          actorId,
+          dto.reason!.trim(),
+          locked.status,
+          publishGate?.scheduleSnapshotHash ?? null,
+        ],
+      );
+      if (result.rows.length === 0) {
+        throw new ConflictException({
+          code: "SCHEDULE_VERSION_CONCURRENT_UPDATE",
+          message: "Schedule version đã thay đổi; hãy tải lại trước khi approval/publish.",
+        });
+      }
+      if (this.auditLogs) {
+        await this.auditLogs.recordInTransaction(client, {
+          schoolId,
+          action: dto.toStatus === "APPROVED" ? "APPROVE" : "PUBLISH",
+          entityType: "schedule_version",
+          entityId: versionId,
+          entityKey: versionId,
+          actorId,
+          actorRole,
+          correlationId,
+          metadata: {
+            approval: dto.toStatus === "APPROVED",
+            publish: dto.toStatus === "PUBLISHED",
+            fromStatus: locked.status,
+            toStatus: dto.toStatus,
+            reason: dto.reason!.trim(),
+            hardValidation: dto.toStatus === "PUBLISHED",
+            expectedAssignments: publishGate?.expectedAssignments ?? null,
+            actualAssignments: publishGate?.actualAssignments ?? null,
+            scheduleSnapshotHash: publishGate?.scheduleSnapshotHash ?? null,
+          },
+        });
+      }
+      await client.query("COMMIT");
+      inTransaction = false;
+      return this.toScheduleVersion(result.rows[0]);
+    } catch (error) {
+      if (inTransaction) await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  private assertTransitionPolicy(toStatus: ScheduleVersionStatus, actorRole: Role) {
+    if (["APPROVED", "PUBLISHED", "ARCHIVED"].includes(toStatus) && !["ADMIN", "REVIEWER"].includes(actorRole)) {
+      throw new ForbiddenException({
+        code: "SCHEDULE_VERSION_APPROVAL_ROLE_REQUIRED",
+        message: "Chỉ ADMIN hoặc REVIEWER được approval/publish/archive schedule version.",
+        requiredRoles: ["ADMIN", "REVIEWER"],
+      });
+    }
+  }
+
+  private async validatePublishGate(
+    client: Queryable,
+    schoolId: string,
+    versionId: string,
+    version: ScheduleVersionRow,
+  ) {
+    const completeness = await client.query<{
+      expected_assignments: number | string;
+      actual_assignments: number | string;
+    }>(
+      `SELECT COALESCE(SUM(lesson.required_sessions), 0)::int AS expected_assignments,
+              COUNT(a.id)::int AS actual_assignments
+         FROM lesson_requirements lesson
+         LEFT JOIN schedule_assignments a
+           ON a.lesson_id = lesson.id AND a.schedule_version_id = $3
+        WHERE lesson.school_id = $1 AND lesson.academic_period_id = $2`,
+      [schoolId, version.academic_period_id, versionId],
+    );
+    const expectedAssignments = Number(completeness.rows[0]?.expected_assignments ?? 0);
+    const actualAssignments = Number(completeness.rows[0]?.actual_assignments ?? 0);
+    if (expectedAssignments !== actualAssignments) {
+      throw new ConflictException({
+        code: "SCHEDULE_VERSION_PUBLISH_GATE_FAILED",
+        gate: "COMPLETENESS",
+        message: "Không thể publish khi số assignment chưa đủ theo lesson requirement.",
+        expectedAssignments,
+        actualAssignments,
+      });
+    }
+
+    const outOfScope = await client.query<{ invalid_count: number | string }>(
+      `SELECT COUNT(*)::int AS invalid_count
+         FROM schedule_assignments a
+         JOIN lesson_requirements lesson ON lesson.id = a.lesson_id
+         LEFT JOIN time_slots slot
+           ON slot.id = a.time_slot_id
+          AND slot.school_id = $1
+          AND slot.academic_period_id = $2
+         LEFT JOIN rooms room ON room.id = a.room_id AND room.school_id = $1
+        WHERE a.schedule_version_id = $3
+          AND (lesson.school_id <> $1 OR lesson.academic_period_id <> $2
+               OR slot.id IS NULL OR (a.room_id IS NOT NULL AND room.id IS NULL))`,
+      [schoolId, version.academic_period_id, versionId],
+    );
+    const invalidCount = Number(outOfScope.rows[0]?.invalid_count ?? 0);
+    if (invalidCount > 0) {
+      throw new ConflictException({
+        code: "SCHEDULE_VERSION_PUBLISH_GATE_FAILED",
+        gate: "SCOPE",
+        message: "Assignment hoặc resource nằm ngoài school/academic period scope.",
+        invalidCount,
+      });
+    }
+
+    const conflicts = await client.query<{
+      kind: string;
+      time_slot_id: string;
+      resource_id: string;
+      occurrences: number | string;
+    }>(
+      `SELECT 'CLASS' AS kind, a.time_slot_id::text AS time_slot_id,
+              lesson.class_id::text AS resource_id, COUNT(*)::int AS occurrences
+         FROM schedule_assignments a
+         JOIN lesson_requirements lesson ON lesson.id = a.lesson_id
+        WHERE a.schedule_version_id = $1
+        GROUP BY a.time_slot_id, lesson.class_id
+       HAVING COUNT(*) > 1
+        UNION ALL
+       SELECT 'TEACHER' AS kind, a.time_slot_id::text, lesson.teacher_id::text, COUNT(*)::int
+         FROM schedule_assignments a
+         JOIN lesson_requirements lesson ON lesson.id = a.lesson_id
+        WHERE a.schedule_version_id = $1
+        GROUP BY a.time_slot_id, lesson.teacher_id
+       HAVING COUNT(*) > 1
+        UNION ALL
+       SELECT 'ROOM' AS kind, a.time_slot_id::text, a.room_id::text, COUNT(*)::int
+         FROM schedule_assignments a
+        WHERE a.schedule_version_id = $1 AND a.room_id IS NOT NULL
+        GROUP BY a.time_slot_id, a.room_id
+       HAVING COUNT(*) > 1`,
+      [versionId],
+    );
+    if (conflicts.rows.length > 0) {
+      throw new ConflictException({
+        code: "SCHEDULE_VERSION_PUBLISH_GATE_FAILED",
+        gate: "HARD_CONSTRAINTS",
+        message: "Không thể publish khi còn xung đột lớp, giáo viên hoặc phòng.",
+        conflicts: conflicts.rows,
+      });
+    }
+
+    const assignments = await this.listAssignments(client, schoolId, versionId);
+    return {
+      expectedAssignments,
+      actualAssignments,
+      scheduleSnapshotHash: this.hashAssignments(assignments),
+    };
   }
 
   async listTransitions(schoolId: string, versionId: string) {

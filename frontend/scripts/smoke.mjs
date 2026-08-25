@@ -29,6 +29,7 @@ for (const marker of [
   "P2.3-T06",
   "Compare / clone / rollback phương án",
   "SCHEDULE-VERSION-OPS-1.0.0",
+  "Approval và publish permissions",
 ]) {
   assert.ok(bundle.includes(marker), `bundle marker missing: ${marker}`);
 }

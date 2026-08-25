@@ -127,7 +127,14 @@ export class ScheduleVersionController {
     @Body() dto: TransitionScheduleVersionDto,
     @Req() request: RequestWithAuth,
   ) {
-    return this.scheduleVersions.transition(schoolId, versionId, request.auth!.userId, dto);
+    return this.scheduleVersions.transition(
+      schoolId,
+      versionId,
+      request.auth!.userId,
+      dto,
+      request.auth!.role,
+      request.requestId ?? "unknown",
+    );
   }
 
   @Get("schedule-versions/:versionId/transitions")

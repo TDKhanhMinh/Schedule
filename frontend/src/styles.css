@@ -1194,6 +1194,53 @@ tr.has-warning td {
 .version-empty {
   margin: 0;
 }
+.workflow-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 15px;
+  border: 1px solid #f0d9a4;
+  border-radius: 12px;
+  background: #fffdf7;
+}
+.workflow-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.workflow-heading h3 {
+  margin: 3px 0 5px;
+  font-size: 0.96rem;
+}
+.workflow-heading .small-note {
+  max-width: 800px;
+}
+.workflow-status {
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+.workflow-status-in_review,
+.workflow-status-locked {
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+.workflow-status-approved,
+.workflow-status-published {
+  color: var(--green);
+  background: var(--green-soft);
+}
+.workflow-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.workflow-note {
+  margin: 0;
+}
 .solve-status {
   display: inline-flex;
   align-items: center;
@@ -2004,6 +2051,12 @@ tr.has-warning td {
     display: grid;
   }
   .version-contract-badge {
+    justify-self: start;
+  }
+  .workflow-heading {
+    display: grid;
+  }
+  .workflow-status {
     justify-self: start;
   }
   .move-review-panel {

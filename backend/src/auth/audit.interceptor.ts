@@ -14,6 +14,7 @@ export class AuditInterceptor implements NestInterceptor {
     const path = `${request.baseUrl ?? ""}${request.path ?? request.url}`;
     if (path.endsWith("/imports/preview")) return next.handle();
     if (path.includes("/schedule-versions/") && path.includes("/assignments/")) return next.handle();
+    if (path.includes("/schedule-versions/") && path.includes("/transitions")) return next.handle();
     if (path.includes("/schedule-versions/") && (path.endsWith("/clone") || path.endsWith("/rollback"))) {
       return next.handle();
     }

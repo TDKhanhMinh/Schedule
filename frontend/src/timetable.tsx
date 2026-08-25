@@ -12,6 +12,7 @@ const LOCKED_ASSIGNMENTS_CONTRACT_VERSION = "LOCKED-ASSIGNMENTS-1.0.0" as const;
 
 type TimetableView = "class" | "teacher" | "room";
 type TimetableState = "loading" | "ready" | "empty" | "error";
+type WorkflowStatus = "IN_REVIEW" | "APPROVED" | "LOCKED" | "PUBLISHED";
 
 interface TimetableLesson {
   id: string;
@@ -82,7 +83,7 @@ interface LockUndoState {
   message: string;
 }
 
-type ManualHistoryKind = "MOVE" | "LOCK" | "UNLOCK" | "UNDO" | "CLONE" | "ROLLBACK";
+type ManualHistoryKind = "MOVE" | "LOCK" | "UNLOCK" | "UNDO" | "CLONE" | "ROLLBACK" | "APPROVE" | "PUBLISH";
 
 interface ManualHistoryEntry {
   id: string;
@@ -784,6 +785,7 @@ export function TimetableScreen() {
   );
   const [versionNotice, setVersionNotice] = useState("Đang xem draft local từ bản published v1.");
   const [draftVersionLabel, setDraftVersionLabel] = useState("Draft v2 · clone từ Published v1");
+  const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>("LOCKED");
 
   const entities = useMemo(() => getEntityOptions(view, lessons), [lessons, view]);
   const selectedEntity = entities.find((entity) => entity.id === selectedEntityId) ?? entities[0];
@@ -811,6 +813,7 @@ export function TimetableScreen() {
     record.lessonIds.some((lessonId) => selectedLessonIdSet.has(lessonId)),
   );
   const canManageLocks = frontendConfig.actorRole === "ADMIN" || frontendConfig.actorRole === "SCHEDULER";
+  const canApprovePublish = frontendConfig.actorRole === "ADMIN" || frontendConfig.actorRole === "REVIEWER";
   const visibleCount = selectedLessons.length;
   const conflictCount = selectedLessons.filter((lesson) => lesson.status === "CONFLICT").length;
   const workloadDays = new Set(selectedLessons.map((lesson) => SLOTS.find((slot) => slot.id === lesson.slotId)?.day))
@@ -960,6 +963,18 @@ export function TimetableScreen() {
     setVersionNotice("Đã tạo draft mới từ snapshot published; không mutate bản published.");
     setCompareResult(buildLocalCompare(DEMO_LESSONS));
     recordManualHistory("ROLLBACK", "Rollback phương án", "Draft hiện tại → Published v1 · reason bắt buộc");
+  }
+
+  function transitionWorkflow(target: "APPROVED" | "PUBLISHED") {
+    if (!canApprovePublish) return;
+    if (target === "APPROVED" && workflowStatus !== "IN_REVIEW") return;
+    if (target === "PUBLISHED" && workflowStatus !== "LOCKED") return;
+    setWorkflowStatus(target);
+    recordManualHistory(
+      target === "APPROVED" ? "APPROVE" : "PUBLISH",
+      target === "APPROVED" ? "Approval phương án" : "Publish phương án",
+      `${target} · actor ${frontendConfig.actorId} · server sẽ kiểm tra gate và ghi timestamp`,
+    );
   }
 
   function handleViewChange(nextView: TimetableView) {
@@ -1288,6 +1303,41 @@ export function TimetableScreen() {
           ) : (
             <p className="small-note version-empty">Hai snapshot không có thay đổi assignment.</p>
           )}
+        </section>
+
+        <section className="workflow-panel" aria-labelledby="workflow-panel-title">
+          <div className="workflow-heading">
+            <div>
+              <p className="eyebrow">P2.4-T03 · Approval gate</p>
+              <h3 id="workflow-panel-title">Approval và publish permissions</h3>
+              <p className="small-note">
+                Role hiện tại: <b>{frontendConfig.actorRole}</b> · chỉ ADMIN/REVIEWER được approval hoặc publish; API
+                vẫn kiểm tra hard gate và ghi audit timestamp.
+              </p>
+            </div>
+            <span className={`workflow-status workflow-status-${workflowStatus.toLowerCase()}`}>{workflowStatus}</span>
+          </div>
+          <div className="workflow-actions">
+            <button
+              type="button"
+              onClick={() => transitionWorkflow("APPROVED")}
+              disabled={!canApprovePublish || workflowStatus !== "IN_REVIEW"}
+            >
+              Approve phương án
+            </button>
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={() => transitionWorkflow("PUBLISHED")}
+              disabled={!canApprovePublish || workflowStatus !== "LOCKED"}
+            >
+              Publish phương án
+            </button>
+          </div>
+          <p className="small-note workflow-note">
+            Preview local chỉ mô phỏng state; scheduler không thể tự approve. Publish thật chỉ thành công sau
+            completeness, scope và hard class/teacher/room gate ở NestJS/PostgreSQL.
+          </p>
         </section>
 
         {movePreview && previewLesson && previewTargetSlot ? (
