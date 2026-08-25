@@ -104,7 +104,12 @@ phương/trường.
    thời gian nghỉ giữa tiết và ngoại lệ địa phương.
 3. Xác nhận loại trường/profile giáo viên để chọn đúng định mức, không áp dụng
    nhầm baseline THCS/THPT cho trường/đối tượng đặc thù.
-4. Quy tắc availability và preference của giáo viên: hard ban hay soft
+4. P2.1-T03 chuẩn hóa `RULE-TEACHER-AVAILABILITY-*`: hard ban dùng
+   `constraintType=UNAVAILABLE`; preference dùng `preferenceLevel=STRONG|SOFT`,
+   `weight`, `dayOfWeek`, tùy chọn `shiftCode`/`period` và khoảng hiệu lực.
+   Quy tắc availability và preference của giáo viên vẫn cần trường xác nhận
+   source và approval trước pilot.
+5. Quy tắc availability và preference của giáo viên: hard ban hay soft
    preference, trọng số và cách xử lý khi không khả thi.
 
 Until these approvals exist, this register is suitable as an implementation and

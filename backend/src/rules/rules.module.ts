@@ -2,12 +2,24 @@ import { Module } from "@nestjs/common";
 import { DatabaseModule } from "../database/database.module";
 import { TeacherLoadController } from "./teacher-load.controller";
 import { TeacherLoadCalculationService, TeacherLoadService } from "./teacher-load.service";
+import { TeacherAvailabilityController } from "./teacher-availability.controller";
+import { TeacherAvailabilityCalculationService, TeacherAvailabilityService } from "./teacher-availability.service";
 
 /** Versioned rule profiles and provenance boundary; solver rules stay in Python. */
 @Module({
   imports: [DatabaseModule],
-  controllers: [TeacherLoadController],
-  providers: [TeacherLoadCalculationService, TeacherLoadService],
-  exports: [TeacherLoadCalculationService, TeacherLoadService],
+  controllers: [TeacherLoadController, TeacherAvailabilityController],
+  providers: [
+    TeacherLoadCalculationService,
+    TeacherLoadService,
+    TeacherAvailabilityCalculationService,
+    TeacherAvailabilityService,
+  ],
+  exports: [
+    TeacherLoadCalculationService,
+    TeacherLoadService,
+    TeacherAvailabilityCalculationService,
+    TeacherAvailabilityService,
+  ],
 })
 export class RulesModule {}

@@ -1,8 +1,11 @@
+import type { TeacherAvailabilitySet } from "./teacher-availability";
+
 export const CONTRACT_VERSION = "1.0" as const;
 export const OPTIMIZATION_QUEUE = "optimization" as const;
 export const OPTIMIZATION_JOB_NAME = "optimization.solve" as const;
 
 export * from "./rule-set";
+export * from "./teacher-availability";
 export * from "./teacher-load";
 
 export type SolveStatus = "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "UNKNOWN";
@@ -11,6 +14,7 @@ export interface TimeSlot {
   id: string;
   day: number;
   period: number;
+  shiftCode?: string;
 }
 
 export interface LessonRequirement {
@@ -36,6 +40,7 @@ export interface SolveJobRequest {
   ruleSnapshotHash?: string;
   timeSlots: TimeSlot[];
   lessons: LessonRequirement[];
+  teacherAvailability?: TeacherAvailabilitySet;
   options?: SolveJobOptions;
 }
 

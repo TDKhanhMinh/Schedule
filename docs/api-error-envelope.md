@@ -31,7 +31,7 @@ connection details.
 | `AuthModule`       | Authentication and school-scope authorization boundary             | Foundation placeholder; auth implementation is a separate task |
 | `MasterDataModule` | Schools, periods, classes, teachers, subjects and rooms            | Foundation boundary; canonical data remains PostgreSQL-owned   |
 | `ImportsModule`    | Excel staging, validation, confirm and audit                       | `POST /imports/preview`, confirm, batch and audit endpoints    |
-| `RulesModule`      | Versioned rule profiles, provenance and teacher-load reports       | `GET /schools/:schoolId/academic-periods/:periodId/teacher-loads`; snapshot approval remains required |
+| `RulesModule`      | Versioned rule profiles, provenance, teacher-load and teacher-availability reports | Approved snapshot is required; hard/strong/soft availability is server-owned |
 | `TimetableModule`  | Schedule versions, review/edit, approval, lock, publish and export | Foundation boundary; workflow capabilities follow MVP tasks    |
 | `JobsModule`       | BullMQ enqueue/status and solver job boundary                      | `POST/GET /optimization-jobs`                                  |
 | `HealthModule`     | Liveness surface                                                   | `GET /health`                                                  |

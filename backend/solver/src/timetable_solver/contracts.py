@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from .teacher_availability import TeacherAvailabilitySet
+
 CONTRACT_VERSION = "1.0"
 SOLVER_VERSION = "0.1.0"
 DEFAULT_TIME_LIMIT_SECONDS = 10.0
@@ -13,6 +15,7 @@ class TimeSlot(BaseModel):
     id: str = Field(min_length=1)
     day: int = Field(ge=1, le=7)
     period: int = Field(ge=1)
+    shiftCode: str | None = Field(default=None, min_length=1)
 
 
 class LessonRequirement(BaseModel):
@@ -44,6 +47,7 @@ class SolveJobRequest(BaseModel):
     ruleSnapshotHash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     timeSlots: list[TimeSlot]
     lessons: list[LessonRequirement]
+    teacherAvailability: TeacherAvailabilitySet | None = None
     options: SolveJobOptions | None = None
 
     @model_validator(mode="after")

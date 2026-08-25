@@ -1,0 +1,50 @@
+{
+  "contractVersion": "TEACHER-AVAILABILITY-1.0.0",
+  "schoolId": "school-001",
+  "academicPeriodId": "period-001",
+  "effectiveAsOf": "2026-09-01",
+  "ruleSnapshotId": "snapshot-001",
+  "ruleSetVersion": "RULE-SET-1.0.0",
+  "ruleSnapshotHash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "rules": [
+    {
+      "ruleId": "RULE-TEACHER-AVAILABILITY-001",
+      "code": "RULE-TEACHER-AVAILABILITY-001",
+      "teacherId": "teacher-001",
+      "strength": "HARD_UNAVAILABLE",
+      "weight": null,
+      "dayOfWeek": 1,
+      "shiftCode": "MORNING",
+      "blockedSlotIds": ["mon-morning-1", "mon-morning-2"],
+      "effectiveFrom": "2026-09-01",
+      "effectiveTo": null,
+      "reason": "Không thể dạy sáng thứ Hai",
+      "source": {
+        "sourceUrl": "https://schedule.local/school-decision",
+        "sourceLocator": "PILOT-AVAILABILITY-001",
+        "ruleSnapshotId": "snapshot-001",
+        "ruleSetVersion": "RULE-SET-1.0.0",
+        "ruleSnapshotHash": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    },
+    {
+      "ruleId": "RULE-TEACHER-AVAILABILITY-002",
+      "code": "RULE-TEACHER-AVAILABILITY-002",
+      "teacherId": "teacher-001",
+      "strength": "STRONG_PREFERENCE",
+      "weight": 10,
+      "dayOfWeek": 3,
+      "period": 5,
+      "blockedSlotIds": ["wed-afternoon-5"],
+      "effectiveFrom": "2026-09-01",
+      "effectiveTo": "2027-01-15",
+      "source": {
+        "sourceUrl": "https://schedule.local/pilot-workbook",
+        "sourceLocator": "Sheet Availability!A2:G2",
+        "ruleSnapshotId": "snapshot-001",
+        "ruleSetVersion": "RULE-SET-1.0.0",
+        "ruleSnapshotHash": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ]
+}

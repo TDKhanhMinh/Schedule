@@ -142,8 +142,9 @@ and adds an independent `RuleSetSnapshot` contract version
 - `room_id`, `schedule_version_id` and schedule approval state remain
   persistence concerns. Rule snapshot identity is additive request/result
   metadata, while PostgreSQL remains the source of truth for the snapshot body.
-- The current Python solver does not interpret new rule kinds yet; P2.1-T02
-  adds rule evaluation and hard/soft enforcement against this snapshot.
+- The current Python solver interprets the versioned availability projection;
+  P2.1-T02 covers teacher-load evaluation and P2.1-T03 covers hard filtering
+  plus weighted preference penalties against the approved snapshot.
 - Any future addition of `academicPeriodId`, `roomId`, soft constraints or
   schedule-version fields must update JSON Schema, TypeScript, Pydantic, the
   glossary and tests in one change.

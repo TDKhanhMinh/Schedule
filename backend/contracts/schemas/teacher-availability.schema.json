@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/teacher-availability.schema.json",
+  "title": "TeacherAvailabilitySet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "schoolId",
+    "academicPeriodId",
+    "effectiveAsOf",
+    "ruleSnapshotId",
+    "ruleSetVersion",
+    "ruleSnapshotHash",
+    "rules"
+  ],
+  "properties": {
+    "contractVersion": { "const": "TEACHER-AVAILABILITY-1.0.0" },
+    "schoolId": { "type": "string", "minLength": 1 },
+    "academicPeriodId": { "type": "string", "minLength": 1 },
+    "effectiveAsOf": { "type": "string", "format": "date" },
+    "ruleSnapshotId": { "type": "string", "minLength": 1 },
+    "ruleSetVersion": { "type": "string", "pattern": "^RULE-SET-[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "ruleSnapshotHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "rules": { "type": "array", "items": { "$ref": "#/$defs/teacherAvailabilityRule" } }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceUrl", "ruleSnapshotId", "ruleSetVersion", "ruleSnapshotHash"],
+      "properties": {
+        "sourceUrl": { "type": "string", "format": "uri" },
+        "sourceLocator": { "type": "string", "minLength": 1 },
+        "ruleSnapshotId": { "type": "string", "minLength": 1 },
+        "ruleSetVersion": { "type": "string", "pattern": "^RULE-SET-[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "ruleSnapshotHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "teacherAvailabilityRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ruleId",
+        "code",
+        "teacherId",
+        "strength",
+        "weight",
+        "dayOfWeek",
+        "blockedSlotIds",
+        "effectiveFrom",
+        "source"
+      ],
+      "properties": {
+        "ruleId": { "type": "string", "minLength": 1 },
+        "code": { "type": "string", "minLength": 1 },
+        "teacherId": { "type": "string", "minLength": 1 },
+        "strength": { "enum": ["HARD_UNAVAILABLE", "STRONG_PREFERENCE", "SOFT_WISH"] },
+        "weight": { "type": ["number", "null"], "minimum": 0 },
+        "dayOfWeek": { "type": "integer", "minimum": 1, "maximum": 7 },
+        "shiftCode": { "type": "string", "minLength": 1 },
+        "period": { "type": "integer", "minimum": 1 },
+        "blockedSlotIds": { "type": "array", "items": { "type": "string" } },
+        "effectiveFrom": { "type": "string", "format": "date" },
+        "effectiveTo": { "type": ["string", "null"], "format": "date" },
+        "reason": { "type": "string", "minLength": 1 },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    }
+  }
+}

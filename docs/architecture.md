@@ -70,6 +70,13 @@ returns source/hash-backed weekly and annual metrics. The default result is an
 average target (`REPORT_ONLY`); a hard weekly cap is only reported/enforced
 when the snapshot explicitly configures one.
 
+P2.1-T03 adds the versioned `TEACHER-AVAILABILITY-1.0.0` projection. NestJS
+reads only approved, effective `RULE-TEACHER-AVAILABILITY-*` definitions from
+the immutable snapshot and resolves day/shift/period selectors to the
+period's `time_slots`. Python enforces `HARD_UNAVAILABLE` by removing matching
+choices and minimizes `STRONG_PREFERENCE`/`SOFT_WISH` violations with explicit
+diagnostic warnings. The UI is not an enforcement boundary.
+
  Product requirements, user journeys and acceptance evidence are maintained in
  [`docs/prd-mvp.md`](prd-mvp.md). The PRD distinguishes local development evidence
  from pilot/stakeholder approval and production gates.
