@@ -32,6 +32,13 @@ snapshot bất biến `rule_set_snapshots` có hash SHA-256, và liên kết sna
 set tại thời điểm solve; việc thực thi các loại rule mới trong solver thuộc
 P2.1-T02.
 
+`008_schedule_version_lifecycle.sql` bổ sung lifecycle `DRAFT → IN_REVIEW →
+APPROVED → LOCKED → PUBLISHED → ARCHIVED`, rule/input/result snapshot hashes,
+chính sách một bản `PUBLISHED` hiện hành cho mỗi school/academic period, bảng
+transition audit append-only và trigger chặn sửa payload/assignment sau khi
+publish. `APPROVED` và `LOCKED` được giữ làm trạng thái trung gian để các task
+approval/lock kế tiếp dùng cùng một state machine.
+
 Migration là forward-only: không có down migration. Trước khi migrate môi
 trường có dữ liệu, tạo backup/snapshot; nếu cần quay lại thì restore snapshot
 hoặc viết migration sửa tiếp theo. Không xóa hay gộp các row legacy/import QC

@@ -84,4 +84,22 @@ describe("AuthGuard", () => {
     );
     expect(() => guard.canActivate(denied.context)).toThrow(ForbiddenException);
   });
+
+  it("allows a reviewer to approve or publish a schedule version", () => {
+    const { context } = makeContext(
+      {
+        "x-user-id": "reviewer-001",
+        "x-user-role": "REVIEWER",
+        "x-school-id": "school-001",
+      },
+      {
+        method: "POST",
+        path: "/schools/school-001/schedule-versions/version-001/transitions",
+        url: "/schools/school-001/schedule-versions/version-001/transitions",
+        body: { toStatus: "APPROVED" },
+      },
+    );
+
+    expect(guard.canActivate(context)).toBe(true);
+  });
 });

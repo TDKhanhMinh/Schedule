@@ -60,6 +60,10 @@ export class AuthGuard implements CanActivate {
     if (path.includes("/audit")) return "AUDIT_READ";
     if (path.includes("/imports")) return request.method === "GET" ? "READ" : "IMPORT";
     if (path.includes("/optimization-jobs")) return request.method === "POST" ? "SOLVE" : "READ";
+    if (request.method === "POST" && path.includes("/schedule-versions/") && path.includes("/transitions")) {
+      const targetStatus = request.body && typeof request.body.toStatus === "string" ? request.body.toStatus : "";
+      return ["APPROVED", "PUBLISHED", "ARCHIVED"].includes(targetStatus) ? "PUBLISH" : "WRITE";
+    }
     if (path.includes("/publish")) return "PUBLISH";
     if (request.method === "GET" || request.method === "HEAD") return "READ";
     return "WRITE";
