@@ -36,11 +36,27 @@ interface TimetableEntity {
 
 type ObjectiveKey = Exclude<keyof ObjectiveBreakdown, "weightedTotal">;
 type FocusFilter = "all" | "conflict" | "penalty";
+type MoveDirection = "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown";
 
 interface ObjectiveGroup {
   key: ObjectiveKey;
   label: string;
   description: string;
+}
+
+interface MovePreview {
+  lessonId: string;
+  fromSlotId: string;
+  targetSlotId: string;
+  eligible: boolean;
+  reason: string;
+  softPenaltyDelta: number;
+}
+
+interface CommittedMove {
+  lessonId: string;
+  fromSlotId: string;
+  targetSlotId: string;
 }
 
 const DAYS = [
@@ -259,6 +275,71 @@ function formatMetric(value: number) {
   return new Intl.NumberFormat("vi-VN").format(value);
 }
 
+function createMovePreview(lessonId: string, targetSlotId: string, lessons: TimetableLesson[]): MovePreview | null {
+  const lesson = lessons.find((candidate) => candidate.id === lessonId);
+  const targetSlot = SLOTS.find((slot) => slot.id === targetSlotId);
+  if (!lesson || !targetSlot) return null;
+
+  const softPenaltyDelta = getSlotPenalty(targetSlotId) - getSlotPenalty(lesson.slotId);
+  if (lesson.slotId === targetSlotId) {
+    return {
+      lessonId,
+      fromSlotId: lesson.slotId,
+      targetSlotId,
+      eligible: true,
+      reason: "Lesson đang ở slot này.",
+      softPenaltyDelta: 0,
+    };
+  }
+
+  const conflictingLesson = lessons.find(
+    (candidate) =>
+      candidate.id !== lesson.id &&
+      candidate.slotId === targetSlotId &&
+      (candidate.classId === lesson.classId ||
+        candidate.teacherId === lesson.teacherId ||
+        candidate.roomId === lesson.roomId),
+  );
+  if (conflictingLesson) {
+    const resource =
+      conflictingLesson.classId === lesson.classId
+        ? `Lớp ${lesson.classLabel}`
+        : conflictingLesson.teacherId === lesson.teacherId
+          ? lesson.teacherLabel
+          : `Phòng ${lesson.roomLabel}`;
+    return {
+      lessonId,
+      fromSlotId: lesson.slotId,
+      targetSlotId,
+      eligible: false,
+      reason: `Không hợp lệ: ${resource} đã có lesson tại ${targetSlot.dayLabel} · Tiết ${targetSlot.period}.`,
+      softPenaltyDelta,
+    };
+  }
+
+  return {
+    lessonId,
+    fromSlotId: lesson.slotId,
+    targetSlotId,
+    eligible: true,
+    reason: `Target hợp lệ: ${targetSlot.dayLabel} · ${targetSlot.shiftLabel} · Tiết ${targetSlot.period}.`,
+    softPenaltyDelta,
+  };
+}
+
+function moveTargetByKeyboard(lessonId: string, direction: MoveDirection, lessons: TimetableLesson[]) {
+  const lesson = lessons.find((candidate) => candidate.id === lessonId);
+  const sourceSlot = SLOTS.find((slot) => slot.id === lesson?.slotId);
+  if (!lesson || !sourceSlot) return null;
+
+  const dayDelta = direction === "ArrowLeft" ? -1 : direction === "ArrowRight" ? 1 : 0;
+  const periodDelta = direction === "ArrowUp" ? -1 : direction === "ArrowDown" ? 1 : 0;
+  const targetSlot = SLOTS.find(
+    (slot) => slot.day === sourceSlot.day + dayDelta && slot.period === sourceSlot.period + periodDelta,
+  );
+  return targetSlot ? createMovePreview(lessonId, targetSlot.id, lessons) : null;
+}
+
 function readInitialState(): TimetableState {
   const state = new URLSearchParams(window.location.search).get("state");
   return state === "loading" || state === "empty" || state === "error" ? state : "ready";
@@ -327,11 +408,25 @@ function TimetableGrid({
   selectedEntityId,
   lessons,
   heatmapEnabled,
+  preview,
+  draggedLessonId,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
+  onKeyboardMove,
 }: {
   view: TimetableView;
   selectedEntityId: string;
   lessons: TimetableLesson[];
   heatmapEnabled: boolean;
+  preview: MovePreview | null;
+  draggedLessonId: string | null;
+  onDragStart: (lessonId: string) => void;
+  onDragEnd: () => void;
+  onDragOver: (targetSlotId: string) => void;
+  onDrop: (targetSlotId: string) => void;
+  onKeyboardMove: (lessonId: string, direction: MoveDirection) => void;
 }) {
   const visibleLessons = lessons.filter((lesson) => lesson[viewKeys[view]] === selectedEntityId);
   const lessonBySlot = new Map<string, TimetableLesson[]>();
@@ -371,18 +466,44 @@ function TimetableGrid({
                 const lessonsAtSlot = slot ? (lessonBySlot.get(slot.id) ?? []) : [];
                 const slotPenalty = slot ? getSlotPenalty(slot.id) : 0;
                 const heatLevel = heatmapEnabled ? getHeatLevel(slotPenalty) : 0;
+                const isDropTarget = Boolean(slot && preview?.targetSlotId === slot.id);
+                const dropState = isDropTarget ? (preview?.eligible ? "drop-valid" : "drop-invalid") : "";
                 return (
                   <div
-                    className={`timetable-cell heat-level-${heatLevel}`}
+                    className={`timetable-cell heat-level-${heatLevel} ${dropState}`}
                     role="gridcell"
                     aria-label={`${day.label} · Tiết ${firstSlot.period} · soft penalty ${slotPenalty}`}
+                    onDragOver={(event) => {
+                      if (!draggedLessonId || !slot) return;
+                      event.preventDefault();
+                      onDragOver(slot.id);
+                    }}
+                    onDrop={(event) => {
+                      if (!draggedLessonId || !slot) return;
+                      event.preventDefault();
+                      onDrop(slot.id);
+                    }}
                     key={day.day}
                   >
                     <div className="cell-content">
                       {lessonsAtSlot.length > 0 ? (
                         lessonsAtSlot.map((lesson) => (
                           <article
-                            className={`lesson-card ${lesson.status === "CONFLICT" ? "conflict-card" : ""}`}
+                            className={`lesson-card ${lesson.status === "CONFLICT" ? "conflict-card" : ""} ${draggedLessonId === lesson.id ? "dragging-card" : ""}`}
+                            draggable
+                            tabIndex={0}
+                            aria-label={`${lesson.subjectLabel} · ${formatViewSubject(lesson, view)}. Dùng phím mũi tên để đề xuất chuyển slot.`}
+                            onDragStart={(event) => {
+                              event.dataTransfer.effectAllowed = "move";
+                              event.dataTransfer.setData("text/plain", lesson.id);
+                              onDragStart(lesson.id);
+                            }}
+                            onDragEnd={onDragEnd}
+                            onKeyDown={(event) => {
+                              if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+                              event.preventDefault();
+                              onKeyboardMove(lesson.id, event.key as MoveDirection);
+                            }}
                             key={lesson.id}
                           >
                             <div className="lesson-card-topline">
@@ -408,6 +529,16 @@ function TimetableGrid({
                         </span>
                       )}
                       {heatmapEnabled ? <span className="heatmap-label">Soft {slotPenalty}</span> : null}
+                      {isDropTarget && preview ? (
+                        <div className={`drop-preview ${preview.eligible ? "preview-valid" : "preview-invalid"}`}>
+                          <strong>{preview.eligible ? "Target hợp lệ" : "Target bị chặn"}</strong>
+                          <small>{preview.reason}</small>
+                          <span>
+                            Soft delta {preview.softPenaltyDelta > 0 ? "+" : ""}
+                            {preview.softPenaltyDelta}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -421,25 +552,29 @@ function TimetableGrid({
 }
 
 export function TimetableScreen() {
+  const [lessons, setLessons] = useState(DEMO_LESSONS);
   const [view, setView] = useState<TimetableView>("class");
   const [selectedEntityId, setSelectedEntityId] = useState("class-7a1");
   const [state, setState] = useState<TimetableState>(readInitialState);
   const [searchQuery, setSearchQuery] = useState("");
   const [focusFilter, setFocusFilter] = useState<FocusFilter>("all");
   const [heatmapEnabled, setHeatmapEnabled] = useState(true);
+  const [draggedLessonId, setDraggedLessonId] = useState<string | null>(null);
+  const [movePreview, setMovePreview] = useState<MovePreview | null>(null);
+  const [lastMove, setLastMove] = useState<CommittedMove | null>(null);
 
-  const entities = useMemo(() => getEntityOptions(view, DEMO_LESSONS), [view]);
+  const entities = useMemo(() => getEntityOptions(view, lessons), [lessons, view]);
   const selectedEntity = entities.find((entity) => entity.id === selectedEntityId) ?? entities[0];
   const selectedId = selectedEntity?.id ?? "";
   const filteredLessons = useMemo(
     () =>
-      DEMO_LESSONS.filter((lesson) => {
+      lessons.filter((lesson) => {
         if (!lessonMatchesSearch(lesson, searchQuery)) return false;
         if (focusFilter === "conflict" && lesson.status !== "CONFLICT") return false;
         if (focusFilter === "penalty" && getSlotPenalty(lesson.slotId) < 1) return false;
         return true;
       }),
-    [focusFilter, searchQuery],
+    [focusFilter, lessons, searchQuery],
   );
   const selectedLessons = filteredLessons.filter((lesson) => lesson[viewKeys[view]] === selectedId);
   const visibleCount = selectedLessons.length;
@@ -447,11 +582,48 @@ export function TimetableScreen() {
   const workloadDays = new Set(selectedLessons.map((lesson) => SLOTS.find((slot) => slot.id === lesson.slotId)?.day))
     .size;
 
+  function previewMove(lessonId: string, targetSlotId: string) {
+    setMovePreview(createMovePreview(lessonId, targetSlotId, lessons));
+  }
+
+  function handleConfirmMove() {
+    if (!movePreview?.eligible) return;
+    setLessons((currentLessons) =>
+      currentLessons.map((lesson) =>
+        lesson.id === movePreview.lessonId ? { ...lesson, slotId: movePreview.targetSlotId } : lesson,
+      ),
+    );
+    setLastMove({
+      lessonId: movePreview.lessonId,
+      fromSlotId: movePreview.fromSlotId,
+      targetSlotId: movePreview.targetSlotId,
+    });
+    setMovePreview(null);
+  }
+
+  function handleUndoMove() {
+    if (!lastMove) return;
+    setLessons((currentLessons) =>
+      currentLessons.map((lesson) =>
+        lesson.id === lastMove.lessonId ? { ...lesson, slotId: lastMove.fromSlotId } : lesson,
+      ),
+    );
+    setLastMove(null);
+  }
+
+  function handleKeyboardMove(lessonId: string, direction: MoveDirection) {
+    const preview = moveTargetByKeyboard(lessonId, direction, lessons);
+    if (preview) setMovePreview(preview);
+  }
+
   function handleViewChange(nextView: TimetableView) {
-    const nextEntities = getEntityOptions(nextView, DEMO_LESSONS);
+    const nextEntities = getEntityOptions(nextView, lessons);
     setView(nextView);
     setSelectedEntityId(nextEntities[0]?.id ?? "");
   }
+
+  const previewLesson = movePreview ? lessons.find((lesson) => lesson.id === movePreview.lessonId) : null;
+  const previewTargetSlot = movePreview ? SLOTS.find((slot) => slot.id === movePreview.targetSlotId) : null;
 
   return (
     <>
@@ -611,12 +783,67 @@ export function TimetableScreen() {
           </div>
         </section>
 
+        {movePreview && previewLesson && previewTargetSlot ? (
+          <section
+            className={`move-review-panel ${movePreview.eligible ? "move-valid" : "move-invalid"}`}
+            aria-live="polite"
+          >
+            <div>
+              <p className="eyebrow">Eligibility preview</p>
+              <h3>
+                {movePreview.eligible ? "Có thể chuyển" : "Không thể chuyển"} {previewLesson.subjectLabel} →{" "}
+                {previewTargetSlot.dayLabel} · Tiết {previewTargetSlot.period}
+              </h3>
+              <p>{movePreview.reason}</p>
+              <small>
+                Soft penalty delta:{" "}
+                <b>
+                  {movePreview.softPenaltyDelta > 0 ? "+" : ""}
+                  {movePreview.softPenaltyDelta}
+                </b>{" "}
+                · hard constraints phải được server xác nhận lại.
+              </small>
+            </div>
+            <div className="move-actions">
+              <button type="button" disabled={!movePreview.eligible} onClick={handleConfirmMove}>
+                Xác nhận thay đổi
+              </button>
+              <button className="button-secondary" type="button" onClick={() => setMovePreview(null)}>
+                Hủy
+              </button>
+            </div>
+          </section>
+        ) : null}
+        {lastMove ? (
+          <div className="alert alert-success move-success" role="status">
+            <strong>Đã cập nhật vị trí lesson trong draft local.</strong>
+            <span>Chưa gửi persistence; server sẽ revalidate trước khi ghi.</span>
+            <button className="button-secondary" type="button" onClick={handleUndoMove}>
+              Hoàn tác
+            </button>
+          </div>
+        ) : null}
+
         {state === "ready" ? (
           <TimetableGrid
             view={view}
             selectedEntityId={selectedId}
             lessons={filteredLessons}
             heatmapEnabled={heatmapEnabled}
+            preview={movePreview}
+            draggedLessonId={draggedLessonId}
+            onDragStart={setDraggedLessonId}
+            onDragEnd={() => setDraggedLessonId(null)}
+            onDragOver={(targetSlotId) => {
+              if (draggedLessonId) previewMove(draggedLessonId, targetSlotId);
+            }}
+            onDrop={(targetSlotId) => {
+              if (draggedLessonId) {
+                previewMove(draggedLessonId, targetSlotId);
+                setDraggedLessonId(null);
+              }
+            }}
+            onKeyboardMove={handleKeyboardMove}
           />
         ) : (
           <StatePanel state={state} />
@@ -628,6 +855,9 @@ export function TimetableScreen() {
           </span>
           <span>
             <i className="legend-dot conflict-dot" aria-hidden="true" /> Conflict cần review
+          </span>
+          <span className="legend-note">
+            Kéo lesson hoặc focus card + dùng phím mũi tên để xem eligibility preview.
           </span>
           <span className="legend-note">Timezone: Asia/Ho_Chi_Minh · tuần pilot</span>
         </div>
