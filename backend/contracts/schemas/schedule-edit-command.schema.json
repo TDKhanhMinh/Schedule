@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/schedule-edit-command.schema.json",
+  "title": "ScheduleEditCommand",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["timeSlotId"],
+  "properties": {
+    "timeSlotId": { "type": "string", "minLength": 1 },
+    "roomId": { "type": ["string", "null"], "minLength": 1 }
+  }
+}

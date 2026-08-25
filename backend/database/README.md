@@ -39,6 +39,12 @@ transition audit append-only và trigger chặn sửa payload/assignment sau khi
 publish. `APPROVED` và `LOCKED` được giữ làm trạng thái trung gian để các task
 approval/lock kế tiếp dùng cùng một state machine.
 
+`009_schedule_version_concurrency.sql` thêm revision tăng đơn điệu cho mỗi
+schedule version. API edit assignment dùng `If-Match`/ETag và transaction
+PostgreSQL để khóa snapshot, revalidate school/period/slot/room scope cùng
+collision hard constraints trước khi ghi; conflict trả snapshot hiện tại và
+không ghi một phần.
+
 Migration là forward-only: không có down migration. Trước khi migrate môi
 trường có dữ liệu, tạo backup/snapshot; nếu cần quay lại thì restore snapshot
 hoặc viết migration sửa tiếp theo. Không xóa hay gộp các row legacy/import QC

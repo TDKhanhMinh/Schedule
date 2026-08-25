@@ -24,6 +24,7 @@ const versionRow = (overrides: Record<string, unknown> = {}) => ({
   rule_snapshot_hash: null,
   input_snapshot_hash: null,
   schedule_snapshot_hash: null,
+  revision: 1,
   status_changed_by: "scheduler-001",
   status_changed_at: timestamp,
   status_reason: null,
@@ -34,11 +35,15 @@ const versionRow = (overrides: Record<string, unknown> = {}) => ({
 
 describe("ScheduleVersionService", () => {
   const query = jest.fn();
-  const pool = { query } as unknown as Pool;
+  const clientQuery = jest.fn();
+  const client = { query: clientQuery, release: jest.fn() };
+  const pool = { query, connect: jest.fn().mockResolvedValue(client) } as unknown as Pool;
   let service: ScheduleVersionService;
 
   beforeEach(() => {
     query.mockReset();
+    clientQuery.mockReset();
+    client.release.mockReset();
     service = new ScheduleVersionService(pool);
   });
 
@@ -129,5 +134,87 @@ describe("ScheduleVersionService", () => {
       expect.objectContaining({ fromStatus: null, toStatus: "DRAFT", actorId: "scheduler-001" }),
     ]);
     expect(query).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects a stale ETag with the current snapshot and performs no write", async () => {
+    const currentAssignment = {
+      id: "assignment-001",
+      lesson_id: "lesson-001",
+      session_index: 0,
+      time_slot_id: "slot-001",
+      room_id: "room-001",
+    };
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [versionRow({ revision: 2 })] })
+      .mockResolvedValueOnce({ rows: [currentAssignment] })
+      .mockResolvedValue({ rows: [] });
+
+    await expect(
+      service.updateAssignment(
+        "school-001",
+        "version-001",
+        "lesson-001",
+        0,
+        "scheduler-001",
+        { timeSlotId: "slot-002" },
+        '"schedule-version:version-001:1"',
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: "SCHEDULE_VERSION_CONCURRENT_UPDATE",
+        currentSnapshot: expect.objectContaining({
+          etag: '"schedule-version:version-001:2"',
+          assignments: [expect.objectContaining({ lessonId: "lesson-001", timeSlotId: "slot-001" })],
+        }),
+      }),
+    });
+    expect(clientQuery).toHaveBeenCalledWith("ROLLBACK");
+    expect(clientQuery.mock.calls.some(([sql]) => String(sql).includes("UPDATE schedule_assignments"))).toBe(false);
+  });
+
+  it("revalidates an edit in one transaction and increments the revision", async () => {
+    const currentAssignment = {
+      id: "assignment-001",
+      lesson_id: "lesson-001",
+      session_index: 0,
+      time_slot_id: "slot-001",
+      room_id: "room-001",
+    };
+    const targetAssignment = { ...currentAssignment, class_id: "class-001", teacher_id: "teacher-001" };
+    const updatedAssignment = { ...currentAssignment, time_slot_id: "slot-002" };
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [versionRow({ revision: 1 })] })
+      .mockResolvedValueOnce({ rows: [currentAssignment] })
+      .mockResolvedValueOnce({ rows: [targetAssignment] })
+      .mockResolvedValueOnce({ rows: [{ id: "slot-002" }] })
+      .mockResolvedValueOnce({ rows: [{ id: "room-001" }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ revision: 2 }] })
+      .mockResolvedValueOnce({ rows: [versionRow({ revision: 2 })] })
+      .mockResolvedValueOnce({ rows: [updatedAssignment] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await expect(
+      service.updateAssignment(
+        "school-001",
+        "version-001",
+        "lesson-001",
+        0,
+        "scheduler-001",
+        { timeSlotId: "slot-002" },
+        '"schedule-version:version-001:1"',
+      ),
+    ).resolves.toMatchObject({
+      contractVersion: "SCHEDULE-EDIT-1.0.0",
+      revision: 2,
+      etag: '"schedule-version:version-001:2"',
+      assignments: [expect.objectContaining({ timeSlotId: "slot-002" })],
+    });
+    expect(clientQuery).toHaveBeenCalledWith("COMMIT");
+    expect(client.release).toHaveBeenCalledTimes(1);
+    expect(clientQuery.mock.calls.some(([sql]) => String(sql).includes("UPDATE schedule_assignments"))).toBe(true);
   });
 });

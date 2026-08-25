@@ -10,7 +10,10 @@ export async function createApp() {
   const config = app.get(ConfigService);
   app.setGlobalPrefix(config.get<string>("API_PREFIX", "api/v1"));
   const corsOrigin = config.get<string>("CORS_ORIGIN");
-  app.enableCors(corsOrigin ? { origin: corsOrigin.split(",").map((origin) => origin.trim()) } : true);
+  app.enableCors({
+    origin: corsOrigin ? corsOrigin.split(",").map((origin) => origin.trim()) : true,
+    exposedHeaders: ["ETag", "x-request-id"],
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
