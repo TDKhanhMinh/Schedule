@@ -32,6 +32,7 @@ for (const marker of [
   "Approval và publish permissions",
   "Xuất Excel theo lớp, giáo viên và phòng",
   "SCHEDULE-EXPORT-1.0.0",
+  "PUBLIC READ ONLY",
 ]) {
   assert.ok(bundle.includes(marker), `bundle marker missing: ${marker}`);
 }

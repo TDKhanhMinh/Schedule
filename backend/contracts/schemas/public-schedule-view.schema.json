@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/public-schedule-view-1.0.0.json",
+  "title": "Public schedule read-only view",
+  "type": "object",
+  "required": [
+    "contractVersion",
+    "pdfContractVersion",
+    "watermark",
+    "linkExpiresAt",
+    "generatedAt",
+    "view",
+    "resourceFilter",
+    "school",
+    "academicPeriod",
+    "scheduleVersion",
+    "resources",
+    "assignments"
+  ],
+  "properties": {
+    "contractVersion": { "const": "SCHEDULE-PUBLIC-VIEW-1.0.0" },
+    "pdfContractVersion": { "const": "SCHEDULE-PDF-1.0.0" },
+    "watermark": { "const": "PUBLIC READ ONLY" },
+    "linkExpiresAt": { "type": "string", "format": "date-time" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "view": { "enum": ["all", "class", "teacher", "room"] },
+    "resourceFilter": { "type": ["string", "null"] },
+    "school": { "$ref": "#/$defs/school" },
+    "academicPeriod": { "$ref": "#/$defs/academicPeriod" },
+    "scheduleVersion": {
+      "type": "object",
+      "required": ["id", "number", "status", "revision"],
+      "properties": {
+        "id": { "type": "string" },
+        "number": { "type": "integer", "minimum": 1 },
+        "status": { "const": "PUBLISHED" },
+        "revision": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "resources": {
+      "type": "object",
+      "required": ["classes", "teachers", "rooms"],
+      "properties": {
+        "classes": { "type": "array", "items": { "type": "string" } },
+        "teachers": { "type": "array", "items": { "type": "string" } },
+        "rooms": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "assignments": { "type": "array", "items": { "$ref": "#/$defs/assignment" } }
+  },
+  "$defs": {
+    "school": {
+      "type": "object",
+      "required": ["id", "code", "name"],
+      "properties": { "id": { "type": "string" }, "code": { "type": "string" }, "name": { "type": "string" } },
+      "additionalProperties": false
+    },
+    "academicPeriod": {
+      "type": "object",
+      "required": ["id", "name", "academicYear", "termCode"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "academicYear": { "type": "string" },
+        "termCode": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "assignment": {
+      "type": "object",
+      "required": [
+        "classCode",
+        "className",
+        "teacherCode",
+        "teacherName",
+        "subjectCode",
+        "subjectName",
+        "roomCode",
+        "roomName",
+        "day",
+        "period",
+        "shiftCode",
+        "startsAt",
+        "endsAt"
+      ],
+      "properties": {
+        "classCode": { "type": "string" },
+        "className": { "type": "string" },
+        "teacherCode": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "subjectCode": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "roomCode": { "type": ["string", "null"] },
+        "roomName": { "type": ["string", "null"] },
+        "day": { "type": "integer", "minimum": 1, "maximum": 7 },
+        "period": { "type": "integer", "minimum": 1 },
+        "shiftCode": { "type": ["string", "null"] },
+        "startsAt": { "type": ["string", "null"] },
+        "endsAt": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

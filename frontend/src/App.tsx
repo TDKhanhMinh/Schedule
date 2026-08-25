@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { authHeaders, frontendConfig } from "./config";
 import { MasterDataScreen } from "./master-data";
+import { PublicScheduleScreen } from "./public-schedule";
 import { navigateTo, useAppRoute, type AppRoute } from "./routing";
 import { TimetableScreen } from "./timetable";
 
@@ -657,6 +658,8 @@ function PreviewPanel({
 export default function App() {
   const route = useAppRoute();
   const apiStatus = useApiStatus();
+
+  if (route === "public") return <PublicScheduleScreen />;
 
   const screen =
     route === "master-data" ? (
