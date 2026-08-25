@@ -85,16 +85,34 @@ The error catalog is part of the workbook and mirrors current API error codes:
 | `WORKBOOK_LIMIT_EXCEEDED` | Workbook | Sheet, row or column limit                                         |
 | `WORKBOOK_PARSE_TIMEOUT`  | Workbook | Parse exceeds the five-second limit                                |
 | `INVALID_TEMPLATE`        | Header   | First sheet, header row, missing column labels                     |
-| `REQUIRED`                | Data row | `row` plus canonical `field`                                       |
-| `INVALID_NUMBER`          | Data row | `row` plus `Số tiết`                                               |
-| `UNKNOWN_REFERENCE`       | Data row | `row` plus master-data field                                       |
-| `DUPLICATE`               | Data row | `row` plus duplicate natural-key field                             |
+| `REQUIRED`                | Data row | `sheet`, `row`, `column`, `cell` and canonical `field`             |
+| `INVALID_NUMBER`          | Data row | `sheet`, `row`, `column`, `cell` and `Số tiết`                     |
+| `UNKNOWN_REFERENCE`       | Data row | `sheet`, `row`, `column`, `cell` and master-data field             |
+| `DUPLICATE`               | Data row | `sheet`, `row`, column range and duplicate natural-key field       |
 | `IMPORT_HAS_ERRORS`       | Confirm  | Import batch                                                       |
 
-For v1, the sheet is fixed to `LessonRequirements`; the API returns the row
-number and field label for row errors. A future multi-sheet import must extend
-the API issue shape with an explicit `sheet` and `column` before it is allowed
-to change the first-sheet rule.
+For v1, the first sheet is fixed to `LessonRequirements`, while the preview
+summarizes every sheet and marks later guidance sheets as `IGNORED`. Each issue
+has `severity` (`ERROR` or `WARNING`), a machine-readable `code`, a canonical
+field, the source sheet, Excel column letter and cell reference. The preview
+also returns `status` (`VALID`, `WARNING` or `INVALID`) and `normalized` values
+for every row. The current five-column contract has no enum-valued field; an
+`INVALID_ENUM` rule must be added only with an approved versioned contract
+extension.
+
+### 5.1 Preview response additions
+
+`POST /api/v1/imports/preview` keeps the existing `errors`, `rows` and summary
+fields and additionally returns:
+
+- `columnMappings[]`: source Excel column, header, canonical field and requiredness.
+- `sheetSummaries[]`: sheet name/index, import status, row/column counts and validation counts.
+- `warningCount` and `warnings[]`: non-blocking issues; warnings do not disable Confirm.
+- `rows[].status`, `rows[].normalized` and `rows[].warnings` alongside raw `values` and `errors`.
+
+Preview persists only staging rows. `normalized` is the canonical NestJS shape
+(`classId`, `subjectId`, `teacherId`, `requiredSessions`, optional `roomId`) and
+does not change the Python solver contract.
 
 ## 6. Natural key and duplicate policy
 

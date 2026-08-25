@@ -612,6 +612,81 @@ input[type="file"] {
 .metrics b {
   color: var(--ink);
 }
+.preview-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+.preview-meta-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfcff;
+}
+.preview-meta-card h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.78rem;
+}
+.sheet-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+  font-size: 0.76rem;
+}
+.sheet-summary div {
+  display: grid;
+  gap: 3px;
+}
+.sheet-summary small {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+.mapping-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.mapping-list span {
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: var(--muted);
+  background: #eef4ff;
+  font-size: 0.68rem;
+}
+.mapping-list b {
+  color: var(--blue);
+}
+.validation-status {
+  display: inline-flex;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.validation-status.valid {
+  color: var(--green);
+  background: var(--green-soft);
+}
+.validation-status.invalid {
+  color: var(--red);
+  background: var(--red-soft);
+}
+.validation-status.warning {
+  color: #9a6700;
+  background: #fff4ce;
+}
+.validation-status.ignored {
+  color: var(--muted);
+  background: #eef1f6;
+}
 .error-list {
   display: grid;
   gap: 7px;
@@ -627,6 +702,23 @@ input[type="file"] {
   font-size: 0.78rem;
 }
 .row-error span {
+  overflow-wrap: anywhere;
+}
+.warning-list {
+  display: grid;
+  gap: 7px;
+  margin: 16px 0;
+}
+.row-warning {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-left: 3px solid #f0ad00;
+  background: #fff8e1;
+  color: #805b00;
+  font-size: 0.78rem;
+}
+.row-warning span {
   overflow-wrap: anywhere;
 }
 .table-wrap {
@@ -659,6 +751,18 @@ tr:last-child td {
 tr.has-error td {
   color: var(--red);
   background: var(--red-soft);
+}
+tr.has-warning td {
+  color: #805b00;
+  background: #fff8e1;
+}
+.normalized-values {
+  display: block;
+  max-width: 300px;
+  overflow-wrap: anywhere;
+  color: var(--blue);
+  font-size: 0.66rem;
+  white-space: normal;
 }
 .confirm-button {
   margin-top: 17px;
@@ -785,6 +889,9 @@ tr.has-error td {
   .preview-summary,
   .timetable-toolbar {
     display: grid;
+  }
+  .preview-meta-grid {
+    grid-template-columns: 1fr;
   }
   .upload-controls {
     align-items: stretch;

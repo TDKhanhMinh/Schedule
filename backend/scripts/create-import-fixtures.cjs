@@ -44,6 +44,7 @@ async function writeWorkbook(filename, workbookHeaders, rows) {
   await writeWorkbook("missing-value.xlsx", headers, [[null, validRows[0][1], validRows[0][2], 2, validRows[0][4]]]);
   await writeWorkbook("wrong-number.xlsx", headers, [[validRows[0][0], validRows[0][1], validRows[0][2], "hai", validRows[0][4]]]);
   await writeWorkbook("unknown-master-data.xlsx", headers, [[validRows[0][0], validRows[0][1], "XYZ", 2, "UNKNOWN-ROOM"]]);
+  await writeWorkbook("duplicate.xlsx", headers, [validRows[0], validRows[0]]);
   fs.writeFileSync(path.join(outputDir, "invalid.pdf"), "not an Excel workbook");
   fs.writeFileSync(path.join(outputDir, "invalid.docx"), "not an Excel workbook");
   fs.writeFileSync(

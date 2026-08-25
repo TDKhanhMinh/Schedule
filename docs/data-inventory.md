@@ -89,6 +89,7 @@ The current seed uses UUIDs as IDs and the fixture uses those UUIDs as workbook 
 | `wrong-number.xlsx` / TC-VAL-02 | Text `hai` in `Số tiết` | Row error `INVALID_NUMBER` | Numeric type and positive range must remain explicit |
 | `unknown-master-data.xlsx` / TC-VAL-03 | Unknown teacher and room references | Row errors `UNKNOWN_REFERENCE` | Master data must be loaded before import; pilot codes need mapping |
 | Duplicate natural key in one workbook | Same class–subject–teacher appears twice | Second row receives `DUPLICATE` | Pilot must confirm whether duplicates are errors or intentional split allocations |
+| `duplicate.xlsx` / P1.3-T03 | Duplicate class–subject–teacher rows | Second row is `INVALID` with sheet/column/cell metadata | Preview exposes the duplicate natural-key location before Confirm |
 
 ## 6. Gaps and risks to carry into P0.2-T02
 

@@ -32,13 +32,44 @@ type ColumnKey = (typeof REQUIRED_COLUMNS)[number]["key"] | (typeof OPTIONAL_COL
 type RawRow = Record<ColumnKey, string | number | null>;
 
 export interface ImportIssue {
+  sheet: string;
   row: number;
+  column: string;
+  cell: string;
   field: string;
   code: string;
+  severity: "ERROR" | "WARNING";
   message: string;
+  value: string | number | null;
 }
 
-interface NormalizedRow {
+type ValidationStatus = "VALID" | "WARNING" | "INVALID";
+
+export interface ColumnMapping {
+  column: string;
+  header: string;
+  field: string | null;
+  required: boolean;
+}
+
+interface HeaderMapping {
+  index: number;
+  header: string;
+  column: string;
+}
+
+export interface SheetPreviewSummary {
+  sheet: string;
+  index: number;
+  status: "IMPORTED" | "IGNORED";
+  rowCount: number;
+  columnCount: number;
+  validRowCount: number;
+  warningCount: number;
+  errorCount: number;
+}
+
+export interface NormalizedRow {
   id: string;
   classId: string;
   subjectId: string;
@@ -52,6 +83,8 @@ interface ValidatedRow {
   rowNumber: number;
   raw: RawRow;
   normalized: NormalizedRow | null;
+  status: ValidationStatus;
+  warnings: ImportIssue[];
   errors: ImportIssue[];
 }
 
@@ -137,7 +170,12 @@ export class ImportsService {
     }
     await this.assertSchool(schoolId);
 
-    let parsed: { columns: string[]; rows: ValidatedRow[] };
+    let parsed: {
+      columns: string[];
+      columnMappings: ColumnMapping[];
+      sheetSummaries: SheetPreviewSummary[];
+      rows: ValidatedRow[];
+    };
     try {
       parsed = await withTimeout(
         this.parseAndValidate(file.buffer, schoolId),
@@ -162,6 +200,7 @@ export class ImportsService {
 
     const batchId = randomUUID();
     const errors = parsed.rows.flatMap((row) => row.errors);
+    const warnings = parsed.rows.flatMap((row) => row.warnings);
     const validRows = parsed.rows.filter((row) => row.errors.length === 0);
     const client = await this.pool.connect();
 
@@ -187,7 +226,13 @@ export class ImportsService {
         await client.query(
           `INSERT INTO import_rows (id, batch_id, row_number, payload, errors)
            VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)`,
-          [row.id, batchId, row.rowNumber, JSON.stringify(row.normalized), JSON.stringify(row.errors)],
+          [
+            row.id,
+            batchId,
+            row.rowNumber,
+            JSON.stringify(row.normalized),
+            JSON.stringify([...row.errors, ...row.warnings]),
+          ],
         );
       }
 
@@ -205,14 +250,21 @@ export class ImportsService {
       templateVersion: TEMPLATE_VERSION,
       filename: file.originalname,
       columns: parsed.columns,
+      columnMappings: parsed.columnMappings,
+      sheetSummaries: parsed.sheetSummaries,
       rowCount: parsed.rows.length,
       validRowCount: validRows.length,
       errorCount: errors.length,
+      warningCount: warnings.length,
       canConfirm: errors.length === 0 && parsed.rows.length > 0,
       errors,
+      warnings,
       rows: parsed.rows.map((row) => ({
         rowNumber: row.rowNumber,
         values: row.raw,
+        normalized: row.normalized,
+        status: row.status,
+        warnings: row.warnings,
         errors: row.errors,
       })),
     };
@@ -366,16 +418,36 @@ export class ImportsService {
       });
     }
 
-    const headerMap = new Map<string, number>();
+    const headerMap = new Map<string, HeaderMapping>();
     const columns: string[] = [];
+    const headerEntries: HeaderMapping[] = [];
     const headerRow = worksheet.getRow(1);
     for (let column = 1; column <= headerRow.cellCount; column += 1) {
       const header = this.asText(headerRow.getCell(column).value);
       if (header) {
         columns.push(header);
-        headerMap.set(this.normalize(header), column);
+        const mapping = {
+          index: column,
+          header,
+          column: this.columnLetter(column),
+        };
+        headerEntries.push(mapping);
+        headerMap.set(this.normalize(header), mapping);
       }
     }
+
+    const columnDefinitions = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS];
+    const columnMappings: ColumnMapping[] = headerEntries.map(({ header, column }) => {
+      const definition = columnDefinitions.find((candidate) =>
+        candidate.aliases.some((alias) => this.normalize(alias) === this.normalize(header)),
+      );
+      return {
+        column,
+        header,
+        field: definition?.key ?? null,
+        required: definition ? REQUIRED_COLUMNS.some((candidate) => candidate.key === definition.key) : false,
+      };
+    });
 
     const missingColumns = REQUIRED_COLUMNS.filter(
       (column) => !column.aliases.some((alias) => headerMap.has(this.normalize(alias))),
@@ -391,6 +463,8 @@ export class ImportsService {
     const masterData = await this.loadMasterData(schoolId);
     const rows: ValidatedRow[] = [];
     const seen = new Set<string>();
+    const columnFor = (definition: (typeof columnDefinitions)[number]) =>
+      definition.aliases.map((alias) => headerMap.get(this.normalize(alias))).find((mapping) => mapping)?.column ?? "—";
 
     for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber += 1) {
       const row = worksheet.getRow(rowNumber);
@@ -407,28 +481,82 @@ export class ImportsService {
 
       const raw = {} as RawRow;
       for (const column of [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS]) {
-        const index = column.aliases
+        const mapping = column.aliases
           .map((alias) => headerMap.get(this.normalize(alias)))
           .find((value) => value !== undefined);
-        raw[column.key] = index ? this.asScalar(row.getCell(index).value) : null;
+        raw[column.key] = mapping ? this.asScalar(row.getCell(mapping.index).value) : null;
       }
 
       const errors: ImportIssue[] = [];
+      const warnings: ImportIssue[] = [];
       const classCode = this.asText(raw.classCode);
       const subjectCode = this.asText(raw.subjectCode);
       const teacherCode = this.asText(raw.teacherCode);
       const roomCode = this.asText(raw.roomCode);
 
-      if (!classCode) errors.push(this.issue(rowNumber, "Mã lớp", "REQUIRED", "Mã lớp là bắt buộc."));
-      if (!subjectCode) errors.push(this.issue(rowNumber, "Mã môn", "REQUIRED", "Mã môn là bắt buộc."));
-      if (!teacherCode) errors.push(this.issue(rowNumber, "Mã giáo viên", "REQUIRED", "Mã giáo viên là bắt buộc."));
+      if (!classCode)
+        errors.push(
+          this.issue(
+            worksheet.name,
+            rowNumber,
+            columnFor(REQUIRED_COLUMNS[0]),
+            "Mã lớp",
+            "REQUIRED",
+            "Mã lớp là bắt buộc.",
+            raw.classCode,
+          ),
+        );
+      if (!subjectCode)
+        errors.push(
+          this.issue(
+            worksheet.name,
+            rowNumber,
+            columnFor(REQUIRED_COLUMNS[1]),
+            "Mã môn",
+            "REQUIRED",
+            "Mã môn là bắt buộc.",
+            raw.subjectCode,
+          ),
+        );
+      if (!teacherCode)
+        errors.push(
+          this.issue(
+            worksheet.name,
+            rowNumber,
+            columnFor(REQUIRED_COLUMNS[2]),
+            "Mã giáo viên",
+            "REQUIRED",
+            "Mã giáo viên là bắt buộc.",
+            raw.teacherCode,
+          ),
+        );
       if (!this.asText(raw.requiredSessions)) {
-        errors.push(this.issue(rowNumber, "Số tiết", "REQUIRED", "Số tiết là bắt buộc."));
+        errors.push(
+          this.issue(
+            worksheet.name,
+            rowNumber,
+            columnFor(REQUIRED_COLUMNS[3]),
+            "Số tiết",
+            "REQUIRED",
+            "Số tiết là bắt buộc.",
+            raw.requiredSessions,
+          ),
+        );
       }
 
       const requiredSessions = this.toPositiveInteger(raw.requiredSessions);
       if (this.asText(raw.requiredSessions) && requiredSessions === null) {
-        errors.push(this.issue(rowNumber, "Số tiết", "INVALID_NUMBER", "Dữ liệu cột Số tiết phải là số nguyên dương."));
+        errors.push(
+          this.issue(
+            worksheet.name,
+            rowNumber,
+            columnFor(REQUIRED_COLUMNS[3]),
+            "Số tiết",
+            "INVALID_NUMBER",
+            "Dữ liệu cột Số tiết phải là số nguyên dương.",
+            raw.requiredSessions,
+          ),
+        );
       }
 
       const classId = this.lookup(masterData.classes, classCode);
@@ -437,25 +565,73 @@ export class ImportsService {
       const roomId = roomCode ? this.lookup(masterData.rooms, roomCode) : undefined;
 
       if (classCode && !classId) {
-        errors.push(this.issue(rowNumber, "Mã lớp", "UNKNOWN_REFERENCE", "Mã lớp " + classCode + " không tồn tại."));
+        errors.push(
+          this.issue(
+            worksheet.name,
+            rowNumber,
+            columnFor(REQUIRED_COLUMNS[0]),
+            "Mã lớp",
+            "UNKNOWN_REFERENCE",
+            "Mã lớp " + classCode + " không tồn tại.",
+            raw.classCode,
+          ),
+        );
       }
       if (subjectCode && !subjectId) {
-        errors.push(this.issue(rowNumber, "Mã môn", "UNKNOWN_REFERENCE", "Mã môn " + subjectCode + " không tồn tại."));
+        errors.push(
+          this.issue(
+            worksheet.name,
+            rowNumber,
+            columnFor(REQUIRED_COLUMNS[1]),
+            "Mã môn",
+            "UNKNOWN_REFERENCE",
+            "Mã môn " + subjectCode + " không tồn tại.",
+            raw.subjectCode,
+          ),
+        );
       }
       if (teacherCode && !teacherId) {
         errors.push(
-          this.issue(rowNumber, "Mã giáo viên", "UNKNOWN_REFERENCE", "Mã Giáo viên " + teacherCode + " không tồn tại."),
+          this.issue(
+            worksheet.name,
+            rowNumber,
+            columnFor(REQUIRED_COLUMNS[2]),
+            "Mã giáo viên",
+            "UNKNOWN_REFERENCE",
+            "Mã Giáo viên " + teacherCode + " không tồn tại.",
+            raw.teacherCode,
+          ),
         );
       }
       if (roomCode && !roomId) {
         errors.push(
-          this.issue(rowNumber, "Mã phòng", "UNKNOWN_REFERENCE", "Mã Phòng học " + roomCode + " không tồn tại."),
+          this.issue(
+            worksheet.name,
+            rowNumber,
+            columnFor(OPTIONAL_COLUMNS[0]),
+            "Mã phòng",
+            "UNKNOWN_REFERENCE",
+            "Mã Phòng học " + roomCode + " không tồn tại.",
+            raw.roomCode,
+          ),
         );
       }
 
       const duplicateKey = [classId, subjectId, teacherId].join("|");
       if (classId && subjectId && teacherId && seen.has(duplicateKey)) {
-        errors.push(this.issue(rowNumber, "Dòng", "DUPLICATE", "Dòng dữ liệu bị trùng phân công lớp/môn/giáo viên."));
+        const duplicateColumns = [REQUIRED_COLUMNS[0], REQUIRED_COLUMNS[1], REQUIRED_COLUMNS[2]].map(columnFor);
+        errors.push(
+          this.issue(
+            worksheet.name,
+            rowNumber,
+            duplicateColumns.join(", "),
+            "Dòng",
+            "DUPLICATE",
+            "Dòng dữ liệu bị trùng phân công lớp/môn/giáo viên.",
+            null,
+            duplicateColumns.map((column) => `${column}${rowNumber}`).join(", "),
+          ),
+        );
       }
       if (errors.length === 0) {
         seen.add(duplicateKey);
@@ -476,6 +652,8 @@ export class ImportsService {
                 ...(roomId ? { roomId } : {}),
               }
             : null,
+        status: errors.length > 0 ? "INVALID" : warnings.length > 0 ? "WARNING" : "VALID",
+        warnings,
         errors,
       });
     }
@@ -486,7 +664,22 @@ export class ImportsService {
       }
     }
 
-    return { columns, rows };
+    const sheetSummaries: SheetPreviewSummary[] = workbook.worksheets.map((sheet, index) => {
+      const imported = index === 0;
+      const importedRows = imported ? rows : [];
+      return {
+        sheet: sheet.name,
+        index: index + 1,
+        status: imported ? "IMPORTED" : "IGNORED",
+        rowCount: imported ? rows.length : Math.max(0, sheet.actualRowCount - 1),
+        columnCount: sheet.columnCount,
+        validRowCount: importedRows.filter((row) => row.errors.length === 0).length,
+        warningCount: importedRows.reduce((total, row) => total + row.warnings.length, 0),
+        errorCount: importedRows.reduce((total, row) => total + row.errors.length, 0),
+      };
+    });
+
+    return { columns, columnMappings, sheetSummaries, rows };
   }
 
   private async loadMasterData(schoolId: string) {
@@ -699,6 +892,17 @@ export class ImportsService {
     return [...column.toUpperCase()].reduce((total, character) => total * 26 + character.charCodeAt(0) - 64, 0);
   }
 
+  private columnLetter(index: number) {
+    let value = index;
+    let result = "";
+    while (value > 0) {
+      const remainder = (value - 1) % 26;
+      result = String.fromCharCode(65 + remainder) + result;
+      value = Math.floor((value - 1) / 26);
+    }
+    return result;
+  }
+
   private async assertSchool(schoolId: string) {
     const result = await this.pool.query("SELECT 1 FROM schools WHERE id = $1", [schoolId]);
     if (result.rowCount === 0) {
@@ -773,8 +977,27 @@ export class ImportsService {
     return lookup.get(this.normalize(value));
   }
 
-  private issue(row: number, field: string, code: string, message: string): ImportIssue {
-    return { row, field, code, message };
+  private issue(
+    sheet: string,
+    row: number,
+    column: string,
+    field: string,
+    code: string,
+    message: string,
+    value: string | number | null,
+    cell?: string,
+  ): ImportIssue {
+    return {
+      sheet,
+      row,
+      column,
+      cell: cell ?? (column === "—" ? "—" : `${column}${row}`),
+      field,
+      code,
+      severity: "ERROR",
+      message,
+      value,
+    };
   }
 
   private normalize(value: string) {

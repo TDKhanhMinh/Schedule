@@ -2,6 +2,8 @@
 
 import ExcelJS from "exceljs";
 import { BadRequestException } from "@nestjs/common";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import type { Pool } from "pg";
 import {
   ImportsService,
@@ -14,6 +16,7 @@ import {
 } from "./imports.service";
 
 const SCHOOL_ID = "00000000-0000-0000-0000-000000000001";
+const FIXTURES_DIR = resolve(__dirname, "../../solver/examples/import-fixtures");
 
 function createPoolMock() {
   const clientQueries: string[] = [];
@@ -23,10 +26,43 @@ function createPoolMock() {
   });
   const poolQuery = jest.fn(async (sql: string) => {
     if (sql.includes("SELECT 1 FROM schools")) return { rows: [{ exists: 1 }], rowCount: 1 };
-    if (sql.includes("FROM classes")) return { rows: [{ id: "class-7a", label: "7A" }], rowCount: 1 };
-    if (sql.includes("FROM subjects")) return { rows: [{ id: "subject-math", label: "Toán" }], rowCount: 1 };
-    if (sql.includes("FROM teachers")) return { rows: [{ id: "teacher-an", label: "Nguyễn An" }], rowCount: 1 };
-    if (sql.includes("FROM rooms")) return { rows: [{ id: "room-a", label: "Phòng A" }], rowCount: 1 };
+    if (sql.includes("FROM classes"))
+      return {
+        rows: [
+          { id: "class-7a", label: "7A" },
+          { id: "00000000-0000-0000-0000-000000000201", label: "7A" },
+          { id: "00000000-0000-0000-0000-000000000202", label: "7B" },
+        ],
+        rowCount: 3,
+      };
+    if (sql.includes("FROM subjects"))
+      return {
+        rows: [
+          { id: "subject-math", label: "Toán" },
+          { id: "00000000-0000-0000-0000-000000000401", label: "Toán" },
+          { id: "00000000-0000-0000-0000-000000000402", label: "Vật lý" },
+          { id: "00000000-0000-0000-0000-000000000403", label: "Ngữ văn" },
+        ],
+        rowCount: 4,
+      };
+    if (sql.includes("FROM teachers"))
+      return {
+        rows: [
+          { id: "teacher-an", label: "Nguyễn An" },
+          { id: "00000000-0000-0000-0000-000000000301", label: "Nguyễn An" },
+          { id: "00000000-0000-0000-0000-000000000302", label: "Trần Bình" },
+        ],
+        rowCount: 3,
+      };
+    if (sql.includes("FROM rooms"))
+      return {
+        rows: [
+          { id: "room-a", label: "Phòng A" },
+          { id: "00000000-0000-0000-0000-000000000501", label: "Phòng A" },
+          { id: "00000000-0000-0000-0000-000000000502", label: "Phòng B" },
+        ],
+        rowCount: 3,
+      };
     return { rows: [], rowCount: 0 };
   });
   const pool = {
@@ -64,6 +100,10 @@ async function workbookBuffer(
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }
 
+function fixtureBuffer(filename: string) {
+  return readFile(resolve(FIXTURES_DIR, filename));
+}
+
 function expectBadRequest(error: unknown, code: string) {
   expect(error).toBeInstanceOf(BadRequestException);
   expect((error as BadRequestException).getResponse()).toEqual(expect.objectContaining({ code }));
@@ -80,8 +120,108 @@ describe("ImportsService secure workbook boundary", () => {
       "security-test-user",
     );
 
-    expect(result).toMatchObject({ rowCount: 1, validRowCount: 1, errorCount: 0, canConfirm: true });
+    expect(result).toMatchObject({
+      rowCount: 1,
+      validRowCount: 1,
+      errorCount: 0,
+      warningCount: 0,
+      canConfirm: true,
+      sheetSummaries: [
+        {
+          sheet: "LessonRequirements",
+          index: 1,
+          status: "IMPORTED",
+          rowCount: 1,
+          validRowCount: 1,
+          warningCount: 0,
+          errorCount: 0,
+        },
+      ],
+    });
+    expect(result.columnMappings).toEqual([
+      { column: "A", header: "Mã lớp", field: "classCode", required: true },
+      { column: "B", header: "Mã môn", field: "subjectCode", required: true },
+      { column: "C", header: "Mã giáo viên", field: "teacherCode", required: true },
+      { column: "D", header: "Số tiết", field: "requiredSessions", required: true },
+      { column: "E", header: "Mã phòng", field: "roomCode", required: false },
+    ]);
+    expect(result.rows[0]).toMatchObject({
+      rowNumber: 2,
+      status: "VALID",
+      normalized: expect.objectContaining({
+        classId: "00000000-0000-0000-0000-000000000201",
+        subjectId: "00000000-0000-0000-0000-000000000401",
+        teacherId: "00000000-0000-0000-0000-000000000301",
+      }),
+      warnings: [],
+      errors: [],
+    });
     expect(clientQueries.some((sql) => sql.includes("lesson_requirements"))).toBe(false);
+  });
+
+  it.each([
+    ["missing-value.xlsx", "REQUIRED", "A", "A2"],
+    ["wrong-number.xlsx", "INVALID_NUMBER", "D", "D2"],
+    ["unknown-master-data.xlsx", "UNKNOWN_REFERENCE", "C", "C2"],
+  ])("returns stable row/sheet/column metadata for %s", async (filename, code, column, cell) => {
+    const { pool } = createPoolMock();
+    const service = new ImportsService(pool);
+
+    const result = await service.preview(
+      { originalname: filename, buffer: await fixtureBuffer(filename) },
+      SCHOOL_ID,
+      "fixture-user",
+    );
+
+    expect(result).toMatchObject({ rowCount: 1, validRowCount: 0, canConfirm: false });
+    expect(result.rows[0]).toMatchObject({ rowNumber: 2, status: "INVALID", normalized: null });
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sheet: "LessonRequirements",
+          row: 2,
+          column,
+          cell,
+          code,
+          severity: "ERROR",
+        }),
+      ]),
+    );
+  });
+
+  it("marks duplicate natural keys as invalid with a range reference", async () => {
+    const { pool } = createPoolMock();
+    const service = new ImportsService(pool);
+
+    const result = await service.preview(
+      { originalname: "duplicate.xlsx", buffer: await fixtureBuffer("duplicate.xlsx") },
+      SCHOOL_ID,
+      "duplicate-user",
+    );
+
+    expect(result.rows[1]).toMatchObject({ rowNumber: 3, status: "INVALID", normalized: null });
+    expect(result.rows[1].errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: "DUPLICATE", column: "A, B, C", cell: "A3, B3, C3" })]),
+    );
+  });
+
+  it("rejects a missing required column with a stable template error", async () => {
+    const { pool } = createPoolMock();
+    const service = new ImportsService(pool);
+
+    try {
+      await service.preview(
+        { originalname: "missing-required-column.xlsx", buffer: await fixtureBuffer("missing-required-column.xlsx") },
+        SCHOOL_ID,
+        "template-user",
+      );
+      throw new Error("expected missing column rejection");
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadRequestException);
+      expect((error as BadRequestException).getResponse()).toEqual(
+        expect.objectContaining({ code: "INVALID_TEMPLATE", missingColumns: ["Mã giáo viên"] }),
+      );
+    }
   });
 
   it("rejects an Excel-like filename with an invalid magic signature", async () => {

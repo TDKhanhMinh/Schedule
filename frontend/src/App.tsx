@@ -6,15 +6,52 @@ import { navigateTo, useAppRoute, type AppRoute } from "./routing";
 type ApiStatus = "checking" | "online" | "offline";
 
 interface ImportIssue {
+  sheet: string;
   row: number;
+  column: string;
+  cell: string;
   field: string;
   code: string;
+  severity: "ERROR" | "WARNING";
   message: string;
+  value: string | number | null;
+}
+
+type ValidationStatus = "VALID" | "WARNING" | "INVALID";
+
+interface NormalizedPreviewValue {
+  id: string;
+  classId: string;
+  subjectId: string;
+  teacherId: string;
+  requiredSessions: number;
+  roomId?: string;
+}
+
+interface ColumnMapping {
+  column: string;
+  header: string;
+  field: string | null;
+  required: boolean;
+}
+
+interface SheetSummary {
+  sheet: string;
+  index: number;
+  status: "IMPORTED" | "IGNORED";
+  rowCount: number;
+  columnCount: number;
+  validRowCount: number;
+  warningCount: number;
+  errorCount: number;
 }
 
 interface PreviewRow {
   rowNumber: number;
   values: Record<string, string | number | null>;
+  normalized: NormalizedPreviewValue | null;
+  status: ValidationStatus;
+  warnings: ImportIssue[];
   errors: ImportIssue[];
 }
 
@@ -22,11 +59,16 @@ interface PreviewResponse {
   importBatchId: string;
   status: string;
   filename: string;
+  columns: string[];
+  columnMappings: ColumnMapping[];
+  sheetSummaries: SheetSummary[];
   rowCount: number;
   validRowCount: number;
   errorCount: number;
+  warningCount: number;
   canConfirm: boolean;
   errors: ImportIssue[];
+  warnings: ImportIssue[];
   rows: PreviewRow[];
 }
 
@@ -431,6 +473,39 @@ function PreviewPanel({
         <span>
           <b>{preview.errorCount}</b> lỗi
         </span>
+        <span>
+          <b>{preview.warningCount}</b> cảnh báo
+        </span>
+      </div>
+
+      <div className="preview-meta-grid">
+        <div className="preview-meta-card">
+          <h3>Sheet summary</h3>
+          {preview.sheetSummaries.map((summary) => (
+            <div className="sheet-summary" key={summary.sheet}>
+              <div>
+                <strong>{summary.sheet}</strong>
+                <small>
+                  Sheet {summary.index} · {summary.columnCount} cột · {summary.rowCount} dòng
+                </small>
+              </div>
+              <span className={summary.status === "IMPORTED" ? "validation-status valid" : "validation-status ignored"}>
+                {summary.status === "IMPORTED" ? "Được import" : "Bỏ qua"}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="preview-meta-card">
+          <h3>Column mapping</h3>
+          <div className="mapping-list">
+            {preview.columnMappings.map((mapping) => (
+              <span key={mapping.column}>
+                <b>{mapping.column}</b> {mapping.header} → {mapping.field ?? "Không sử dụng"}
+                {mapping.required ? " · bắt buộc" : ""}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
 
       {preview.errors.length > 0 ? (
@@ -438,9 +513,26 @@ function PreviewPanel({
           {preview.errors.map((issue, index) => (
             <div className="row-error" key={issue.row + "-" + issue.field + "-" + index}>
               <b>
-                Dòng {issue.row} · {issue.field}
+                {issue.sheet} · {issue.cell} · {issue.code}
               </b>
-              <span>{issue.message}</span>
+              <span>
+                {issue.field}: {issue.message}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {preview.warnings.length > 0 ? (
+        <div className="warning-list">
+          {preview.warnings.map((issue, index) => (
+            <div className="row-warning" key={issue.row + "-" + issue.field + "-" + index}>
+              <b>
+                {issue.sheet} · {issue.cell} · {issue.code}
+              </b>
+              <span>
+                {issue.field}: {issue.message}
+              </span>
             </div>
           ))}
         </div>
@@ -455,18 +547,29 @@ function PreviewPanel({
               <th>Mã môn</th>
               <th>Mã giáo viên</th>
               <th>Số tiết</th>
+              <th>Giá trị chuẩn hóa</th>
               <th>Trạng thái</th>
             </tr>
           </thead>
           <tbody>
             {preview.rows.map((row) => (
-              <tr className={row.errors.length > 0 ? "has-error" : ""} key={row.rowNumber}>
+              <tr
+                className={row.status === "INVALID" ? "has-error" : row.status === "WARNING" ? "has-warning" : ""}
+                key={row.rowNumber}
+              >
                 <td>{row.rowNumber}</td>
-                <td>{row.values.classCode || "—"}</td>
-                <td>{row.values.subjectCode || "—"}</td>
-                <td>{row.values.teacherCode || "—"}</td>
-                <td>{row.values.requiredSessions || "—"}</td>
-                <td>{row.errors.length > 0 ? "Lỗi" : "Hợp lệ"}</td>
+                <td>{row.values.classCode ?? "—"}</td>
+                <td>{row.values.subjectCode ?? "—"}</td>
+                <td>{row.values.teacherCode ?? "—"}</td>
+                <td>{row.values.requiredSessions ?? "—"}</td>
+                <td>
+                  <code className="normalized-values">{row.normalized ? JSON.stringify(row.normalized) : "—"}</code>
+                </td>
+                <td>
+                  <span className={`validation-status ${row.status.toLowerCase()}`}>
+                    {row.status === "INVALID" ? "Lỗi" : row.status === "WARNING" ? "Cảnh báo" : "Hợp lệ"}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
