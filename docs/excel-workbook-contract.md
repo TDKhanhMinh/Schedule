@@ -79,24 +79,24 @@ production template is published; display names are not a durable join key.
 
 The error catalog is part of the workbook and mirrors current API error codes:
 
-| Code                      | Scope    | Current location data                                              |
-| ------------------------- | -------- | ------------------------------------------------------------------ |
-| `INVALID_FILE_TYPE`       | Request  | Filename/extension                                                 |
-| `INVALID_FILE_SIGNATURE`  | Request  | File bytes are not a ZIP/OOXML workbook                            |
-| `FILE_TOO_LARGE`          | Request  | Multipart file exceeds the 5 MiB limit                             |
-| `WORKBOOK_TOO_LARGE`      | Workbook | Compressed workbook exceeds the 5 MiB limit                        |
-| `WORKBOOK_UNSAFE_CONTENT` | Workbook | Macro, formula, hyperlink, external relationship or expansion risk |
-| `WORKBOOK_LIMIT_EXCEEDED` | Workbook | Sheet, row or column limit                                         |
-| `WORKBOOK_PARSE_TIMEOUT`  | Workbook | Parse exceeds the five-second limit                                |
-| `INVALID_TEMPLATE`        | Header   | First sheet, header row, missing column labels                     |
-| `REQUIRED`                | Data row | `sheet`, `row`, `column`, `cell` and canonical `field`             |
-| `INVALID_NUMBER`          | Data row | `sheet`, `row`, `column`, `cell` and `Số tiết`                     |
-| `UNKNOWN_REFERENCE`       | Data row | `sheet`, `row`, `column`, `cell` and master-data field             |
-| `DUPLICATE`               | Data row | `sheet`, `row`, column range and duplicate natural-key field       |
-| `IMPORT_HAS_ERRORS`       | Confirm  | Import batch                                                       |
-| `IDEMPOTENCY_KEY_REQUIRED` | Confirm  | `Idempotency-Key`/import token header                             |
-| `IDEMPOTENCY_KEY_MISMATCH`| Confirm  | Import batch already bound to another token                      |
-| `IDEMPOTENCY_KEY_REUSED`  | Confirm  | School-scoped token already belongs to another batch             |
+| Code                       | Scope    | Current location data                                              |
+| -------------------------- | -------- | ------------------------------------------------------------------ |
+| `INVALID_FILE_TYPE`        | Request  | Filename/extension                                                 |
+| `INVALID_FILE_SIGNATURE`   | Request  | File bytes are not a ZIP/OOXML workbook                            |
+| `FILE_TOO_LARGE`           | Request  | Multipart file exceeds the 5 MiB limit                             |
+| `WORKBOOK_TOO_LARGE`       | Workbook | Compressed workbook exceeds the 5 MiB limit                        |
+| `WORKBOOK_UNSAFE_CONTENT`  | Workbook | Macro, formula, hyperlink, external relationship or expansion risk |
+| `WORKBOOK_LIMIT_EXCEEDED`  | Workbook | Sheet, row or column limit                                         |
+| `WORKBOOK_PARSE_TIMEOUT`   | Workbook | Parse exceeds the five-second limit                                |
+| `INVALID_TEMPLATE`         | Header   | First sheet, header row, missing column labels                     |
+| `REQUIRED`                 | Data row | `sheet`, `row`, `column`, `cell` and canonical `field`             |
+| `INVALID_NUMBER`           | Data row | `sheet`, `row`, `column`, `cell` and `Số tiết`                     |
+| `UNKNOWN_REFERENCE`        | Data row | `sheet`, `row`, `column`, `cell` and master-data field             |
+| `DUPLICATE`                | Data row | `sheet`, `row`, column range and duplicate natural-key field       |
+| `IMPORT_HAS_ERRORS`        | Confirm  | Import batch                                                       |
+| `IDEMPOTENCY_KEY_REQUIRED` | Confirm  | `Idempotency-Key`/import token header                              |
+| `IDEMPOTENCY_KEY_MISMATCH` | Confirm  | Import batch already bound to another token                        |
+| `IDEMPOTENCY_KEY_REUSED`   | Confirm  | School-scoped token already belongs to another batch               |
 
 For v1, the first sheet is fixed to `LessonRequirements`, while the preview
 summarizes every sheet and marks later guidance sheets as `IGNORED`. Each issue
@@ -121,6 +121,17 @@ fields and additionally returns:
 Preview persists only staging rows. `normalized` is the canonical NestJS shape
 (`classId`, `subjectId`, `teacherId`, `requiredSessions`, optional `roomId`) and
 does not change the Python solver contract.
+
+### 5.2 Downloadable error report
+
+For a staged batch, `GET /api/v1/imports/:batchId/error-report` returns an
+`.xlsx` workbook scoped to that batch and school. The `ImportErrors` sheet has
+the columns `Sheet`, `Row`, `Column`, `Cell`, `Field`, `Code`, `Severity`,
+`Message` and `Original Value`. It is generated from the persisted validation
+issues only, so it does not copy unrelated master data or workbook sheets.
+The frontend exposes the same contract as `Tải báo cáo lỗi Excel` when the
+preview contains errors. Empty reports are still valid workbooks with the
+header row, allowing a caller to use one deterministic download flow.
 
 ## 6. Natural key and duplicate policy
 

@@ -179,6 +179,39 @@ function createConfirmPoolMock(options: { failOnLessonInsert?: boolean } = {}) {
   return { pool, batch, clientQueries };
 }
 
+function createErrorReportPoolMock() {
+  const pool = {
+    query: jest.fn(async (sql: string) => {
+      if (sql.includes("FROM import_batches")) return { rows: [{ id: "batch-error-001" }], rowCount: 1 };
+      if (sql.includes("FROM import_rows")) {
+        return {
+          rows: [
+            {
+              row_number: 2,
+              errors: [
+                {
+                  sheet: "LessonRequirements",
+                  row: 2,
+                  column: "D",
+                  cell: "D2",
+                  field: "Số tiết",
+                  code: "INVALID_NUMBER",
+                  severity: "ERROR",
+                  message: "Dữ liệu cột Số tiết phải là số nguyên dương.",
+                  value: "001x",
+                },
+              ],
+            },
+          ],
+          rowCount: 1,
+        };
+      }
+      return { rows: [], rowCount: 0 };
+    }),
+  } as unknown as Pool;
+  return pool;
+}
+
 describe("ImportsService secure workbook boundary", () => {
   it("parses a valid workbook and stages only import rows before confirm", async () => {
     const { pool, clientQueries } = createPoolMock();
@@ -260,6 +293,63 @@ describe("ImportsService secure workbook boundary", () => {
         }),
       ]),
     );
+  });
+
+  it("accepts legacy aliases and preserves Unicode values", async () => {
+    const { pool } = createPoolMock();
+    const service = new ImportsService(pool);
+
+    const result = await service.preview(
+      { originalname: "legacy.xlsx", buffer: await fixtureBuffer("legacy.xlsx") },
+      SCHOOL_ID,
+      "legacy-user",
+    );
+
+    expect(result).toMatchObject({ rowCount: 1, validRowCount: 1, errorCount: 0, canConfirm: true });
+    expect(result.rows[0]).toMatchObject({
+      values: {
+        classCode: "7A",
+        subjectCode: "Toán",
+        teacherCode: "Nguyễn An",
+        requiredSessions: "2",
+        roomCode: "Phòng A",
+      },
+      normalized: expect.objectContaining({ requiredSessions: 2 }),
+    });
+  });
+
+  it("generates a scoped Excel error report with source coordinates and original values", async () => {
+    const service = new ImportsService(createErrorReportPoolMock());
+    const report = await service.buildErrorReport("batch-error-001", SCHOOL_ID);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(report as never);
+
+    const worksheet = workbook.getWorksheet("ImportErrors");
+    expect(worksheet).toBeDefined();
+    if (!worksheet) throw new Error("ImportErrors sheet is missing");
+    const rowValues = (row: { values: unknown }) => Array.from(row.values as unknown[]).slice(1);
+    expect(rowValues(worksheet.getRow(1))).toEqual([
+      "Sheet",
+      "Row",
+      "Column",
+      "Cell",
+      "Field",
+      "Code",
+      "Severity",
+      "Message",
+      "Original Value",
+    ]);
+    expect(rowValues(worksheet.getRow(2))).toEqual([
+      "LessonRequirements",
+      2,
+      "D",
+      "D2",
+      "Số tiết",
+      "INVALID_NUMBER",
+      "ERROR",
+      "Dữ liệu cột Số tiết phải là số nguyên dương.",
+      "001x",
+    ]);
   });
 
   it("marks duplicate natural keys as invalid with a range reference", async () => {

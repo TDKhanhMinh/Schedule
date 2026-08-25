@@ -493,6 +493,60 @@ export class ImportsService {
     };
   }
 
+  async buildErrorReport(batchId: string, schoolId: string) {
+    const batchResult = await this.pool.query<{ id: string }>(
+      `SELECT id
+         FROM import_batches
+        WHERE id = $1 AND school_id = $2`,
+      [batchId, schoolId],
+    );
+    if (!batchResult.rows[0]) {
+      throw new NotFoundException("Import batch không tồn tại.");
+    }
+
+    const rows = await this.pool.query<{ row_number: number; errors: unknown }>(
+      `SELECT row_number, errors
+         FROM import_rows
+        WHERE batch_id = $1
+        ORDER BY row_number`,
+      [batchId],
+    );
+    const issues = rows.rows.flatMap((row) => (Array.isArray(row.errors) ? (row.errors as ImportIssue[]) : []));
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "School Timetable Optimizer";
+    workbook.created = new Date();
+    const worksheet = workbook.addWorksheet("ImportErrors");
+    worksheet.columns = [
+      { header: "Sheet", key: "sheet", width: 22 },
+      { header: "Row", key: "row", width: 10 },
+      { header: "Column", key: "column", width: 16 },
+      { header: "Cell", key: "cell", width: 16 },
+      { header: "Field", key: "field", width: 22 },
+      { header: "Code", key: "code", width: 22 },
+      { header: "Severity", key: "severity", width: 12 },
+      { header: "Message", key: "message", width: 58 },
+      { header: "Original Value", key: "value", width: 28 },
+    ];
+    worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+    worksheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFB42318" } };
+    worksheet.views = [{ state: "frozen", ySplit: 1 }];
+    worksheet.autoFilter = `A1:I${Math.max(1, issues.length + 1)}`;
+    for (const issue of issues) {
+      worksheet.addRow({
+        sheet: issue.sheet,
+        row: issue.row,
+        column: issue.column,
+        cell: issue.cell,
+        field: issue.field,
+        code: issue.code,
+        severity: issue.severity,
+        message: issue.message,
+        value: issue.value === null || issue.value === undefined ? "" : String(issue.value),
+      });
+    }
+    return Buffer.from(await workbook.xlsx.writeBuffer());
+  }
+
   async getAudit(batchId: string, schoolId: string) {
     const batch = await this.getBatch(batchId, schoolId);
     return {

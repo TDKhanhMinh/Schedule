@@ -21,6 +21,7 @@ for (const marker of [
   "/imports",
   "/timetable",
   "Upload & Preview",
+  "Tải báo cáo lỗi Excel",
   "Nhập tay & chỉnh sửa dữ liệu",
 ]) {
   assert.ok(bundle.includes(marker), `bundle marker missing: ${marker}`);

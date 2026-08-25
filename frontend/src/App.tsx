@@ -329,6 +329,7 @@ function ImportScreen() {
   const [error, setError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isDownloadingErrorReport, setIsDownloadingErrorReport] = useState(false);
 
   async function handlePreview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -376,6 +377,34 @@ function ImportScreen() {
       setError(requestError instanceof Error ? requestError.message : "Không thể Confirm Import.");
     } finally {
       setIsConfirming(false);
+    }
+  }
+
+  async function handleDownloadErrorReport() {
+    if (!preview || preview.errorCount === 0) return;
+    setError("");
+    setIsDownloadingErrorReport(true);
+    try {
+      const response = await fetch(frontendConfig.apiBaseUrl + "/imports/" + preview.importBatchId + "/error-report", {
+        headers: authHeaders(),
+      });
+      if (!response.ok) {
+        const payload: unknown = await response.json().catch(() => null);
+        throw new Error(readApiMessage(payload));
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `import-error-report-${preview.importBatchId}.xlsx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Không thể tải báo cáo lỗi.");
+    } finally {
+      setIsDownloadingErrorReport(false);
     }
   }
 
@@ -438,7 +467,15 @@ function ImportScreen() {
           </div>
         ) : null}
 
-        {preview ? <PreviewPanel preview={preview} isConfirming={isConfirming} onConfirm={handleConfirm} /> : null}
+        {preview ? (
+          <PreviewPanel
+            preview={preview}
+            isConfirming={isConfirming}
+            isDownloadingErrorReport={isDownloadingErrorReport}
+            onConfirm={handleConfirm}
+            onDownloadErrorReport={handleDownloadErrorReport}
+          />
+        ) : null}
 
         {confirmation ? (
           <div className="alert alert-success" role="status">
@@ -458,11 +495,15 @@ function ImportScreen() {
 function PreviewPanel({
   preview,
   isConfirming,
+  isDownloadingErrorReport,
   onConfirm,
+  onDownloadErrorReport,
 }: {
   preview: PreviewResponse;
   isConfirming: boolean;
+  isDownloadingErrorReport: boolean;
   onConfirm: () => void;
+  onDownloadErrorReport: () => void;
 }) {
   return (
     <section className="preview-panel" aria-live="polite">
@@ -599,6 +640,16 @@ function PreviewPanel({
       >
         {isConfirming ? "Đang import..." : "Confirm Import"}
       </button>
+      {preview.errorCount > 0 ? (
+        <button
+          className="button-secondary error-report-button"
+          type="button"
+          disabled={isDownloadingErrorReport}
+          onClick={onDownloadErrorReport}
+        >
+          {isDownloadingErrorReport ? "Đang tạo báo cáo..." : "Tải báo cáo lỗi Excel"}
+        </button>
+      ) : null}
     </section>
   );
 }

@@ -4,6 +4,7 @@ Fixtures are generated from the local demo school seed. School ID:
 `00000000-0000-0000-0000-000000000001`.
 
 - `valid.xlsx`: valid three-row baseline.
+- `legacy.xlsx`: legacy English aliases plus Unicode master-data labels; remains compatible with contract v1.0.
 - `missing-required-column.xlsx`: missing `Mã giáo viên` header.
 - `missing-value.xlsx`: required `Mã lớp` value is blank.
 - `wrong-number.xlsx`: `Số tiết` contains the invalid value `hai`.

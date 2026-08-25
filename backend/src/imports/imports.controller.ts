@@ -1,5 +1,17 @@
-import { Body, Controller, Get, Headers, Param, Post, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  Res,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
+import type { Response } from "express";
 import { AuthGuard } from "../auth/auth.guard";
 import { ImportsService, MAX_WORKBOOK_SIZE_BYTES, type UploadedExcelFile } from "./imports.service";
 import { ImportPreviewDto } from "./import-preview.dto";
@@ -37,6 +49,18 @@ export class ImportsController {
   @Get(":batchId")
   getBatch(@Param("batchId") batchId: string, @Headers("x-school-id") schoolId: string) {
     return this.imports.getBatch(batchId, schoolId);
+  }
+
+  @Get(":batchId/error-report")
+  async errorReport(
+    @Param("batchId") batchId: string,
+    @Headers("x-school-id") schoolId: string,
+    @Res() response: Response,
+  ) {
+    const workbook = await this.imports.buildErrorReport(batchId, schoolId);
+    response.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    response.setHeader("Content-Disposition", `attachment; filename="import-error-report-${batchId}.xlsx"`);
+    response.send(workbook);
   }
 
   @Get(":batchId/audit")
