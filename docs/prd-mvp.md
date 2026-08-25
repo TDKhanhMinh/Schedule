@@ -154,7 +154,7 @@ chạy local repair ở task sau.
 | FR-007 | Preflight phải phát hiện invalid payload, missing references, impossible required sessions và invalid fixed/allowed slots trước enqueue. | AT-03, AT-04 | PARTIAL — DTO/Pydantic/solver có một phần; preflight domain chưa có. |
 | FR-008 | API enqueue job optimization.solve, trả jobId và cung cấp status/result endpoint. | AT-05, AT-06 | PASS(local) — NestJS/BullMQ bridge đã smoke/E2E test. |
 | FR-009 | Solver phải enforce hard constraints class/teacher, fixed/allowed slots và trả diagnostics khi infeasible. | AT-07, AT-08 | PASS(local) — Python CP-SAT v1; room/legal/preference rules chưa enforce. |
-| FR-010 | Soft constraints/preferences phải có weight, source, rule version và giải thích vi phạm. | AT-09, AT-10 | OPEN — chờ rule model/availability tasks. |
+| FR-010 | Soft constraints/preferences phải có weight, source, rule version và giải thích vi phạm. | AT-09, AT-10 | PARTIAL — versioned rule snapshot and teacher norm/reduction provenance report pass locally; soft preference optimization and availability remain open. |
 | FR-011 | Review UI hiển thị theo class/teacher/room, solution status, diagnostics và objective. | AT-06, AT-09 | OPEN — frontend hiện là architecture/health scaffold. |
 | FR-012 | Manual edit phải chạy conflict check trước save; hard conflict chặn, soft conflict cảnh báo. | AT-09 | OPEN — schedule version/edit domain chưa có. |
 | FR-013 | Draft/approved/locked/published version phải có immutable history, actor, timestamp và reason. | AT-10, AT-11 | OPEN — persistence/audit/auth follow-up. |

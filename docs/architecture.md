@@ -63,6 +63,13 @@ optimization run records the snapshot id/version/hash used for reproducibility;
 the current solve wire contract remains `schemaVersion: "1.0"` until a later
 task adds rule evaluation to the solver.
 
+P2.1-T02 adds a server-owned teacher-load report. It resolves active weekly
+lesson demand from PostgreSQL, reads `RULE-TEACH-002`/`RULE-TEACH-003` and
+teacher-scoped `RULE-TEACH-REDUCTION-*` rules from an approved snapshot, then
+returns source/hash-backed weekly and annual metrics. The default result is an
+average target (`REPORT_ONLY`); a hard weekly cap is only reported/enforced
+when the snapshot explicitly configures one.
+
  Product requirements, user journeys and acceptance evidence are maintained in
  [`docs/prd-mvp.md`](prd-mvp.md). The PRD distinguishes local development evidence
  from pilot/stakeholder approval and production gates.

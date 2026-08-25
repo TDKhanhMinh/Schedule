@@ -3,6 +3,7 @@ export const OPTIMIZATION_QUEUE = "optimization" as const;
 export const OPTIMIZATION_JOB_NAME = "optimization.solve" as const;
 
 export * from "./rule-set";
+export * from "./teacher-load";
 
 export type SolveStatus = "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "UNKNOWN";
 

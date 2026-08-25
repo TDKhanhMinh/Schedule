@@ -110,6 +110,10 @@ def get_effective_rules(snapshot: RuleSetSnapshot, as_of: date | str) -> list[Ru
     if snapshot.approvalState != "APPROVED":
         return []
     as_of_value = as_of.isoformat() if isinstance(as_of, date) else as_of
+    if as_of_value < snapshot.effectiveFrom:
+        return []
+    if snapshot.effectiveTo and as_of_value > snapshot.effectiveTo:
+        return []
     return [
         rule
         for rule in snapshot.rules

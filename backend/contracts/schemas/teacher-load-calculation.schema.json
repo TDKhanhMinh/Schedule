@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/teacher-load-calculation.schema.json",
+  "title": "TeacherLoadReport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "schoolId",
+    "academicPeriodId",
+    "effectiveAsOf",
+    "ruleSnapshotId",
+    "ruleSetVersion",
+    "ruleSnapshotHash",
+    "loads"
+  ],
+  "properties": {
+    "contractVersion": { "const": "TEACHER-LOAD-1.0.0" },
+    "schoolId": { "type": "string", "minLength": 1 },
+    "academicPeriodId": { "type": "string", "minLength": 1 },
+    "effectiveAsOf": { "type": "string", "format": "date" },
+    "ruleSnapshotId": { "type": "string", "minLength": 1 },
+    "ruleSetVersion": { "type": "string", "pattern": "^RULE-SET-[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "ruleSnapshotHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "loads": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/teacherLoadCalculation" }
+    }
+  },
+  "$defs": {
+    "teacherLoadSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "sourceUrl", "ruleSetVersion", "snapshotHash"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "sourceUrl": { "type": "string", "format": "uri" },
+        "sourceLocator": { "type": "string", "minLength": 1 },
+        "ruleSetVersion": { "type": "string", "pattern": "^RULE-SET-[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "snapshotHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "teacherLoadReduction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "roleCode", "reductionSessionsPerWeek", "source"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "roleCode": { "type": "string", "minLength": 1 },
+        "reductionSessionsPerWeek": { "type": "number", "minimum": 0 },
+        "source": { "$ref": "#/$defs/teacherLoadSource" }
+      }
+    },
+    "teacherLoadCalculation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contractVersion",
+        "schoolId",
+        "academicPeriodId",
+        "teacherId",
+        "teacherCode",
+        "teacherName",
+        "schoolLevel",
+        "weeklyNormSessions",
+        "weeklyReductionSessions",
+        "targetAverageWeeklySessions",
+        "assignedAverageWeeklySessions",
+        "teachingWeeksForNorm",
+        "annualNormSessions",
+        "annualReductionSessions",
+        "annualTargetSessions",
+        "annualAssignedSessions",
+        "weeklyVarianceSessions",
+        "status",
+        "enforcement",
+        "hardWeeklyLimitSessions",
+        "reductions",
+        "ruleSources",
+        "warnings"
+      ],
+      "properties": {
+        "contractVersion": { "const": "TEACHER-LOAD-1.0.0" },
+        "schoolId": { "type": "string", "minLength": 1 },
+        "academicPeriodId": { "type": "string", "minLength": 1 },
+        "teacherId": { "type": "string", "minLength": 1 },
+        "teacherCode": { "type": "string", "minLength": 1 },
+        "teacherName": { "type": "string", "minLength": 1 },
+        "schoolLevel": { "enum": ["THCS", "THPT", "THCS_THPT"] },
+        "weeklyNormSessions": { "type": "number", "exclusiveMinimum": 0 },
+        "weeklyReductionSessions": { "type": "number", "minimum": 0 },
+        "targetAverageWeeklySessions": { "type": "number", "minimum": 0 },
+        "assignedAverageWeeklySessions": { "type": "number", "minimum": 0 },
+        "teachingWeeksForNorm": { "type": "integer", "minimum": 1 },
+        "annualNormSessions": { "type": "number", "exclusiveMinimum": 0 },
+        "annualReductionSessions": { "type": "number", "minimum": 0 },
+        "annualTargetSessions": { "type": "number", "minimum": 0 },
+        "annualAssignedSessions": { "type": "number", "minimum": 0 },
+        "weeklyVarianceSessions": { "type": "number" },
+        "status": { "enum": ["UNDER_TARGET", "AT_TARGET", "OVER_TARGET"] },
+        "enforcement": { "enum": ["REPORT_ONLY", "HARD_CAP"] },
+        "hardWeeklyLimitSessions": { "type": ["number", "null"], "minimum": 0 },
+        "reductions": { "type": "array", "items": { "$ref": "#/$defs/teacherLoadReduction" } },
+        "ruleSources": { "type": "array", "items": { "$ref": "#/$defs/teacherLoadSource" } },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

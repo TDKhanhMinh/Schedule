@@ -72,6 +72,8 @@ export function computeRuleSetSnapshotHash(snapshot: RuleSetSnapshot): string {
 
 export function getEffectiveRules(snapshot: RuleSetSnapshot, asOf: string): RuleDefinition[] {
   if (snapshot.approvalState !== "APPROVED") return [];
+  if (asOf < snapshot.effectiveFrom) return [];
+  if (snapshot.effectiveTo && asOf > snapshot.effectiveTo) return [];
   return snapshot.rules.filter((rule) => {
     if (rule.approvalState !== "APPROVED") return false;
     if (asOf < rule.effectiveFrom) return false;

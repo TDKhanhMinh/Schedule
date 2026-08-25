@@ -30,6 +30,9 @@ class RuleContractTest(unittest.TestCase):
             [rule.code for rule in get_effective_rules(snapshot, date(2026, 1, 1))],
             ["RULE-EDU-001"],
         )
+        payload = snapshot_payload()
+        payload["effectiveFrom"] = "2026-01-01"
+        self.assertEqual(get_effective_rules(RuleSetSnapshot.model_validate(payload), date(2025, 6, 1)), [])
 
     def test_unapproved_snapshot_has_no_effective_rules(self):
         payload = snapshot_payload()

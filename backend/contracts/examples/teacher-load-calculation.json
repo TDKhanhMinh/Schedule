@@ -1,0 +1,60 @@
+{
+  "contractVersion": "TEACHER-LOAD-1.0.0",
+  "schoolId": "school-001",
+  "academicPeriodId": "period-001",
+  "teacherId": "teacher-001",
+  "teacherCode": "GV-001",
+  "teacherName": "Nguyen An",
+  "schoolLevel": "THCS",
+  "weeklyNormSessions": 19,
+  "weeklyReductionSessions": 2,
+  "targetAverageWeeklySessions": 17,
+  "assignedAverageWeeklySessions": 18,
+  "teachingWeeksForNorm": 35,
+  "annualNormSessions": 665,
+  "annualReductionSessions": 70,
+  "annualTargetSessions": 595,
+  "annualAssignedSessions": 630,
+  "weeklyVarianceSessions": 1,
+  "status": "OVER_TARGET",
+  "enforcement": "REPORT_ONLY",
+  "hardWeeklyLimitSessions": null,
+  "reductions": [
+    {
+      "code": "RULE-TEACH-REDUCTION-HEAD-DEPARTMENT",
+      "roleCode": "HEAD_DEPARTMENT",
+      "reductionSessionsPerWeek": 2,
+      "source": {
+        "code": "RULE-TEACH-REDUCTION-HEAD-DEPARTMENT",
+        "sourceUrl": "https://schedule.local/school-decision",
+        "sourceLocator": "DECISION-2026-001",
+        "ruleSetVersion": "RULE-SET-1.0.0",
+        "snapshotHash": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ],
+  "ruleSources": [
+    {
+      "code": "RULE-TEACH-002",
+      "sourceUrl": "https://schedule.local/rules",
+      "sourceLocator": "SRC-TT05-2025#7.3.a",
+      "ruleSetVersion": "RULE-SET-1.0.0",
+      "snapshotHash": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "code": "RULE-TEACH-003",
+      "sourceUrl": "https://schedule.local/rules",
+      "sourceLocator": "SRC-TT05-2025#7.2",
+      "ruleSetVersion": "RULE-SET-1.0.0",
+      "snapshotHash": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "code": "RULE-TEACH-REDUCTION-HEAD-DEPARTMENT",
+      "sourceUrl": "https://schedule.local/school-decision",
+      "sourceLocator": "DECISION-2026-001",
+      "ruleSetVersion": "RULE-SET-1.0.0",
+      "snapshotHash": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "warnings": ["ASSIGNED_LOAD_OVER_AVERAGE_TARGET"]
+}

@@ -93,5 +93,6 @@ describe("RuleSetSnapshot contract", () => {
     ]);
     expect(getEffectiveRules(snapshot, "2026-01-01").map((rule) => rule.code)).toEqual(["RULE-EDU-001"]);
     expect(getEffectiveRules(createSnapshot({ approvalState: "PENDING_STAKEHOLDER" }), "2025-06-01")).toEqual([]);
+    expect(getEffectiveRules(createSnapshot({ effectiveFrom: "2026-01-01" }), "2025-06-01")).toEqual([]);
   });
 });
