@@ -1,10 +1,17 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
 import { randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import { PG_POOL } from "../database/database.module";
 
 const TEMPLATE_VERSION = "1.0";
+export const MAX_WORKBOOK_SIZE_BYTES = 5 * 1024 * 1024;
+export const MAX_WORKBOOK_UNCOMPRESSED_BYTES = 50 * 1024 * 1024;
+export const MAX_WORKBOOK_SHEETS = 10;
+export const MAX_WORKBOOK_ROWS = 10_000;
+export const MAX_WORKBOOK_COLUMNS = 50;
+export const MAX_WORKBOOK_PARSE_TIMEOUT_MS = 5_000;
 const REQUIRED_COLUMNS = [
   { key: "classCode", label: "Mã lớp", aliases: ["ma lop", "class code"] },
   { key: "subjectCode", label: "Mã môn", aliases: ["ma mon", "subject code"] },
@@ -72,6 +79,21 @@ export interface UploadedExcelFile {
   buffer: Uint8Array;
 }
 
+type ZipEntry = JSZip.JSZipObject & {
+  _data?: { uncompressedSize?: number };
+};
+
+export function withTimeout<T>(promise: Promise<T>, timeoutMs: number, onTimeout: () => Error) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(onTimeout()), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
 @Injectable()
 export class ImportsService {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
@@ -92,11 +114,41 @@ export class ImportsService {
     }
 
     this.assertExcelExtension(file.originalname);
+    try {
+      await withTimeout(
+        this.preflightWorkbook(file.buffer),
+        MAX_WORKBOOK_PARSE_TIMEOUT_MS,
+        () =>
+          new BadRequestException({
+            code: "WORKBOOK_PARSE_TIMEOUT",
+            message: "Không thể đọc file Excel trong thời gian cho phép.",
+            timeoutMs: MAX_WORKBOOK_PARSE_TIMEOUT_MS,
+          }),
+      );
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      throw new BadRequestException({
+        code: "INVALID_WORKBOOK",
+        message: "Không thể đọc file Excel. Hãy dùng đúng template .xlsx.",
+      });
+    }
     await this.assertSchool(schoolId);
 
     let parsed: { columns: string[]; rows: ValidatedRow[] };
     try {
-      parsed = await this.parseAndValidate(file.buffer, schoolId);
+      parsed = await withTimeout(
+        this.parseAndValidate(file.buffer, schoolId),
+        MAX_WORKBOOK_PARSE_TIMEOUT_MS,
+        () =>
+          new BadRequestException({
+            code: "WORKBOOK_PARSE_TIMEOUT",
+            message: "Không thể đọc file Excel trong thời gian cho phép.",
+            timeoutMs: MAX_WORKBOOK_PARSE_TIMEOUT_MS,
+          }),
+      );
     } catch (error) {
       if (error instanceof BadRequestException) {
         throw error;
@@ -304,6 +356,8 @@ export class ImportsService {
   private async parseAndValidate(buffer: Uint8Array, schoolId: string) {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer as any);
+    this.assertWorkbookLimits(workbook);
+    this.assertNoDangerousCells(workbook);
     const worksheet = workbook.worksheets[0];
     if (!worksheet) {
       throw new BadRequestException({
@@ -461,6 +515,188 @@ export class ImportsService {
       teachers: this.toLookup(teachers.rows),
       rooms: this.toLookup(rooms.rows),
     };
+  }
+
+  private async preflightWorkbook(buffer: Uint8Array) {
+    if (buffer.byteLength > MAX_WORKBOOK_SIZE_BYTES) {
+      throw new BadRequestException({
+        code: "WORKBOOK_TOO_LARGE",
+        message: "File Excel vượt quá kích thước cho phép.",
+        maxBytes: MAX_WORKBOOK_SIZE_BYTES,
+      });
+    }
+
+    if (!this.hasZipSignature(buffer)) {
+      throw new BadRequestException({
+        code: "INVALID_FILE_SIGNATURE",
+        message: "File không có chữ ký Excel hợp lệ.",
+      });
+    }
+
+    let zip: JSZip;
+    try {
+      zip = await JSZip.loadAsync(buffer);
+    } catch {
+      throw new BadRequestException({
+        code: "INVALID_WORKBOOK",
+        message: "File Excel bị hỏng hoặc không phải workbook hợp lệ.",
+      });
+    }
+
+    const entries = Object.values(zip.files) as ZipEntry[];
+    const uncompressedBytes = entries.reduce((total, entry) => total + (entry._data?.uncompressedSize ?? 0), 0);
+    if (uncompressedBytes > MAX_WORKBOOK_UNCOMPRESSED_BYTES) {
+      throw new BadRequestException({
+        code: "WORKBOOK_UNSAFE_CONTENT",
+        message: "Workbook giải nén vượt quá giới hạn an toàn.",
+        maxUncompressedBytes: MAX_WORKBOOK_UNCOMPRESSED_BYTES,
+      });
+    }
+
+    const entryNames = entries.map((entry) => entry.name);
+    if (entryNames.some((name) => /(^|\/)(externalLinks?|vbaProject\.bin)(\/|$)/i.test(name))) {
+      throw new BadRequestException({
+        code: "WORKBOOK_UNSAFE_CONTENT",
+        message: "Workbook chứa macro hoặc liên kết ngoài không được hỗ trợ.",
+      });
+    }
+
+    const workbookEntry = entries.find((entry) => entry.name === "xl/workbook.xml");
+    if (!workbookEntry) {
+      throw new BadRequestException({
+        code: "INVALID_WORKBOOK",
+        message: "Workbook thiếu cấu trúc Excel bắt buộc.",
+      });
+    }
+
+    const workbookXml = await workbookEntry.async("string");
+    const sheetCount = this.countMatches(workbookXml, /<(?:x:)?sheet(?:\s|>)/g);
+    if (sheetCount === 0) {
+      throw new BadRequestException({
+        code: "INVALID_TEMPLATE",
+        message: "File Excel không có sheet dữ liệu.",
+      });
+    }
+    if (sheetCount > MAX_WORKBOOK_SHEETS) {
+      throw new BadRequestException({
+        code: "WORKBOOK_LIMIT_EXCEEDED",
+        message: "Workbook vượt quá số sheet cho phép.",
+        limit: "sheets",
+        max: MAX_WORKBOOK_SHEETS,
+      });
+    }
+
+    for (const entry of entries.filter((item) => /^xl\/worksheets\/sheet\d+\.xml$/i.test(item.name))) {
+      const xml = await entry.async("string");
+      if (/<(?:x:)?f(?:\s|>)/i.test(xml) || /<(?:x:)?hyperlink(?:\s|>)/i.test(xml)) {
+        throw new BadRequestException({
+          code: "WORKBOOK_UNSAFE_CONTENT",
+          message: "Workbook chứa công thức hoặc liên kết không được phép.",
+        });
+      }
+
+      const rowCount = this.countMatches(xml, /<(?:x:)?row(?:\s|>)/g);
+      if (rowCount > MAX_WORKBOOK_ROWS) {
+        throw new BadRequestException({
+          code: "WORKBOOK_LIMIT_EXCEEDED",
+          message: "Workbook vượt quá số hàng cho phép.",
+          limit: "rows",
+          max: MAX_WORKBOOK_ROWS,
+        });
+      }
+
+      let maxColumn = 0;
+      for (const match of xml.matchAll(/<(?:x:)?c\b[^>]*\br="([A-Z]+)\d+"/gi)) {
+        maxColumn = Math.max(maxColumn, this.columnNumber(match[1]));
+      }
+      if (maxColumn > MAX_WORKBOOK_COLUMNS) {
+        throw new BadRequestException({
+          code: "WORKBOOK_LIMIT_EXCEEDED",
+          message: "Workbook vượt quá số cột cho phép.",
+          limit: "columns",
+          max: MAX_WORKBOOK_COLUMNS,
+        });
+      }
+    }
+
+    for (const entry of entries.filter((item) => /\.rels$/i.test(item.name))) {
+      const xml = await entry.async("string");
+      if (/relationships\/hyperlink|TargetMode\s*=\s*["']External["']/i.test(xml)) {
+        throw new BadRequestException({
+          code: "WORKBOOK_UNSAFE_CONTENT",
+          message: "Workbook chứa liên kết ngoài không được phép.",
+        });
+      }
+    }
+  }
+
+  private assertWorkbookLimits(workbook: ExcelJS.Workbook) {
+    if (workbook.worksheets.length > MAX_WORKBOOK_SHEETS) {
+      throw new BadRequestException({
+        code: "WORKBOOK_LIMIT_EXCEEDED",
+        message: "Workbook vượt quá số sheet cho phép.",
+        limit: "sheets",
+        max: MAX_WORKBOOK_SHEETS,
+      });
+    }
+
+    for (const worksheet of workbook.worksheets) {
+      if (worksheet.rowCount > MAX_WORKBOOK_ROWS) {
+        throw new BadRequestException({
+          code: "WORKBOOK_LIMIT_EXCEEDED",
+          message: "Workbook vượt quá số hàng cho phép.",
+          limit: "rows",
+          max: MAX_WORKBOOK_ROWS,
+        });
+      }
+      if (worksheet.columnCount > MAX_WORKBOOK_COLUMNS) {
+        throw new BadRequestException({
+          code: "WORKBOOK_LIMIT_EXCEEDED",
+          message: "Workbook vượt quá số cột cho phép.",
+          limit: "columns",
+          max: MAX_WORKBOOK_COLUMNS,
+        });
+      }
+    }
+  }
+
+  private assertNoDangerousCells(workbook: ExcelJS.Workbook) {
+    for (const worksheet of workbook.worksheets) {
+      worksheet.eachRow({ includeEmpty: false }, (row) => {
+        row.eachCell({ includeEmpty: false }, (cell) => {
+          const value = cell.value;
+          const hasFormula =
+            cell.type === ExcelJS.ValueType.Formula ||
+            (typeof value === "object" && value !== null && ("formula" in value || "sharedFormula" in value));
+          if (hasFormula || cell.hyperlink) {
+            throw new BadRequestException({
+              code: "WORKBOOK_UNSAFE_CONTENT",
+              message: "Workbook chứa công thức hoặc liên kết không được phép.",
+              sheet: worksheet.name,
+              cell: cell.address,
+            });
+          }
+        });
+      });
+    }
+  }
+
+  private hasZipSignature(buffer: Uint8Array) {
+    return (
+      buffer.length >= 4 &&
+      buffer[0] === 0x50 &&
+      buffer[1] === 0x4b &&
+      [0x03, 0x05, 0x07].includes(buffer[2]) &&
+      [0x04, 0x06, 0x08].includes(buffer[3])
+    );
+  }
+
+  private countMatches(value: string, pattern: RegExp) {
+    return value.match(pattern)?.length ?? 0;
+  }
+
+  private columnNumber(column: string) {
+    return [...column.toUpperCase()].reduce((total, character) => total * 26 + character.charCodeAt(0) - 64, 0);
   }
 
   private async assertSchool(schoolId: string) {

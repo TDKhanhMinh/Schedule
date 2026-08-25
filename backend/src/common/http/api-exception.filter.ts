@@ -10,9 +10,23 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const context = host.switchToHttp();
     const response = context.getResponse<Response>();
     const request = context.getRequest<RequestWithId>();
-    const statusCode = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    const uploadErrorCode = this.uploadErrorCode(exception);
+    const statusCode = uploadErrorCode
+      ? HttpStatus.BAD_REQUEST
+      : exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
     const exceptionResponse = exception instanceof HttpException ? exception.getResponse() : undefined;
-    const normalized = this.normalizeResponse(exceptionResponse, statusCode);
+    const normalized = uploadErrorCode
+      ? {
+          code: uploadErrorCode,
+          message:
+            uploadErrorCode === "FILE_TOO_LARGE"
+              ? "File Excel vượt quá kích thước cho phép."
+              : "Upload file Excel không hợp lệ.",
+          details: { code: uploadErrorCode },
+        }
+      : this.normalizeResponse(exceptionResponse, statusCode);
 
     response.status(statusCode).json({
       statusCode,
@@ -52,5 +66,13 @@ export class ApiExceptionFilter implements ExceptionFilter {
     if (statusCode === HttpStatus.UNAUTHORIZED) return "UNAUTHORIZED";
     if (statusCode === HttpStatus.FORBIDDEN) return "FORBIDDEN";
     return statusCode >= 500 ? "INTERNAL_SERVER_ERROR" : "HTTP_ERROR";
+  }
+
+  private uploadErrorCode(exception: unknown) {
+    if (!exception || typeof exception !== "object") return undefined;
+    const code = (exception as { code?: unknown }).code;
+    if (code === "LIMIT_FILE_SIZE") return "FILE_TOO_LARGE";
+    if (typeof code === "string" && code.startsWith("LIMIT_")) return "INVALID_FILE_UPLOAD";
+    return undefined;
   }
 }

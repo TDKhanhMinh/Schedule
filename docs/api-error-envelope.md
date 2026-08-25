@@ -26,16 +26,35 @@ connection details.
 
 ## NestJS module map
 
-| Module | Owns | Current surface |
-| --- | --- | --- |
-| `AuthModule` | Authentication and school-scope authorization boundary | Foundation placeholder; auth implementation is a separate task |
-| `MasterDataModule` | Schools, periods, classes, teachers, subjects and rooms | Foundation boundary; canonical data remains PostgreSQL-owned |
-| `ImportsModule` | Excel staging, validation, confirm and audit | `POST /imports/preview`, confirm, batch and audit endpoints |
-| `RulesModule` | Versioned rule profiles and provenance | Foundation boundary; CP-SAT rules remain Python-owned |
-| `TimetableModule` | Schedule versions, review/edit, approval, lock, publish and export | Foundation boundary; workflow capabilities follow MVP tasks |
-| `JobsModule` | BullMQ enqueue/status and solver job boundary | `POST/GET /optimization-jobs` |
-| `HealthModule` | Liveness surface | `GET /health` |
-| `DatabaseModule` | PostgreSQL pool and lifecycle | Shared infrastructure provider |
+| Module             | Owns                                                               | Current surface                                                |
+| ------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------- |
+| `AuthModule`       | Authentication and school-scope authorization boundary             | Foundation placeholder; auth implementation is a separate task |
+| `MasterDataModule` | Schools, periods, classes, teachers, subjects and rooms            | Foundation boundary; canonical data remains PostgreSQL-owned   |
+| `ImportsModule`    | Excel staging, validation, confirm and audit                       | `POST /imports/preview`, confirm, batch and audit endpoints    |
+| `RulesModule`      | Versioned rule profiles and provenance                             | Foundation boundary; CP-SAT rules remain Python-owned          |
+| `TimetableModule`  | Schedule versions, review/edit, approval, lock, publish and export | Foundation boundary; workflow capabilities follow MVP tasks    |
+| `JobsModule`       | BullMQ enqueue/status and solver job boundary                      | `POST/GET /optimization-jobs`                                  |
+| `HealthModule`     | Liveness surface                                                   | `GET /health`                                                  |
+| `DatabaseModule`   | PostgreSQL pool and lifecycle                                      | Shared infrastructure provider                                 |
 
 The API prefix is configured by `API_PREFIX` and defaults to `api/v1`. The
 frontend, Redis/BullMQ and Python solver do not bypass this boundary.
+
+## Secure workbook upload boundary
+
+`POST /imports/preview` accepts `.xlsx`/`.xlsm` only when the file passes all
+of the following checks before staging rows: a ZIP/OOXML signature, a 5 MiB
+compressed input limit, a 50 MiB uncompressed package limit, at most 10 sheets,
+10,000 rows and 50 columns per workbook, and a five-second parse timeout.
+Formula cells, hyperlinks/external relationships and VBA macro entries are
+rejected with a machine-readable error. Multer and service-level limits are
+both enforced so direct service calls cannot bypass the boundary.
+
+| Code                      | Meaning                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| `FILE_TOO_LARGE`          | Multipart upload exceeded the 5 MiB input limit                                 |
+| `INVALID_FILE_SIGNATURE`  | File extension is Excel-like but the bytes are not OOXML/ZIP                    |
+| `WORKBOOK_TOO_LARGE`      | Input exceeds the compressed file size limit                                    |
+| `WORKBOOK_UNSAFE_CONTENT` | Macro, formula, hyperlink, external relationship or ZIP expansion risk detected |
+| `WORKBOOK_LIMIT_EXCEEDED` | Sheet, row or column count exceeds the documented limit                         |
+| `WORKBOOK_PARSE_TIMEOUT`  | Workbook parsing exceeded five seconds                                          |

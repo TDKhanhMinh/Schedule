@@ -75,15 +75,21 @@ production template is published; display names are not a durable join key.
 
 The error catalog is part of the workbook and mirrors current API error codes:
 
-| Code                | Scope    | Current location data                          |
-| ------------------- | -------- | ---------------------------------------------- |
-| `INVALID_FILE_TYPE` | Request  | Filename/extension                             |
-| `INVALID_TEMPLATE`  | Header   | First sheet, header row, missing column labels |
-| `REQUIRED`          | Data row | `row` plus canonical `field`                   |
-| `INVALID_NUMBER`    | Data row | `row` plus `Số tiết`                           |
-| `UNKNOWN_REFERENCE` | Data row | `row` plus master-data field                   |
-| `DUPLICATE`         | Data row | `row` plus duplicate natural-key field         |
-| `IMPORT_HAS_ERRORS` | Confirm  | Import batch                                   |
+| Code                      | Scope    | Current location data                                              |
+| ------------------------- | -------- | ------------------------------------------------------------------ |
+| `INVALID_FILE_TYPE`       | Request  | Filename/extension                                                 |
+| `INVALID_FILE_SIGNATURE`  | Request  | File bytes are not a ZIP/OOXML workbook                            |
+| `FILE_TOO_LARGE`          | Request  | Multipart file exceeds the 5 MiB limit                             |
+| `WORKBOOK_TOO_LARGE`      | Workbook | Compressed workbook exceeds the 5 MiB limit                        |
+| `WORKBOOK_UNSAFE_CONTENT` | Workbook | Macro, formula, hyperlink, external relationship or expansion risk |
+| `WORKBOOK_LIMIT_EXCEEDED` | Workbook | Sheet, row or column limit                                         |
+| `WORKBOOK_PARSE_TIMEOUT`  | Workbook | Parse exceeds the five-second limit                                |
+| `INVALID_TEMPLATE`        | Header   | First sheet, header row, missing column labels                     |
+| `REQUIRED`                | Data row | `row` plus canonical `field`                                       |
+| `INVALID_NUMBER`          | Data row | `row` plus `Số tiết`                                               |
+| `UNKNOWN_REFERENCE`       | Data row | `row` plus master-data field                                       |
+| `DUPLICATE`               | Data row | `row` plus duplicate natural-key field                             |
+| `IMPORT_HAS_ERRORS`       | Confirm  | Import batch                                                       |
 
 For v1, the sheet is fixed to `LessonRequirements`; the API returns the row
 number and field label for row errors. A future multi-sheet import must extend

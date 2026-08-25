@@ -40,4 +40,26 @@ describe("ApiExceptionFilter", () => {
       }),
     );
   });
+
+  it("maps Multer file-size failures to a safe 400 error", () => {
+    const body = jest.fn();
+    const response = { status: jest.fn().mockReturnThis(), json: body };
+    const host = {
+      switchToHttp: () => ({
+        getResponse: () => response,
+        getRequest: () => ({ requestId: "request-002", originalUrl: "/api/v1/imports/preview" }),
+      }),
+    };
+
+    new ApiExceptionFilter().catch(Object.assign(new Error("too large"), { code: "LIMIT_FILE_SIZE" }), host as never);
+
+    expect(response.status).toHaveBeenCalledWith(400);
+    expect(body).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 400,
+        code: "FILE_TOO_LARGE",
+        message: "File Excel vượt quá kích thước cho phép.",
+      }),
+    );
+  });
 });

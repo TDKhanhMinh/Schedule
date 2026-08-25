@@ -1,10 +1,8 @@
 import { Body, Controller, Get, Headers, Param, Post, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "../auth/auth.guard";
-import { ImportsService, type UploadedExcelFile } from "./imports.service";
+import { ImportsService, MAX_WORKBOOK_SIZE_BYTES, type UploadedExcelFile } from "./imports.service";
 import { ImportPreviewDto } from "./import-preview.dto";
-
-const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024;
 
 @Controller("imports")
 @UseGuards(AuthGuard)
@@ -14,7 +12,7 @@ export class ImportsController {
   @Post("preview")
   @UseInterceptors(
     FileInterceptor("file", {
-      limits: { fileSize: MAX_IMPORT_FILE_SIZE },
+      limits: { fileSize: MAX_WORKBOOK_SIZE_BYTES },
     }),
   )
   preview(
