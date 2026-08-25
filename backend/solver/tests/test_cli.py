@@ -38,6 +38,9 @@ class SolverCliTest(unittest.TestCase):
         self.assertEqual(result.metadata.solverVersion, "0.1.0")
         self.assertEqual(result.metadata.randomSeed, 7)
         self.assertEqual(result.metadata.timeLimitSeconds, 10.0)
+        self.assertGreaterEqual(result.diagnostics.runMetrics.wallTimeMs, 0)
+        self.assertIsNone(result.diagnostics.runMetrics.objectiveGapPercent)
+        self.assertEqual(result.diagnostics.objectiveBreakdown.weightedTotal, 0)
 
     def test_invalid_payload_returns_machine_readable_schema_error(self):
         payload = json.loads(FIXTURE.read_text(encoding="utf-8"))

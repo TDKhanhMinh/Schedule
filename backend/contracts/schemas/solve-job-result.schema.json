@@ -8,7 +8,7 @@
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "jobId": { "type": "string", "minLength": 1 },
-    "status": { "enum": ["OPTIMAL", "FEASIBLE", "INFEASIBLE", "UNKNOWN"] },
+    "status": { "enum": ["INVALID", "OPTIMAL", "FEASIBLE", "INFEASIBLE", "UNKNOWN"] },
     "assignments": {
       "type": "array",
       "items": {
@@ -60,6 +60,16 @@
             "preferredDays": { "type": "integer", "minimum": 0 },
             "fairness": { "type": "integer", "minimum": 0 },
             "weightedTotal": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "runMetrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["wallTimeMs", "bestObjectiveBound", "objectiveGapPercent"],
+          "properties": {
+            "wallTimeMs": { "type": "number", "minimum": 0 },
+            "bestObjectiveBound": { "type": ["number", "null"] },
+            "objectiveGapPercent": { "type": ["number", "null"], "minimum": 0 }
           }
         },
         "modelMetrics": {

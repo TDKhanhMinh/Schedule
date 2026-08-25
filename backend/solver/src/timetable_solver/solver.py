@@ -1,3 +1,6 @@
+import math
+import time
+
 from ortools.sat.python import cp_model
 
 from .conflict_catalog import CONFLICT_CATALOG_VERSION, conflict_diagnostic
@@ -108,12 +111,36 @@ def _empty_objective_breakdown() -> dict[str, int]:
     return {group: 0 for group in (*OBJECTIVE_GROUPS, "weightedTotal")}
 
 
+def _build_run_metrics(
+    started_at: float,
+    solver: cp_model.CpSolver | None = None,
+    objective_enabled: bool = False,
+    status_name: str | None = None,
+) -> dict[str, float | None]:
+    best_bound: float | None = None
+    objective_gap: float | None = None
+    if solver is not None and objective_enabled and status_name in {"OPTIMAL", "FEASIBLE"}:
+        best_bound = float(solver.BestObjectiveBound())
+        objective_value = float(solver.ObjectiveValue())
+        if math.isfinite(best_bound) and math.isfinite(objective_value):
+            objective_gap = 0.0 if abs(objective_value) < 1e-9 else max(
+                0.0,
+                abs(objective_value - best_bound) / max(abs(objective_value), 1.0) * 100,
+            )
+    return {
+        "wallTimeMs": round((time.perf_counter() - started_at) * 1000, 3),
+        "bestObjectiveBound": best_bound,
+        "objectiveGapPercent": objective_gap,
+    }
+
+
 def solve(
     request: SolveJobRequest,
     *,
     random_seed: int = 0,
     adapter_payload: SolverAdapterPayload | None = None,
 ) -> SolveJobResult:
+    started_at = time.perf_counter()
     pre_solve = run_pre_solve_checks(request)
     if not pre_solve.canSolve:
         pre_solve_conflicts = [f"{issue.code}: {issue.message}" for issue in pre_solve.issues]
@@ -142,6 +169,7 @@ def solve(
                 "conflictDetails": conflict_details,
                 "hardConstraintViolations": [],
                 "objectiveBreakdown": _empty_objective_breakdown(),
+                "runMetrics": _build_run_metrics(started_at),
                 "modelMetrics": {
                     "variableCount": 0,
                     "candidatePairCount": 0,
@@ -323,6 +351,7 @@ def solve(
                 "conflictDetails": conflict_details,
                 "hardConstraintViolations": [],
                 "objectiveBreakdown": _empty_objective_breakdown(),
+                "runMetrics": _build_run_metrics(started_at),
                 "modelMetrics": {
                     "variableCount": len(variables),
                     "candidatePairCount": candidate_pair_count,
@@ -480,6 +509,13 @@ def solve(
             )
             objective_breakdown["weightedTotal"] += objective_breakdown[group] * objective_scales[group]
 
+    run_metrics = _build_run_metrics(
+        started_at,
+        solver,
+        bool(objective_terms),
+        status_name,
+    )
+
     if status_name in {"OPTIMAL", "FEASIBLE"}:
         lessons_by_id = {lesson.id: lesson for lesson in request.lessons}
         for assignment in assignments:
@@ -512,6 +548,7 @@ def solve(
             "conflictDetails": conflict_details,
             "hardConstraintViolations": hard_constraint_violations,
             "objectiveBreakdown": objective_breakdown,
+            "runMetrics": run_metrics,
             "modelMetrics": {
                 "variableCount": len(variables),
                 "candidatePairCount": candidate_pair_count,

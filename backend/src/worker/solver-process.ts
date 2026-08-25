@@ -3,6 +3,22 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import type { SolveJobRequest, SolveJobResult, SolverAdapterPayload } from "../contracts";
 
+export type SolverProcessErrorCode = "SOLVER_CANCELLED" | "SOLVER_SYSTEM_ERROR";
+
+export class SolverProcessError extends Error {
+  constructor(
+    public readonly code: SolverProcessErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = "SolverProcessError";
+  }
+}
+
+export interface RunPythonSolverOptions {
+  signal?: AbortSignal;
+}
+
 function getSolverRuntime() {
   const solverRoot = resolve(process.env.SOLVER_ROOT ?? "backend/solver");
   const defaultPython =
@@ -18,7 +34,52 @@ function getSolverRuntime() {
   return { python, solverRoot };
 }
 
-export function runPythonSolver(payload: SolveJobRequest | SolverAdapterPayload): Promise<SolveJobResult> {
+function invalidResult(
+  payload: SolveJobRequest | SolverAdapterPayload,
+  error: { code?: string; message?: string; details?: unknown },
+): SolveJobResult {
+  const request = "input" in payload ? payload.input : payload;
+  const randomSeed = "reproducibility" in payload ? payload.reproducibility.randomSeed : 0;
+  const timeLimitSeconds = request.options?.timeLimitSeconds ?? 10;
+  return {
+    schemaVersion: "1.0",
+    jobId: request.jobId ?? "invalid-solve-job",
+    status: "INVALID",
+    assignments: [],
+    objectiveValue: null,
+    diagnostics: {
+      warnings: [],
+      conflicts: [`${error.code ?? "INVALID_SOLVE_REQUEST"}: ${error.message ?? "Invalid solver input."}`],
+      catalogVersion: "CONFLICT-CATALOG-1.0.0",
+      conflictDetails: [],
+      hardConstraintViolations: [],
+      objectiveBreakdown: {
+        teacherGap: 0,
+        compactness: 0,
+        dayDistribution: 0,
+        undesirableSlots: 0,
+        preferredDays: 0,
+        fairness: 0,
+        weightedTotal: 0,
+      },
+      runMetrics: { wallTimeMs: 0, bestObjectiveBound: null, objectiveGapPercent: null },
+    },
+    metadata: {
+      solverVersion: "0.1.0",
+      contractVersion: "1.0",
+      randomSeed,
+      timeLimitSeconds,
+    },
+  };
+}
+
+export function runPythonSolver(
+  payload: SolveJobRequest | SolverAdapterPayload,
+  options: RunPythonSolverOptions = {},
+): Promise<SolveJobResult> {
+  if (options.signal?.aborted) {
+    return Promise.reject(new SolverProcessError("SOLVER_CANCELLED", "Solver process cancelled safely."));
+  }
   const { python, solverRoot } = getSolverRuntime();
 
   return new Promise((resolveResult, reject) => {
@@ -39,17 +100,54 @@ export function runPythonSolver(payload: SolveJobRequest | SolverAdapterPayload)
     child.stderr.on("data", (chunk: Buffer) => {
       stderr += chunk.toString();
     });
-    child.on("error", reject);
+    let settled = false;
+    const abortHandler = () => {
+      if (settled) return;
+      child.kill();
+      settled = true;
+      reject(new SolverProcessError("SOLVER_CANCELLED", "Solver process cancelled safely."));
+    };
+    options.signal?.addEventListener("abort", abortHandler, { once: true });
+
+    child.on("error", (error) => {
+      if (settled) return;
+      settled = true;
+      reject(new SolverProcessError("SOLVER_SYSTEM_ERROR", error.message));
+    });
     child.on("close", (code) => {
+      options.signal?.removeEventListener("abort", abortHandler);
+      if (settled) return;
       if (code !== 0) {
-        reject(new Error(`Python solver exited with code ${code}: ${stderr.trim()}`));
+        try {
+          const parsed = JSON.parse(stderr.trim()) as {
+            error?: { code?: string; message?: string; details?: unknown };
+          };
+          if (parsed.error?.code?.startsWith("INVALID_")) {
+            settled = true;
+            resolveResult(invalidResult(payload, parsed.error));
+            return;
+          }
+        } catch {
+          // Fall through to the system-error boundary for non-JSON stderr.
+        }
+        settled = true;
+        reject(
+          new SolverProcessError("SOLVER_SYSTEM_ERROR", `Python solver exited with code ${code}: ${stderr.trim()}`),
+        );
         return;
       }
 
       try {
+        settled = true;
         resolveResult(JSON.parse(stdout.trim()) as SolveJobResult);
       } catch (error) {
-        reject(new Error(`Python solver returned invalid JSON: ${String(error)}; stdout=${stdout}`));
+        settled = true;
+        reject(
+          new SolverProcessError(
+            "SOLVER_SYSTEM_ERROR",
+            `Python solver returned invalid JSON: ${String(error)}; stdout=${stdout}`,
+          ),
+        );
       }
     });
 

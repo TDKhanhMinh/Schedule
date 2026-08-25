@@ -13,7 +13,7 @@ export * from "./solver-adapter";
 export * from "./teacher-availability";
 export * from "./teacher-load";
 
-export type SolveStatus = "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "UNKNOWN";
+export type SolveStatus = "INVALID" | "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "UNKNOWN";
 
 export interface TimeSlot {
   id: string;
@@ -92,6 +92,12 @@ export interface ObjectiveBreakdown {
   weightedTotal: number;
 }
 
+export interface SolverRunMetrics {
+  wallTimeMs: number;
+  bestObjectiveBound: number | null;
+  objectiveGapPercent: number | null;
+}
+
 export interface SolveDiagnostics {
   warnings: string[];
   conflicts: string[];
@@ -99,6 +105,7 @@ export interface SolveDiagnostics {
   conflictDetails?: import("./conflict-catalog").ConflictDiagnostic[];
   hardConstraintViolations?: string[];
   objectiveBreakdown?: ObjectiveBreakdown;
+  runMetrics?: SolverRunMetrics;
   modelMetrics?: SolverModelMetrics;
   preSolve?: PreSolveReport;
 }

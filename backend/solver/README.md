@@ -31,6 +31,9 @@ when supplied, the `ruleSnapshotId`, `ruleSetVersion` and
 
 An explicit objective is versioned as `SOLVER-OBJECTIVE-1.0.0`; see
 [`docs/solver-objective.md`](../../docs/solver-objective.md).
+Run telemetry (`wallTimeMs`, best bound and objective gap) is returned under
+`diagnostics.runMetrics`; status semantics and worker cancellation are described
+in [`docs/solver-run-lifecycle.md`](../../docs/solver-run-lifecycle.md).
 
 `RuleSetSnapshot` carries the profile/register versions, source URL and
 locator, effective date range, applicability scope, approval state, immutable

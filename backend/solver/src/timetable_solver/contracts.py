@@ -122,6 +122,14 @@ class ObjectiveBreakdown(BaseModel):
     weightedTotal: int = Field(ge=0)
 
 
+class SolverRunMetrics(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    wallTimeMs: float = Field(ge=0)
+    bestObjectiveBound: float | None = None
+    objectiveGapPercent: float | None = Field(default=None, ge=0)
+
+
 class SolveDiagnostics(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -141,6 +149,7 @@ class SolveDiagnostics(BaseModel):
             weightedTotal=0,
         )
     )
+    runMetrics: SolverRunMetrics
     modelMetrics: SolverModelMetrics | None = None
     preSolve: PreSolveReport | None = None
 
@@ -167,7 +176,7 @@ class SolveJobResult(BaseModel):
 
     schemaVersion: Literal["1.0"]
     jobId: str
-    status: Literal["OPTIMAL", "FEASIBLE", "INFEASIBLE", "UNKNOWN"]
+    status: Literal["INVALID", "OPTIMAL", "FEASIBLE", "INFEASIBLE", "UNKNOWN"]
     assignments: list[Assignment]
     objectiveValue: float | None
     diagnostics: SolveDiagnostics
