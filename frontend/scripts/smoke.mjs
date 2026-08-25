@@ -25,6 +25,8 @@ for (const marker of [
   "Nhập tay & chỉnh sửa dữ liệu",
   "Khóa các lesson đã thống nhất",
   "LOCKED-ASSIGNMENTS-1.0.0",
+  "Lịch sử chỉnh tay",
+  "P2.3-T06",
 ]) {
   assert.ok(bundle.includes(marker), `bundle marker missing: ${marker}`);
 }

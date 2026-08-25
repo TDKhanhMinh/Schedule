@@ -27,3 +27,12 @@ scope conflicts also return `409` with `currentSnapshot`; the transaction is
 rolled back, so no partial write is visible. Missing `If-Match` returns HTTP
 `428` and the client must first refresh the snapshot. The UI remains a workflow
 aid; authorization and correctness stay server-owned.
+
+`GET /api/v1/schools/:schoolId/schedule-versions/:versionId/history` returns
+the audit history for manual edits. A successful non-noop assignment edit writes
+one `schedule_assignment` audit event in the same transaction as the assignment
+and revision update; a failed edit rolls back both. The event records safe
+workflow metadata (actor, correlation ID, lesson/session, from/to slot and room,
+and revision/ETag transition) without persisting the request body or sensitive
+client logs. The timetable UI also presents session-local move/lock/unlock/undo
+metadata as a review aid; the server audit log remains authoritative.

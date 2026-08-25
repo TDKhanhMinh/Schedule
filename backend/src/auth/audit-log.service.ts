@@ -32,14 +32,24 @@ interface AuditLogRow {
   created_at: string | Date;
 }
 
+type Queryable = Pick<Pool, "query">;
+
 @Injectable()
 export class AuditLogService {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
   async record(event: AuditEventInput) {
+    return this.insert(this.pool, event);
+  }
+
+  async recordInTransaction(client: Queryable, event: AuditEventInput) {
+    return this.insert(client, event);
+  }
+
+  private async insert(client: Queryable, event: AuditEventInput) {
     const entityId = this.isUuid(event.entityId) ? event.entityId : null;
     const entityKey = event.entityKey ?? (event.entityId && !entityId ? event.entityId : null);
-    const result = await this.pool.query<AuditLogRow>(
+    const result = await client.query<AuditLogRow>(
       `INSERT INTO audit_logs
         (school_id, action, entity_type, entity_id, entity_key, actor_id, actor_role, correlation_id, metadata)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
@@ -70,6 +80,21 @@ export class AuditLogService {
         ORDER BY created_at DESC, id DESC
         LIMIT $2`,
       [schoolId, boundedLimit],
+    );
+    return result.rows.map((row) => this.toAuditLog(row));
+  }
+
+  async listByScheduleVersion(schoolId: string, scheduleVersionId: string, limit = 100) {
+    const boundedLimit = Math.min(Math.max(Number.isFinite(limit) ? Math.trunc(limit) : 100, 1), 100);
+    const result = await this.pool.query<AuditLogRow>(
+      `SELECT id::text, school_id::text, action, entity_type, entity_id::text, entity_key,
+              actor_id, actor_role, correlation_id, metadata, created_at
+         FROM audit_logs
+        WHERE school_id = $1
+          AND (entity_key = $2 OR metadata ->> 'scheduleVersionId' = $2)
+        ORDER BY created_at DESC, id DESC
+        LIMIT $3`,
+      [schoolId, scheduleVersionId, boundedLimit],
     );
     return result.rows.map((row) => this.toAuditLog(row));
   }

@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post, Req, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Param, Patch, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import type { Response } from "express";
+import { AuditLogService } from "../auth/audit-log.service";
 import { AuthGuard } from "../auth/auth.guard";
 import type { RequestWithAuth } from "../auth/auth.types";
 import { CreateScheduleVersionDto, TransitionScheduleVersionDto } from "./schedule-version.dto";
@@ -9,7 +10,10 @@ import { ScheduleVersionService } from "./schedule-version.service";
 @Controller("schools/:schoolId")
 @UseGuards(AuthGuard)
 export class ScheduleVersionController {
-  constructor(private readonly scheduleVersions: ScheduleVersionService) {}
+  constructor(
+    private readonly scheduleVersions: ScheduleVersionService,
+    private readonly auditLogs: AuditLogService,
+  ) {}
 
   @Get("academic-periods/:academicPeriodId/schedule-versions")
   list(@Param("schoolId") schoolId: string, @Param("academicPeriodId") academicPeriodId: string) {
@@ -32,6 +36,16 @@ export class ScheduleVersionController {
     return snapshot;
   }
 
+  @Get("schedule-versions/:versionId/history")
+  async history(
+    @Param("schoolId") schoolId: string,
+    @Param("versionId") versionId: string,
+    @Query("limit") limit?: string,
+  ) {
+    await this.scheduleVersions.get(schoolId, versionId);
+    return this.auditLogs.listByScheduleVersion(schoolId, versionId, limit ? Number(limit) : 100);
+  }
+
   @Patch("schedule-versions/:versionId/assignments/:lessonId/:sessionIndex")
   async updateAssignment(
     @Param("schoolId") schoolId: string,
@@ -51,6 +65,8 @@ export class ScheduleVersionController {
       request.auth!.userId,
       dto,
       ifMatch,
+      request.auth!.role,
+      request.requestId ?? "unknown",
     );
     response.setHeader("ETag", snapshot.etag);
     return snapshot;

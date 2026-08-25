@@ -2,6 +2,7 @@
 
 import { BadRequestException, ConflictException } from "@nestjs/common";
 import type { Pool } from "pg";
+import type { AuditLogService } from "../auth/audit-log.service";
 import { ScheduleVersionService } from "./schedule-version.service";
 
 const timestamp = "2026-08-25T00:00:00.000Z";
@@ -38,13 +39,15 @@ describe("ScheduleVersionService", () => {
   const clientQuery = jest.fn();
   const client = { query: clientQuery, release: jest.fn() };
   const pool = { query, connect: jest.fn().mockResolvedValue(client) } as unknown as Pool;
+  const auditLogs = { recordInTransaction: jest.fn() } as unknown as AuditLogService;
   let service: ScheduleVersionService;
 
   beforeEach(() => {
     query.mockReset();
     clientQuery.mockReset();
     client.release.mockReset();
-    service = new ScheduleVersionService(pool);
+    (auditLogs.recordInTransaction as jest.Mock).mockReset();
+    service = new ScheduleVersionService(pool, auditLogs);
   });
 
   it("creates a DRAFT with immutable snapshot metadata and maps the response", async () => {
@@ -216,5 +219,19 @@ describe("ScheduleVersionService", () => {
     expect(clientQuery).toHaveBeenCalledWith("COMMIT");
     expect(client.release).toHaveBeenCalledTimes(1);
     expect(clientQuery.mock.calls.some(([sql]) => String(sql).includes("UPDATE schedule_assignments"))).toBe(true);
+    expect(auditLogs.recordInTransaction).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({
+        entityType: "schedule_assignment",
+        entityKey: "version-001",
+        metadata: expect.objectContaining({
+          manualEdit: true,
+          fromTimeSlotId: "slot-001",
+          toTimeSlotId: "slot-002",
+          fromRevision: 1,
+          toRevision: 2,
+        }),
+      }),
+    );
   });
 });

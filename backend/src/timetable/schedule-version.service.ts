@@ -6,9 +6,12 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
 } from "@nestjs/common";
 import type { Pool } from "pg";
 import { PG_POOL } from "../database/database.module";
+import { AuditLogService } from "../auth/audit-log.service";
+import type { Role } from "../auth/auth.constants";
 import {
   canTransitionScheduleVersion,
   isScheduleVersionStatus,
@@ -77,7 +80,10 @@ interface TransitionRow {
 
 @Injectable()
 export class ScheduleVersionService {
-  constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
+  constructor(
+    @Inject(PG_POOL) private readonly pool: Pool,
+    @Optional() private readonly auditLogs?: AuditLogService,
+  ) {}
 
   async create(schoolId: string, actorId: string, dto: CreateScheduleVersionDto) {
     this.validateRuleSnapshotMetadata(dto);
@@ -179,6 +185,8 @@ export class ScheduleVersionService {
     actorId: string,
     dto: UpdateScheduleAssignmentDto,
     ifMatch: string | undefined,
+    actorRole: Role = "SCHEDULER",
+    correlationId = "unknown",
   ): Promise<ScheduleVersionSnapshot> {
     if (!Number.isInteger(sessionIndex) || sessionIndex < 0) {
       throw new BadRequestException({
@@ -283,6 +291,33 @@ export class ScheduleVersionService {
 
       const updated = await this.selectVersionForUpdate(client, schoolId, versionId);
       const snapshot = await this.snapshotFromClient(client, updated);
+      if (!isNoop && this.auditLogs) {
+        await this.auditLogs.recordInTransaction(client, {
+          schoolId,
+          action: "UPDATE",
+          entityType: "schedule_assignment",
+          entityId: target.id,
+          entityKey: versionId,
+          actorId,
+          actorRole,
+          correlationId,
+          metadata: {
+            manualEdit: true,
+            scheduleVersionId: versionId,
+            assignmentId: target.id,
+            lessonId: target.lesson_id,
+            sessionIndex,
+            fromTimeSlotId: target.time_slot_id,
+            toTimeSlotId: dto.timeSlotId,
+            fromRoomId: target.room_id,
+            toRoomId: nextRoomId,
+            fromRevision: this.revisionOf(current),
+            toRevision: this.revisionOf(updated),
+            expectedEtag,
+            currentEtag: snapshot.etag,
+          },
+        });
+      }
       await client.query("COMMIT");
       inTransaction = false;
       return snapshot;

@@ -77,6 +77,16 @@ interface LockUndoState {
   message: string;
 }
 
+type ManualHistoryKind = "MOVE" | "LOCK" | "UNLOCK" | "UNDO";
+
+interface ManualHistoryEntry {
+  id: string;
+  kind: ManualHistoryKind;
+  summary: string;
+  detail: string;
+  createdAt: string;
+}
+
 const DAYS = [
   { day: 1, label: "Thứ 2" },
   { day: 2, label: "Thứ 3" },
@@ -679,6 +689,7 @@ export function TimetableScreen() {
   const [selectedLessonIds, setSelectedLessonIds] = useState<string[]>([]);
   const [lockRecords, setLockRecords] = useState<TimetableLockRecord[]>([]);
   const [lastLockAction, setLastLockAction] = useState<LockUndoState | null>(null);
+  const [manualHistory, setManualHistory] = useState<ManualHistoryEntry[]>([]);
 
   const entities = useMemo(() => getEntityOptions(view, lessons), [lessons, view]);
   const selectedEntity = entities.find((entity) => entity.id === selectedEntityId) ?? entities[0];
@@ -711,6 +722,19 @@ export function TimetableScreen() {
   const workloadDays = new Set(selectedLessons.map((lesson) => SLOTS.find((slot) => slot.id === lesson.slotId)?.day))
     .size;
 
+  function recordManualHistory(kind: ManualHistoryKind, summary: string, detail: string) {
+    setManualHistory((current) => [
+      {
+        id: `${kind}-${Date.now()}-${current.length}`,
+        kind,
+        summary,
+        detail,
+        createdAt: new Date().toISOString(),
+      },
+      ...current,
+    ]);
+  }
+
   function previewMove(lessonId: string, targetSlotId: string) {
     setMovePreview(
       lockedLessonIds.has(lessonId)
@@ -731,6 +755,11 @@ export function TimetableScreen() {
       fromSlotId: movePreview.fromSlotId,
       targetSlotId: movePreview.targetSlotId,
     });
+    recordManualHistory(
+      "MOVE",
+      `Di chuyển ${previewLesson?.subjectLabel ?? "lesson"}`,
+      `${movePreview.fromSlotId} → ${movePreview.targetSlotId} · draft local; server sẽ revalidate`,
+    );
     setMovePreview(null);
   }
 
@@ -740,6 +769,11 @@ export function TimetableScreen() {
       currentLessons.map((lesson) =>
         lesson.id === lastMove.lessonId ? { ...lesson, slotId: lastMove.fromSlotId } : lesson,
       ),
+    );
+    recordManualHistory(
+      "UNDO",
+      "Hoàn tác di chuyển",
+      `${lastMove.targetSlotId} → ${lastMove.fromSlotId} · draft local`,
     );
     setLastMove(null);
   }
@@ -786,16 +820,23 @@ export function TimetableScreen() {
         previousLocks,
         message: `Đã khóa ${newLockPlan.reduce((total, record) => total + record.lessonIds.length, 0)} lesson theo scope ${lockScope}.`,
       });
+      recordManualHistory(
+        "LOCK",
+        "Khóa lesson",
+        `${newLockPlan.length} scope · ${newLockPlan.reduce((total, record) => total + record.lessonIds.length, 0)} lesson`,
+      );
       return;
     }
     if (unlockPlan.length === 0) return;
     setLockRecords((current) => current.filter((record) => !unlockPlan.some((target) => target.id === record.id)));
     setLastLockAction({ previousLocks, message: `Đã mở khóa ${unlockPlan.length} scope.` });
+    recordManualHistory("UNLOCK", "Mở khóa lesson", `${unlockPlan.length} scope · draft local`);
   }
 
   function undoLockAction() {
     if (!lastLockAction) return;
     setLockRecords(lastLockAction.previousLocks);
+    recordManualHistory("UNDO", "Hoàn tác lock", "Khôi phục trạng thái lock trước đó · draft local");
     setLastLockAction(null);
   }
 
@@ -1095,6 +1136,38 @@ export function TimetableScreen() {
             </button>
           </div>
         ) : null}
+
+        <section className="history-panel" aria-labelledby="history-panel-title">
+          <div className="history-heading">
+            <div>
+              <p className="eyebrow">P2.3-T06 · Audit trail</p>
+              <h3 id="history-panel-title">Lịch sử chỉnh tay</h3>
+              <p className="small-note">
+                Phiên local chỉ hiển thị metadata an toàn của move/lock/undo; audit server là nguồn khớp DB và có
+                correlation ID.
+              </p>
+            </div>
+            <span className="history-count" aria-label={`${manualHistory.length} thao tác trong phiên`}>
+              {manualHistory.length} thao tác
+            </span>
+          </div>
+          {manualHistory.length > 0 ? (
+            <ol className="history-list" aria-label="Các thao tác chỉnh tay trong phiên">
+              {manualHistory.slice(0, 8).map((entry) => (
+                <li key={entry.id} className="history-item">
+                  <span className={`history-kind history-kind-${entry.kind.toLowerCase()}`}>{entry.kind}</span>
+                  <div>
+                    <strong>{entry.summary}</strong>
+                    <p>{entry.detail}</p>
+                  </div>
+                  <time dateTime={entry.createdAt}>{entry.createdAt.slice(11, 19)}</time>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="small-note history-empty">Chưa có thao tác chỉnh tay trong phiên này.</p>
+          )}
+        </section>
 
         {state === "ready" ? (
           <TimetableGrid
