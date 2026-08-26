@@ -1,0 +1,300 @@
+{
+  "task": "P3.1-T02",
+  "generatedAt": "2026-08-26T01:54:51.964Z",
+  "snapshotHash": "3c41b97cc3078b53abdaa139edfc20cdbb1fb6db5b7f744d05895c7fe49186a6",
+  "environment": "local Docker/dev; read-only reconciliation",
+  "schoolId": "00000000-0000-0000-0000-000000000001",
+  "academicPeriodId": "00000000-0000-0000-0000-000000000101",
+  "source": {
+    "workbookEvidence": "outputs/P3.1-T01/pilot-import-evidence.json",
+    "workbookChecksum": "b57bd0198c8a2e1196182e80978f7fb093dc3e2a0f370e93f65d083039986049",
+    "importBatchId": "8fee33ed-a7bb-470b-8ac0-e2a124383153"
+  },
+  "counts": {
+    "master": {
+      "active_classes": 2,
+      "all_classes": 3,
+      "archived_classes": 1,
+      "active_teachers": 2,
+      "all_teachers": 6,
+      "archived_teachers": 4,
+      "active_subjects": 3,
+      "all_subjects": 4,
+      "archived_subjects": 1,
+      "active_rooms": 2,
+      "all_rooms": 3,
+      "archived_rooms": 1,
+      "time_slots": 4
+    },
+    "importedBatch": {
+      "rows": 3,
+      "required_sessions": 4,
+      "error_free_rows": 3,
+      "rows_without_period": 3
+    },
+    "activeLessonSnapshot": {
+      "rows": 28,
+      "distinct_natural_keys": 4,
+      "required_sessions": 37,
+      "rows_without_period": 18,
+      "rows_without_room": 24
+    }
+  },
+  "workload": {
+    "importedBatch": [
+      {
+        "teacher_code": "GV-THCS-001",
+        "display_name": "Nguyễn An",
+        "class_count": 2,
+        "subject_count": 2,
+        "required_sessions": 3,
+        "lesson_rows": 2
+      },
+      {
+        "teacher_code": "GV-THCS-002",
+        "display_name": "Trần Bình",
+        "class_count": 1,
+        "subject_count": 1,
+        "required_sessions": 1,
+        "lesson_rows": 1
+      }
+    ],
+    "activeSnapshot": [
+      {
+        "teacher_code": "GV-THCS-001",
+        "display_name": "Nguyễn An",
+        "class_count": 2,
+        "subject_count": 2,
+        "required_sessions": 28,
+        "lesson_rows": 19
+      },
+      {
+        "teacher_code": "GV-THCS-002",
+        "display_name": "Trần Bình",
+        "class_count": 1,
+        "subject_count": 1,
+        "required_sessions": 9,
+        "lesson_rows": 9
+      }
+    ]
+  },
+  "rules": {
+    "profiles": [
+      {
+        "id": "00000000-0000-0000-0000-000000000801",
+        "version": "1.0",
+        "name": "Demo THCS default profile",
+        "status": "DRAFT",
+        "approval_state": "PENDING_STAKEHOLDER",
+        "source_url": null,
+        "source_locator": null,
+        "effective_from": null,
+        "effective_to": null,
+        "rule_count": 0,
+        "hard_rule_count": 0,
+        "soft_rule_count": 0
+      }
+    ],
+    "snapshots": [],
+    "availabilityDefinitions": []
+  },
+  "schedule": {
+    "published": {
+      "id": "00000000-0000-0000-0000-000000000901",
+      "version_number": 1,
+      "status": "PUBLISHED",
+      "rule_set_version": null,
+      "rule_snapshot_hash": null,
+      "assignment_count": 0
+    },
+    "recentOptimizationRuns": [
+      {
+        "id": "f63d3acf-ad0b-48c2-8941-f3ebfc290edf",
+        "job_id": "p2-5-t05-container-run",
+        "status": "OPTIMAL",
+        "attempts": 1,
+        "requested_at": "2026-08-26T01:33:59.863Z",
+        "completed_at": "2026-08-26T01:34:00.508Z",
+        "rule_set_version": null,
+        "rule_snapshot_hash": null,
+        "payload_checksum": "b6d16c017b8dcf588eb8791418320c9ed749a702061e6f95e50d3cdc1d58b9d5",
+        "output_checksum": "41b90ce1d2a1ff360135af7cef864e162a972530d298f67c0fe5d54429333549"
+      },
+      {
+        "id": "6ba523d0-c5ac-4e96-8027-cf2c9ef39b46",
+        "job_id": "p25-t01-runtime-20260825-1626:retry:815bb05f",
+        "status": "OPTIMAL",
+        "attempts": 1,
+        "requested_at": "2026-08-25T09:48:24.943Z",
+        "completed_at": "2026-08-25T09:48:26.015Z",
+        "rule_set_version": null,
+        "rule_snapshot_hash": null,
+        "payload_checksum": "6bcb11c38511a825a2550ed5d1b7c9c62edab5a035e6759095882453f02b59b4",
+        "output_checksum": "b1c4b4af95c7fdc2b7cdfbd3090484feb033ebc94fdbb0921fe7005437faa9a4"
+      },
+      {
+        "id": "bf7b1f79-b786-4b5c-90ac-6dc09423a99f",
+        "job_id": "p25-t02-cancel-20260825-164757",
+        "status": "CANCELLED",
+        "attempts": 1,
+        "requested_at": "2026-08-25T09:47:58.049Z",
+        "completed_at": "2026-08-25T09:47:58.623Z",
+        "rule_set_version": null,
+        "rule_snapshot_hash": null,
+        "payload_checksum": "3f77fdc9ed2aa42350ce04c4e96cda2c506e363bf117d94a710d6a93ec2658dc",
+        "output_checksum": null
+      },
+      {
+        "id": "267b2d9e-d901-4455-a1a3-9430281b9407",
+        "job_id": "p25-t01-runtime-20260825-1627",
+        "status": "OPTIMAL",
+        "attempts": 1,
+        "requested_at": "2026-08-25T09:26:47.762Z",
+        "completed_at": "2026-08-25T09:26:48.727Z",
+        "rule_set_version": null,
+        "rule_snapshot_hash": null,
+        "payload_checksum": "fd9d4e8818a2b62ce9f6447ef2abb7d6ac92db25feeba7e111f83837c5e59fea",
+        "output_checksum": "e0409b3079fac92ff9e4b6b9897af07ed94e64a5eed5530bf8aaa7baf9b03dd1"
+      },
+      {
+        "id": "c50b0434-e32e-4d4d-8776-83864922f5f9",
+        "job_id": "p25-t01-runtime-20260825-1626",
+        "status": "FAILED",
+        "attempts": 3,
+        "requested_at": "2026-08-25T09:25:41.708Z",
+        "completed_at": "2026-08-25T09:25:46.215Z",
+        "rule_set_version": null,
+        "rule_snapshot_hash": null,
+        "payload_checksum": "cd8c152cd59ffa3177fce06f72a1cc4f089d7fa3259cc2129ffe459528ea32d0",
+        "output_checksum": null
+      },
+      {
+        "id": "27203501-0635-4b0d-964a-4a23538a994c",
+        "job_id": "p25-t01-runtime-20260825-1624",
+        "status": "OPTIMAL",
+        "attempts": 1,
+        "requested_at": "2026-08-25T09:24:17.185Z",
+        "completed_at": "2026-08-25T09:24:19.170Z",
+        "rule_set_version": null,
+        "rule_snapshot_hash": null,
+        "payload_checksum": "2f1021c93d8b0d89c0739bd31d8fe59a74efba07fa89441c44e5bd5893d5d472",
+        "output_checksum": "9cdab6147a7c95cd75dbce763aec28825681edd40d4f0fe70a3a7569ffcb0c4b"
+      }
+    ]
+  },
+  "exceptions": [
+    {
+      "id": "REC-001",
+      "severity": "BLOCKER",
+      "finding": "Duplicate lesson natural keys in active local snapshot",
+      "evidence": {
+        "duplicateKeyCount": 3,
+        "examples": [
+          {
+            "class_code": "7A",
+            "subject_code": "LITERATURE",
+            "teacher_code": "GV-THCS-002",
+            "occurrences": 9,
+            "required_sessions": 9,
+            "rows_without_period": 6
+          },
+          {
+            "class_code": "7A",
+            "subject_code": "MATH",
+            "teacher_code": "GV-THCS-001",
+            "occurrences": 9,
+            "required_sessions": 18,
+            "rows_without_period": 6
+          },
+          {
+            "class_code": "7B",
+            "subject_code": "PHYSICS",
+            "teacher_code": "GV-THCS-001",
+            "occurrences": 9,
+            "required_sessions": 9,
+            "rows_without_period": 6
+          }
+        ]
+      },
+      "owner": "Pilot data steward",
+      "action": "Quarantine repeated dev imports and confirm one approved batch/period before solve",
+      "status": "OPEN"
+    },
+    {
+      "id": "REC-002",
+      "severity": "BLOCKER",
+      "finding": "Lesson rows without academic period",
+      "evidence": {
+        "rowsWithoutPeriod": 18
+      },
+      "owner": "Product/API owner",
+      "action": "Bind the approved pilot snapshot to an academic period before production solve",
+      "status": "OPEN"
+    },
+    {
+      "id": "REC-003",
+      "severity": "BLOCKER",
+      "finding": "Rule profile/source is not approved and complete",
+      "evidence": {
+        "profiles": [
+          {
+            "id": "00000000-0000-0000-0000-000000000801",
+            "version": "1.0",
+            "name": "Demo THCS default profile",
+            "status": "DRAFT",
+            "approval_state": "PENDING_STAKEHOLDER",
+            "source_url": null,
+            "source_locator": null,
+            "effective_from": null,
+            "effective_to": null,
+            "rule_count": 0,
+            "hard_rule_count": 0,
+            "soft_rule_count": 0
+          }
+        ],
+        "snapshots": [],
+        "availabilityRuleCount": 0
+      },
+      "owner": "School coordinator / rule approver",
+      "action": "Confirm legal/school rule source, effective period, hard/soft rules and stakeholder approval",
+      "status": "OPEN"
+    },
+    {
+      "id": "REC-004",
+      "severity": "BLOCKER",
+      "finding": "Published schedule assignment coverage versus imported demand",
+      "evidence": {
+        "importedRequiredSessions": 4,
+        "publishedAssignmentCount": 0,
+        "publishedSchedule": {
+          "id": "00000000-0000-0000-0000-000000000901",
+          "version_number": 1,
+          "status": "PUBLISHED",
+          "rule_set_version": null,
+          "rule_snapshot_hash": null,
+          "assignment_count": 0
+        }
+      },
+      "owner": "Solver/pilot coordinator",
+      "action": "Do not evaluate solver quality or sign off until the approved snapshot is solved and reconciled",
+      "status": "OPEN"
+    }
+  ],
+  "gate": {
+    "snapshotReconciled": false,
+    "solveAllowed": false,
+    "pilotApproved": false,
+    "productionApproved": false,
+    "openOwners": [
+      "Pilot data steward",
+      "Product/API owner",
+      "School coordinator / rule approver",
+      "Solver/pilot coordinator"
+    ]
+  },
+  "limitations": [
+    "Current local database includes historical/dev runtime imports and is not a school-approved baseline.",
+    "Teacher target workload and rule approval cannot be inferred from code or local fixture data.",
+    "No solve or production approval is claimed while blocker exceptions remain open."
+  ]
+}
