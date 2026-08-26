@@ -1,0 +1,356 @@
+{
+  "task": "P3.1-T05",
+  "reportVersion": "1.0",
+  "generatedAt": "2026-08-26T02:15:39.476Z",
+  "scriptVersion": "P3.1-T05-UAT-1.0",
+  "environment": "local Docker/dev; synthetic or workspace fixture data; no staging or production approval",
+  "participants": [
+    {
+      "role": "Project owner / product reviewer",
+      "identity": "User-confirmed in task thread; personal name not supplied",
+      "result": "IMPLEMENTATION_REVIEW_CONFIRMED",
+      "scope": "Review of implementation evidence and UAT preparation"
+    },
+    {
+      "role": "School data steward / rule approver / release stakeholder",
+      "identity": null,
+      "result": "NOT_EVIDENCED",
+      "scope": "Required for pilot and production sign-off"
+    }
+  ],
+  "sourceArtifacts": [
+    {
+      "path": "outputs/P3.1-T01/pilot-import-evidence.json",
+      "bytes": 9608,
+      "sha256": "eaf3090725317554f32f11fe405c7d66c64de2333b21b478af069cc36ac90da2"
+    },
+    {
+      "path": "outputs/P3.1-T02/pilot-reconciliation-report.json",
+      "bytes": 9831,
+      "sha256": "3a499ec7147d7aec96d70f5031df04bfe5a4d751cd119890c572789376b287f1"
+    },
+    {
+      "path": "outputs/P3.1-T03/baseline-comparison-report.json",
+      "bytes": 12571,
+      "sha256": "a5476dad91b0a5fa41581afc3160d5204f118f750d4130bdabbb7497d063590b"
+    },
+    {
+      "path": "outputs/P3.1-T04/weight-sensitivity-report.json",
+      "bytes": 26863,
+      "sha256": "996a207799e8fc306a8f1ca6aa6ef19e132903e42ca4f4a211899832bc9726f2"
+    },
+    {
+      "path": "docs/test-matrix-p2-5-t04.md",
+      "bytes": 9962,
+      "sha256": "df180f196cee538d00aaf2f8b120d39fb36e755d3f36051870213f2c1f55bec5"
+    },
+    {
+      "path": "scripts/test-p2-5-t04-runtime.mjs",
+      "bytes": 5712,
+      "sha256": "d1aedb8cba7d188c49a1f1e836281ff2fcec14dc082d52f63dabd5b3ff8fbf99"
+    },
+    {
+      "path": "docs/uat-pilot-script.md",
+      "bytes": 6405,
+      "sha256": "51f0163e0fdde307568b977ce2e2424d37f37461ae383ea28a633fd90412abc7"
+    }
+  ],
+  "cases": [
+    {
+      "id": "TC-IMP-01",
+      "name": "Upload file Excel chuẩn và preview",
+      "devTest": "PASS",
+      "pilotUat": "BLOCKED",
+      "evidence": [
+        "outputs/P3.1-T01/pilot-import-evidence.json"
+      ],
+      "observed": {
+        "previewHttpStatus": 201,
+        "rowCount": 3,
+        "validRowCount": 3,
+        "errorCount": 0,
+        "warningCount": 0,
+        "fileChecksum": "b57bd0198c8a2e1196182e80978f7fb093dc3e2a0f370e93f65d083039986049"
+      },
+      "reason": "Local Docker/dev evidence is valid, but the artifact is a workspace template/fixture rather than school-issued workbook evidence."
+    },
+    {
+      "id": "TC-IMP-02",
+      "name": "Chặn PDF/DOCX",
+      "devTest": "PASS",
+      "pilotUat": "BLOCKED",
+      "evidence": [
+        "backend/solver/examples/import-fixtures/invalid.pdf",
+        "backend/solver/examples/import-fixtures/invalid.docx",
+        "backend/src/imports/imports.service.spec.ts"
+      ],
+      "reason": "Covered by import validation tests; staging/UAT execution is not evidenced."
+    },
+    {
+      "id": "TC-IMP-03",
+      "name": "Chặn workbook thiếu cột bắt buộc",
+      "devTest": "PASS",
+      "pilotUat": "BLOCKED",
+      "evidence": [
+        "backend/solver/examples/import-fixtures/missing-required-column.xlsx",
+        "backend/src/imports/imports.service.spec.ts"
+      ],
+      "reason": "Covered by import validation tests; official pilot workbook is not attached."
+    },
+    {
+      "id": "TC-VAL-01",
+      "name": "Cảnh báo dữ liệu bắt buộc bị trống",
+      "devTest": "PASS",
+      "pilotUat": "BLOCKED",
+      "evidence": [
+        "backend/solver/examples/import-fixtures/missing-value.xlsx",
+        "backend/src/imports/imports.service.spec.ts"
+      ],
+      "reason": "Covered by import validation tests; no named QC/UAT operator record is attached."
+    },
+    {
+      "id": "TC-VAL-02",
+      "name": "Cảnh báo sai kiểu dữ liệu",
+      "devTest": "PASS",
+      "pilotUat": "BLOCKED",
+      "evidence": [
+        "backend/solver/examples/import-fixtures/wrong-number.xlsx",
+        "backend/src/imports/imports.service.spec.ts"
+      ],
+      "reason": "Covered by import validation tests; no school UAT environment evidence is attached."
+    },
+    {
+      "id": "TC-VAL-03",
+      "name": "Cảnh báo master data không tồn tại",
+      "devTest": "PASS",
+      "pilotUat": "BLOCKED",
+      "evidence": [
+        "backend/solver/examples/import-fixtures/unknown-master-data.xlsx",
+        "backend/src/imports/imports.service.spec.ts"
+      ],
+      "reason": "Covered by import validation tests; master-data ownership and approval remain open."
+    },
+    {
+      "id": "TC-CFM-01",
+      "name": "Confirm import thành công",
+      "devTest": "PASS",
+      "pilotUat": "BLOCKED",
+      "evidence": [
+        "outputs/P3.1-T01/pilot-import-evidence.json"
+      ],
+      "observed": {
+        "confirmHttpStatus": 201,
+        "status": "CONFIRMED",
+        "rowCount": 3
+      },
+      "reason": "Local confirm is auditable; pilot batch must be re-run only after official workbook and academic period are approved."
+    },
+    {
+      "id": "TC-CFM-02",
+      "name": "Audit log sau import",
+      "devTest": "PASS",
+      "pilotUat": "BLOCKED",
+      "evidence": [
+        "outputs/P3.1-T01/pilot-import-evidence.json"
+      ],
+      "observed": {
+        "action": "IMPORT_CONFIRMED",
+        "actorId": "p3-1-t01-workbook-evidence",
+        "batchId": "8fee33ed-a7bb-470b-8ac0-e2a124383153"
+      },
+      "reason": "Audit evidence exists for the local fixture batch; official pilot actor/owner is not evidenced."
+    },
+    {
+      "id": "TC-E2E-01",
+      "name": "Solve và hard-diagnostic",
+      "devTest": "PASS",
+      "pilotUat": "BLOCKED",
+      "evidence": [
+        "outputs/P3.1-T02/pilot-reconciliation-report.json",
+        "outputs/P3.1-T03/baseline-comparison-report.json",
+        "outputs/P3.1-T04/weight-sensitivity-report.json",
+        "docs/test-matrix-p2-5-t04.md",
+        "scripts/test-p2-5-t04-runtime.mjs"
+      ],
+      "observed": {
+        "recentOptimizationRun": "OPTIMAL",
+        "baselineComparison": {
+          "syntheticBaseline": {
+            "status": "PASS",
+            "seedSet": [
+              0,
+              1,
+              7
+            ],
+            "datasetCount": 3,
+            "feasibleHardConstraintGatesPass": true,
+            "infeasibleCasesMatchExpectedDiagnostics": true,
+            "allSeedStabilityGatesPass": true,
+            "allPerformanceGatesPass": true
+          },
+          "manualSchedule": {
+            "status": "NOT_SUPPLIED",
+            "comparable": false,
+            "reason": "No manual schedule artifact with the same input snapshot, rule set, seed/time limit and rubric was supplied."
+          },
+          "thirdPartySoftware": {
+            "status": "NOT_SUPPLIED",
+            "comparable": false,
+            "reason": "No third-party output or reproducible configuration was supplied."
+          }
+        },
+        "solveAllowedForReconciledSnapshot": false
+      },
+      "reason": "Synthetic solver regression passes, but the current pilot snapshot has open reconciliation blockers and solveAllowed=false."
+    },
+    {
+      "id": "TC-E2E-02",
+      "name": "Review/Edit/Approve/Lock/Publish",
+      "devTest": "PASS_WITH_LIMITATION",
+      "pilotUat": "BLOCKED",
+      "evidence": [
+        "docs/test-matrix-p2-5-t04.md",
+        "backend/src/timetable/schedule-version.service.spec.ts",
+        "frontend/src/App.tsx"
+      ],
+      "reason": "Lifecycle controls and contracts are covered by repository evidence and project-owner review; authenticated school UAT trace is not attached and the current published fixture has zero assignments."
+    },
+    {
+      "id": "TC-E2E-03",
+      "name": "Published viewer và export",
+      "devTest": "PASS",
+      "pilotUat": "BLOCKED",
+      "evidence": [
+        "docs/test-matrix-p2-5-t04.md",
+        "backend/src/timetable/schedule-export.service.spec.ts",
+        "backend/src/timetable/public-schedule.service.spec.ts"
+      ],
+      "reason": "Synthetic published read/export boundary is covered; pilot publication and stakeholder acceptance remain open."
+    }
+  ],
+  "gaps": [
+    {
+      "id": "GAP-P0-001",
+      "category": "RELEASE_GATE",
+      "severity": "P0",
+      "status": "OPEN",
+      "finding": "Official school workbook owner/source and checksum are not evidenced.",
+      "owner": "School data steward",
+      "evidence": [
+        "outputs/P3.1-T01/pilot-import-evidence.json"
+      ],
+      "nextStep": "Attach the school-issued workbook, owner, version and checksum; re-run the intake evidence script."
+    },
+    {
+      "id": "GAP-P0-002",
+      "category": "RELEASE_GATE",
+      "severity": "P0",
+      "status": "OPEN",
+      "finding": "Reconciliation has open blockers and solveAllowed=false.",
+      "owner": "Pilot data steward / Product-API owner",
+      "evidence": [
+        "outputs/P3.1-T02/pilot-reconciliation-report.json"
+      ],
+      "nextStep": "Quarantine repeated dev imports, bind one approved academic period and refresh the read-only reconciliation report."
+    },
+    {
+      "id": "GAP-P0-003",
+      "category": "RELEASE_GATE",
+      "severity": "P0",
+      "status": "OPEN",
+      "finding": "Rule profile is DRAFT/PENDING_STAKEHOLDER with zero rule definitions and no approved snapshot.",
+      "owner": "School coordinator / rule approver",
+      "evidence": [
+        "outputs/P3.1-T02/pilot-reconciliation-report.json",
+        "outputs/P3.1-T04/weight-sensitivity-report.json"
+      ],
+      "nextStep": "Attach rule source, define hard/soft rules and approve an effective version before solving."
+    },
+    {
+      "id": "GAP-P0-004",
+      "category": "RELEASE_GATE",
+      "severity": "P0",
+      "status": "OPEN",
+      "finding": "Published fixture assignment coverage is 0 while imported demand is 4 required sessions.",
+      "owner": "Solver/pilot coordinator",
+      "evidence": [
+        "outputs/P3.1-T02/pilot-reconciliation-report.json"
+      ],
+      "nextStep": "Solve the approved reconciled snapshot and verify assignment coverage before review or sign-off."
+    },
+    {
+      "id": "GAP-P1-001",
+      "category": "DECISION_EVIDENCE",
+      "severity": "P1",
+      "status": "OPEN",
+      "finding": "No manual/third-party schedule baseline is supplied for a superiority comparison.",
+      "owner": "Product owner / school coordinator",
+      "evidence": [
+        "outputs/P3.1-T03/baseline-comparison-report.json"
+      ],
+      "nextStep": "Attach a versioned comparable baseline or record an explicit non-comparison decision."
+    },
+    {
+      "id": "GAP-P1-002",
+      "category": "RELEASE_GATE",
+      "severity": "P1",
+      "status": "OPEN",
+      "finding": "Staging authenticated UAT, security and restore evidence are not the same as local Docker evidence.",
+      "owner": "Release approver",
+      "evidence": [
+        "docs/test-matrix-p2-5-t04.md"
+      ],
+      "nextStep": "Run the UAT script in the target environment and link browser/session, security and restore evidence."
+    },
+    {
+      "id": "GAP-P1-003",
+      "category": "SIGNOFF",
+      "severity": "P1",
+      "status": "OPEN",
+      "finding": "No named school approver/stakeholder sign-off or time-bounded waiver is attached.",
+      "owner": "Project owner / release approver",
+      "evidence": [
+        "docs/uat-pilot-script.md"
+      ],
+      "nextStep": "Record approver, decision, scope, conditions and waiver expiry; do not infer approval from implementation review."
+    }
+  ],
+  "signoff": {
+    "implementationReview": "CONFIRMED_BY_PROJECT_OWNER",
+    "devTestComplete": true,
+    "pilotUatComplete": false,
+    "pilotApproved": false,
+    "productionApproved": false,
+    "waiver": {
+      "status": "NOT_GRANTED",
+      "approver": null,
+      "expiresAt": null
+    },
+    "explanation": "Project-owner confirmation closes implementation review only; it does not provide school stakeholder or production approval."
+  },
+  "gate": {
+    "devTestComplete": true,
+    "openP0ReleaseGates": [
+      "GAP-P0-001",
+      "GAP-P0-002",
+      "GAP-P0-003",
+      "GAP-P0-004"
+    ],
+    "openP1Gates": [
+      "GAP-P1-001",
+      "GAP-P1-002",
+      "GAP-P1-003"
+    ],
+    "noOpenProductDefectEstablishedByLocalEvidence": true,
+    "pilotApproved": false,
+    "productionApproved": false,
+    "nextStep": "Resolve GAP-P0-001..004, complete named UAT sign-off and attach any time-bounded waiver before pilot approval."
+  },
+  "limitations": [
+    "The current database includes historical/dev runtime data and is not a school-approved baseline.",
+    "The workbook evidence is a workspace template/fixture, not an official school-issued workbook.",
+    "The current reconciliation report records 4 open blockers; do not use it as a production schedule.",
+    "No named external participant, approver, staging session or production deployment evidence is attached.",
+    "Candidate weight profiles remain stakeholder-review only (pilotWeightsApproved=false)."
+  ]
+}
