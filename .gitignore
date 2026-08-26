@@ -9,4 +9,6 @@ __pycache__/
 .venv/
 *.py[cod]
 *.tsbuildinfo
+.backup
+outputs/P2.5-T06/*.dump
 .DS_Store

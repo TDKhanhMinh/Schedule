@@ -76,6 +76,7 @@ jobs:
       - run: npm run typecheck --workspace @schedule/backend
       - run: npm run test --workspace @schedule/backend
       - run: npm run check:migrations
+      - run: npm run check:release-gate
       - run: npm run build:backend
         env:
           NODE_ENV: test

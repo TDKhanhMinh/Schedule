@@ -1,0 +1,12 @@
+{
+  "task": "P2.5-T06",
+  "generatedAt": "2026-08-26T01:41:33.945Z",
+  "sourceDatabase": "scheduler",
+  "backupFile": "outputs/P2.5-T06/scheduler-rehearsal.dump",
+  "backupBytes": 121927,
+  "sha256": "0a3a08f3228a1c2d0c1defb6c50197e4945526e0e42fe7fc7e5293e88a9fd2d6",
+  "restoreDatabase": "scheduler_restore_rehearsal_10848_1787708492247",
+  "restoreMigrationCount": 12,
+  "restoreSucceeded": true,
+  "scope": "local Docker rehearsal; not production approval"
+}
