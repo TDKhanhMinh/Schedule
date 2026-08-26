@@ -20,6 +20,7 @@
     "lint:frontend": "npm run lint --workspace @schedule/frontend",
     "lint": "npm run lint:backend && npm run lint:frontend",
     "check:migrations": "node scripts/check-migrations.cjs",
+    "db:migrate": "node backend/database/migrate.mjs",
     "check:template": "node scripts/check-template.cjs",
     "ci:local": "node scripts/ci.mjs",
     "test": "npm run test --workspaces --if-present",

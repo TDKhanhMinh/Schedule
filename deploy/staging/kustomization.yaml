@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: schedule-staging
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.example.yaml
+  - api.yaml
+  - worker.yaml
+  - frontend.yaml
+images:
+  - name: ghcr.io/example/schedule-api
+    newTag: "0.1.0"
+  - name: ghcr.io/example/schedule-worker
+    newTag: "0.1.0"
+  - name: ghcr.io/example/schedule-frontend
+    newTag: "0.1.0"

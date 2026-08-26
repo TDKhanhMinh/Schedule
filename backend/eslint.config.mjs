@@ -17,4 +17,10 @@ export default typescriptEslint.config(
       "@typescript-eslint/no-explicit-any": "off",
     },
   },
+  {
+    files: ["database/**/*.mjs"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 );

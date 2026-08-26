@@ -4,7 +4,7 @@ import { HealthController } from "./health.controller";
 
 describe("HealthController", () => {
   it("returns the API health contract", () => {
-    const result = new HealthController().getHealth();
+    const result = new HealthController({ query: jest.fn() } as never, { getOrThrow: jest.fn() } as never).getHealth();
 
     expect(result.status).toBe("ok");
     expect(result.service).toBe("schedule-api");

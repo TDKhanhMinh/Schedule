@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: schedule-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: schedule-frontend
+  template:
+    metadata:
+      labels:
+        app: schedule-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/example/schedule-frontend:0.1.0
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: schedule-frontend
+spec:
+  selector:
+    app: schedule-frontend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

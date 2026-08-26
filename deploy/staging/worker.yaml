@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: schedule-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: schedule-worker
+  template:
+    metadata:
+      labels:
+        app: schedule-worker
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/example/schedule-worker:0.1.0
+          envFrom:
+            - configMapRef:
+                name: schedule-config
+            - secretRef:
+                name: schedule-runtime
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true

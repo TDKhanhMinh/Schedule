@@ -1,0 +1,14 @@
+.git
+.github
+.playwright-mcp
+.spreadsheet-work
+node_modules
+backend/solver/.venv
+**/dist
+**/coverage
+outputs
+tmp
+.env
+.env.*
+!.env.example
+*.log
