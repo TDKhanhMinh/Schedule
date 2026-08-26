@@ -5,6 +5,7 @@ export const CONTRACT_VERSION = "1.0" as const;
 export const SOLVER_OBJECTIVE_CONTRACT_VERSION = "SOLVER-OBJECTIVE-1.0.0" as const;
 export const LOCKED_ASSIGNMENTS_CONTRACT_VERSION = "LOCKED-ASSIGNMENTS-1.0.0" as const;
 export const SCHEDULE_VERSION_OPERATIONS_CONTRACT_VERSION = "SCHEDULE-VERSION-OPS-1.0.0" as const;
+export const FREEZE_SCOPE_CONTRACT_VERSION = "FREEZE-SCOPE-1.0.0" as const;
 export const OPTIMIZATION_QUEUE = "optimization" as const;
 export const OPTIMIZATION_JOB_NAME = "optimization.solve" as const;
 
@@ -191,4 +192,81 @@ export interface ScheduleVersionCompareResult {
     lowerIsBetter: true;
   };
   diffs: ScheduleVersionDiffEntry[];
+}
+
+export type FreezeScopeResourceKind = "LESSON" | "TEACHER" | "CLASS" | "DAY" | "ROOM";
+
+export interface FreezeScopeSelector {
+  kind: FreezeScopeResourceKind;
+  /** DAY uses the canonical decimal day string, for example "1". */
+  id: string;
+}
+
+export interface FreezeScope {
+  contractType: "FREEZE_SCOPE";
+  contractVersion: typeof FREEZE_SCOPE_CONTRACT_VERSION;
+  scopeId: string;
+  schoolId: string;
+  academicPeriodId: string;
+  scheduleVersionId: string;
+  baselineSnapshotHash: string;
+  selectors: readonly FreezeScopeSelector[];
+}
+
+export interface FreezeAssignmentSnapshot {
+  assignmentId: string;
+  lessonId: string;
+  sessionIndex: number;
+  teacherId: string;
+  classId: string;
+  day: number;
+  timeSlotId: string;
+  roomId: string | null;
+}
+
+export interface FreezeChangeEvent {
+  contractType: "FREEZE_CHANGE_EVENT";
+  contractVersion: typeof FREEZE_SCOPE_CONTRACT_VERSION;
+  eventId: string;
+  schoolId: string;
+  academicPeriodId: string;
+  scheduleVersionId: string;
+  baselineSnapshotHash: string;
+  operation: "MOVE" | "ADD" | "REMOVE";
+  before: FreezeAssignmentSnapshot | null;
+  after: FreezeAssignmentSnapshot | null;
+}
+
+export interface FreezeResourceNode {
+  key: string;
+  kind: FreezeScopeResourceKind;
+  id: string;
+}
+
+export interface FreezeNeighborhoodEdge {
+  assignmentId: string;
+  resourceKey: string;
+}
+
+export interface AffectedNeighborhood {
+  contractType: "AFFECTED_NEIGHBORHOOD";
+  contractVersion: typeof FREEZE_SCOPE_CONTRACT_VERSION;
+  changeEventId: string;
+  baselineSnapshotHash: string;
+  changedResourceKeys: readonly string[];
+  affectedAssignmentIds: readonly string[];
+  affectedResources: readonly FreezeResourceNode[];
+  edges: readonly FreezeNeighborhoodEdge[];
+}
+
+export type FreezeDecisionReason = "ALLOWED" | "FROZEN_RESOURCE" | "BASELINE_SNAPSHOT_MISMATCH" | "SCOPE_MISMATCH";
+
+export interface FreezeChangeDecision {
+  contractType: "FREEZE_DECISION";
+  contractVersion: typeof FREEZE_SCOPE_CONTRACT_VERSION;
+  eventId: string;
+  allowed: boolean;
+  reason: FreezeDecisionReason;
+  violations: readonly FreezeScopeSelector[];
+  neighborhood: AffectedNeighborhood;
 }

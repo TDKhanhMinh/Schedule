@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/freeze-change-event.schema.json",
+  "title": "Freeze change event contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractType",
+    "contractVersion",
+    "eventId",
+    "schoolId",
+    "academicPeriodId",
+    "scheduleVersionId",
+    "baselineSnapshotHash",
+    "operation",
+    "before",
+    "after"
+  ],
+  "properties": {
+    "contractType": { "const": "FREEZE_CHANGE_EVENT" },
+    "contractVersion": { "const": "FREEZE-SCOPE-1.0.0" },
+    "eventId": { "type": "string", "minLength": 1 },
+    "schoolId": { "type": "string", "minLength": 1 },
+    "academicPeriodId": { "type": "string", "minLength": 1 },
+    "scheduleVersionId": { "type": "string", "minLength": 1 },
+    "baselineSnapshotHash": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "operation": { "enum": ["MOVE", "ADD", "REMOVE"] },
+    "before": { "$ref": "#/$defs/assignment" },
+    "after": { "$ref": "#/$defs/assignment" }
+  },
+  "$defs": {
+    "assignment": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["assignmentId", "lessonId", "sessionIndex", "teacherId", "classId", "day", "timeSlotId", "roomId"],
+      "properties": {
+        "assignmentId": { "type": "string", "minLength": 1 },
+        "lessonId": { "type": "string", "minLength": 1 },
+        "sessionIndex": { "type": "integer", "minimum": 0 },
+        "teacherId": { "type": "string", "minLength": 1 },
+        "classId": { "type": "string", "minLength": 1 },
+        "day": { "type": "integer", "minimum": 1, "maximum": 7 },
+        "timeSlotId": { "type": "string", "minLength": 1 },
+        "roomId": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

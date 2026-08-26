@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/freeze-scope.schema.json",
+  "title": "Freeze scope contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractType",
+    "contractVersion",
+    "scopeId",
+    "schoolId",
+    "academicPeriodId",
+    "scheduleVersionId",
+    "baselineSnapshotHash",
+    "selectors"
+  ],
+  "properties": {
+    "contractType": { "const": "FREEZE_SCOPE" },
+    "contractVersion": { "const": "FREEZE-SCOPE-1.0.0" },
+    "scopeId": { "type": "string", "minLength": 1 },
+    "schoolId": { "type": "string", "minLength": 1 },
+    "academicPeriodId": { "type": "string", "minLength": 1 },
+    "scheduleVersionId": { "type": "string", "minLength": 1 },
+    "baselineSnapshotHash": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "selectors": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/selector" }
+    }
+  },
+  "$defs": {
+    "selector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["LESSON", "TEACHER", "CLASS", "DAY", "ROOM"] },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

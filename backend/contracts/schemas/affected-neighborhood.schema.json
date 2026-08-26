@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/affected-neighborhood.schema.json",
+  "title": "Affected neighborhood graph contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractType",
+    "contractVersion",
+    "changeEventId",
+    "baselineSnapshotHash",
+    "changedResourceKeys",
+    "affectedAssignmentIds",
+    "affectedResources",
+    "edges"
+  ],
+  "properties": {
+    "contractType": { "const": "AFFECTED_NEIGHBORHOOD" },
+    "contractVersion": { "const": "FREEZE-SCOPE-1.0.0" },
+    "changeEventId": { "type": "string", "minLength": 1 },
+    "baselineSnapshotHash": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "changedResourceKeys": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "affectedAssignmentIds": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "affectedResources": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+    "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "kind", "id"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["LESSON", "TEACHER", "CLASS", "DAY", "ROOM"] },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assignmentId", "resourceKey"],
+      "properties": {
+        "assignmentId": { "type": "string", "minLength": 1 },
+        "resourceKey": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

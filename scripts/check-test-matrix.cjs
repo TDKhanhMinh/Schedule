@@ -11,6 +11,7 @@ const requiredFiles = [
   "backend/src/contracts/pre-solve.spec.ts",
   "backend/src/timetable/schedule-version.service.spec.ts",
   "backend/src/timetable/schedule-export.service.spec.ts",
+  "backend/src/timetable/freeze-scope.spec.ts",
   "backend/src/timetable/public-schedule.service.spec.ts",
   "backend/src/jobs/optimization-queue.service.spec.ts",
   "backend/src/worker/optimization-worker.spec.ts",
@@ -29,7 +30,7 @@ for (const relativePath of requiredFiles) {
   }
 }
 
-for (const id of ["UT-01", "UT-04", "UT-06", "IT-03", "IT-04", "IT-05", "E2E-02"]) {
+for (const id of ["UT-01", "UT-04", "UT-06", "UT-11", "IT-03", "IT-04", "IT-05", "E2E-02"]) {
   if (!matrix.includes(id)) {
     throw new Error(`Required matrix row is missing: ${id}`);
   }

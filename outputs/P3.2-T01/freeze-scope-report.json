@@ -1,0 +1,21 @@
+{
+  "task": "P3.2-T01",
+  "contractVersion": "FREEZE-SCOPE-1.0.0",
+  "generatedAt": "2026-08-26T02:23:01.913Z",
+  "environment": "local unit test; immutable synthetic baseline fixture",
+  "command": "npm.cmd run test --workspace @schedule/backend -- --runTestsByPath src/timetable/freeze-scope.spec.ts",
+  "result": "PASS",
+  "exitCode": 0,
+  "checks": [
+    "lesson/teacher/class/day/room resource nodes are represented",
+    "before and after resources form a deterministic affected neighborhood",
+    "frozen selectors block changes with explicit violations",
+    "baseline hash and school/period/version drift are blocked",
+    "baseline assignment input remains unchanged"
+  ],
+  "gates": {
+    "devTestComplete": true,
+    "pilotApproved": false,
+    "productionApproved": false
+  }
+}
