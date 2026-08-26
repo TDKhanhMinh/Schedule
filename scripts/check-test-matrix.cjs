@@ -15,6 +15,7 @@ const requiredFiles = [
   "backend/src/observability/observability.service.spec.ts",
   "scripts/run-security-review.mjs",
   "scripts/run-load-soak-benchmark.mjs",
+  "scripts/run-disaster-recovery-evidence.mjs",
   "backend/src/timetable/public-schedule.service.spec.ts",
   "backend/src/jobs/optimization-queue.service.spec.ts",
   "backend/src/worker/optimization-worker.spec.ts",
@@ -33,7 +34,20 @@ for (const relativePath of requiredFiles) {
   }
 }
 
-for (const id of ["UT-01", "UT-04", "UT-06", "UT-11", "UT-12", "UT-13", "IT-03", "IT-04", "IT-05", "IT-06", "E2E-02"]) {
+for (const id of [
+  "UT-01",
+  "UT-04",
+  "UT-06",
+  "UT-11",
+  "UT-12",
+  "UT-13",
+  "IT-03",
+  "IT-04",
+  "IT-05",
+  "IT-06",
+  "IT-07",
+  "E2E-02",
+]) {
   if (!matrix.includes(id)) {
     throw new Error(`Required matrix row is missing: ${id}`);
   }

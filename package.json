@@ -32,6 +32,7 @@
     "observability:evidence": "node scripts/run-observability-evidence.mjs",
     "security:review": "node scripts/run-security-review.mjs",
     "benchmark:load": "node scripts/run-load-soak-benchmark.mjs",
+    "dr:rehearse": "node scripts/run-disaster-recovery-evidence.mjs",
     "ci:local": "node scripts/ci.mjs",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"

@@ -1,0 +1,67 @@
+{
+  "task": "P3.3-T04",
+  "rehearsalVersion": "DR-REHEARSAL-1.0.0",
+  "generatedAt": "2026-08-26T02:57:27.139Z",
+  "sourceDatabase": "scheduler",
+  "backup": {
+    "path": "outputs/P2.5-T06/p3.3-t04-dr-rehearsal.dump",
+    "bytes": 129989,
+    "sha256": "79cf51b82731ca8dc561f1789bc82c089bfd9f6b4f3c66fa7ddbb2faec7f48e2",
+    "catalogVerified": true,
+    "gitTracked": false,
+    "durationSeconds": 0.533
+  },
+  "restore": {
+    "targetDatabase": "scheduler_dr_rehearsal_27064_1787713044300",
+    "succeeded": true,
+    "sourceCounts": {
+      "schemaMigrations": 12,
+      "publishedVersions": 2,
+      "scheduleTransitions": 17,
+      "importBatches": 50,
+      "auditLogs": 137
+    },
+    "restoredCounts": {
+      "schemaMigrations": 12,
+      "publishedVersions": 2,
+      "scheduleTransitions": 17,
+      "importBatches": 50,
+      "auditLogs": 137
+    },
+    "consistencyPass": true,
+    "rtoSeconds": 1.563,
+    "rpoSeconds": 2.306,
+    "targets": {
+      "rtoSeconds": 3600,
+      "rpoSeconds": 86400
+    }
+  },
+  "dependencies": {
+    "services": {
+      "running": [
+        "api",
+        "frontend",
+        "postgres",
+        "redis",
+        "worker"
+      ],
+      "requiredRunning": true
+    },
+    "readiness": {
+      "status": 200,
+      "ok": true,
+      "body": "{\"status\":\"ready\",\"service\":\"schedule-api\",\"dependencies\":{\"postgres\":\"ok\",\"redis\":\"ok\"},\"timestamp\":\"2026-08-26T02:57:27.102Z\"}"
+    }
+  },
+  "gate": {
+    "rehearsalPass": true,
+    "devTestComplete": true,
+    "pilotApproved": false,
+    "productionApproved": false
+  },
+  "limitations": [
+    "Local Docker restore only; no production encrypted object-storage access or cross-region restore.",
+    "Redis durability/worker drain and long-duration RTO were not simulated.",
+    "No production/stakeholder approval is inferred from the rehearsal."
+  ]
+}

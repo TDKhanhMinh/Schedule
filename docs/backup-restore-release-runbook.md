@@ -36,6 +36,16 @@ Docker local/staging template dùng PostgreSQL service tên `postgres`. Sau khi 
 node scripts/rehearse-postgres-backup.mjs --output outputs/P2.5-T06/scheduler-rehearsal.dump
 ```
 
+P3.3-T04 dùng rehearsal có đối soát đầy đủ hơn:
+
+```text
+npm run dr:rehearse
+```
+
+Script ghi `outputs/P3.3-T04/disaster-recovery-report.json`, so sánh published
+schedule/audit/import/migration counts giữa source và database restore cô lập,
+đo RTO/RPO local, kiểm tra readiness và xác nhận dump không được Git track.
+
 Script sẽ:
 
 1. chạy `pg_dump -Fc --no-owner --no-privileges`;
@@ -88,14 +98,14 @@ Production restore cần change window và approver xác nhận. Quy trình tố
 
 ## 5. Release checklist và bằng chứng
 
-| Gate | Dev/Test complete | Production approved |
-| --- | --- | --- |
-| Source/contract | CI local, schema và NestJS–Python version consistency | Release SHA được review và signed/tagged |
-| Database | migration check, backup/restore rehearsal report | staging restore và integrity evidence |
-| Runtime | Docker readiness, API/worker/solver smoke | staging/UAT, monitoring, alert và rollback drill |
-| Security | auth/scope/header tests, threat model | security review, secret rotation và production identity |
-| Workflow | automated tests và browser/pilot evidence nếu có | approver + stakeholder sign-off, workbook chính thức |
-| Operations | runbook, owner, RPO/RTO, incident steps | on-call, retention, access review và change approval |
+| Gate            | Dev/Test complete                                     | Production approved                                     |
+| --------------- | ----------------------------------------------------- | ------------------------------------------------------- |
+| Source/contract | CI local, schema và NestJS–Python version consistency | Release SHA được review và signed/tagged                |
+| Database        | migration check, backup/restore rehearsal report      | staging restore và integrity evidence                   |
+| Runtime         | Docker readiness, API/worker/solver smoke             | staging/UAT, monitoring, alert và rollback drill        |
+| Security        | auth/scope/header tests, threat model                 | security review, secret rotation và production identity |
+| Workflow        | automated tests và browser/pilot evidence nếu có      | approver + stakeholder sign-off, workbook chính thức    |
+| Operations      | runbook, owner, RPO/RTO, incident steps               | on-call, retention, access review và change approval    |
 
 Chỉ chuyển task/phase sang **Done** khi các acceptance criteria có evidence liên
 kết. “CI pass”, “Docker chạy được” hoặc “local restore rehearsal” chỉ là
