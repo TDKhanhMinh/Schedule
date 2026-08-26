@@ -1,0 +1,193 @@
+{
+  "task": "P3.3-T02",
+  "reviewVersion": "SECURITY-REVIEW-1.0.0",
+  "generatedAt": "2026-08-26T02:46:24.190Z",
+  "environment": "local Docker/dev; synthetic fixtures; no production approval",
+  "sourceArtifacts": [
+    {
+      "path": "docs/security-threat-model.md",
+      "bytes": 6504,
+      "sha256": "669f2dda85c2ae090c7e528ff42cc52bf4f40291615bad2d3b9f68b7433ad9d7"
+    },
+    {
+      "path": "backend/src/auth/auth.guard.spec.ts",
+      "bytes": 4158,
+      "sha256": "ffbcfbd826c5d153661df1b7c18645c402314010585359133b6a3c25e8de4a23"
+    },
+    {
+      "path": "backend/src/imports/imports.service.spec.ts",
+      "bytes": 18775,
+      "sha256": "fec6b20f527da0100ec3f3b4c541db4eeac47157a40149038b8a69769dc45cd6"
+    },
+    {
+      "path": "backend/src/timetable/public-schedule.service.spec.ts",
+      "bytes": 4641,
+      "sha256": "47fb89056059927eeb378fa459c355703941c7dacf09e124d8c5657b5fcdf6f7"
+    },
+    {
+      "path": "backend/src/timetable/schedule-export.service.spec.ts",
+      "bytes": 5049,
+      "sha256": "b71c4beee15d571391aeb019dff0b8d9e8ffa848679838bbfc6d7fa255b695b3"
+    },
+    {
+      "path": "backend/src/common/http/api-exception.filter.spec.ts",
+      "bytes": 2053,
+      "sha256": "c331200495288daf826b178c1629fdd7025e16327f3fdda9232fa5b1814968ad"
+    },
+    {
+      "path": "scripts/test-p2-5-t04-runtime.mjs",
+      "bytes": 5712,
+      "sha256": "d1aedb8cba7d188c49a1f1e836281ff2fcec14dc082d52f63dabd5b3ff8fbf99"
+    },
+    {
+      "path": "docker-compose.yml",
+      "bytes": 2388,
+      "sha256": "3704e5926a16dc3dfe98c6972f1533f4312844f3708938d02db28363eaee3fba"
+    },
+    {
+      "path": ".env.example",
+      "bytes": 200,
+      "sha256": "3d23d54e5f1f0a25f27c8402c2805f4d9fe455359d90895c987591ea451d0faa"
+    }
+  ],
+  "validation": {
+    "targetedSecurityTests": {
+      "status": "PASS",
+      "exitCode": 0
+    },
+    "runtimeCrossScopeAndFileMatrix": {
+      "status": "PASS",
+      "exitCode": 0
+    },
+    "dependencyAudit": {
+      "status": "FINDINGS",
+      "exitCode": 1,
+      "totals": {
+        "info": 0,
+        "low": 0,
+        "moderate": 2,
+        "high": 0,
+        "critical": 0,
+        "total": 2
+      },
+      "vulnerabilities": [
+        {
+          "name": "exceljs",
+          "severity": "moderate",
+          "isDirect": true,
+          "via": [
+            "uuid"
+          ],
+          "fixAvailable": {
+            "name": "exceljs",
+            "version": "3.4.0",
+            "isSemVerMajor": true
+          }
+        },
+        {
+          "name": "uuid",
+          "severity": "moderate",
+          "isDirect": false,
+          "via": [
+            {
+              "source": 1119441,
+              "name": "uuid",
+              "dependency": "uuid",
+              "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+              "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+              "severity": "moderate",
+              "cwe": [
+                "CWE-787",
+                "CWE-1285"
+              ],
+              "cvss": {
+                "score": 7.5,
+                "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
+              },
+              "range": "<11.1.1"
+            }
+          ],
+          "fixAvailable": {
+            "name": "exceljs",
+            "version": "3.4.0",
+            "isSemVerMajor": true
+          }
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "id": "THR-001",
+      "severity": "P0",
+      "status": "COVERED_LOCAL_OPEN_STAGING",
+      "owner": "Security/release approver",
+      "evidence": [
+        "backend/src/auth/auth.guard.spec.ts",
+        "scripts/test-p2-5-t04-runtime.mjs"
+      ],
+      "nextStep": "Repeat with staging identity and verify tenant/school isolation against real data boundary."
+    },
+    {
+      "id": "THR-002",
+      "severity": "P0",
+      "status": "COVERED_LOCAL_OPEN_STAGING",
+      "owner": "Platform/security owner",
+      "evidence": [
+        "backend/src/imports/imports.service.spec.ts",
+        "backend/solver/examples/import-fixtures/*"
+      ],
+      "nextStep": "Add staging AV/WAF/quota evidence and confirm file retention/deletion behavior."
+    },
+    {
+      "id": "THR-007",
+      "severity": "P1",
+      "status": "OPEN",
+      "owner": "Platform owner",
+      "evidence": [
+        "npm audit --omit=dev"
+      ],
+      "detail": "Current audit reports 2 moderate advisories through exceljs -> uuid; compatible upgrade/override has not been approved.",
+      "nextStep": "Evaluate a compatible ExcelJS/uuid plan, run workbook regression, then close or record named risk acceptance with expiry."
+    },
+    {
+      "id": "THR-008",
+      "severity": "P1",
+      "status": "OPEN_DEPLOYMENT_GATE",
+      "owner": "Release/platform owner",
+      "evidence": [
+        "docker-compose.yml",
+        ".env.example"
+      ],
+      "nextStep": "Use production secret manager/private network/non-default credentials; do not reuse local compose values."
+    },
+    {
+      "id": "THR-009",
+      "severity": "P1",
+      "status": "OPEN_DEPLOYMENT_GATE",
+      "owner": "Observability/release owner",
+      "evidence": [
+        "backend/src/observability/observability.controller.ts",
+        "docs/observability.md"
+      ],
+      "nextStep": "Protect metrics scrape endpoint and verify collector access/retention/paging in staging."
+    }
+  ],
+  "gates": {
+    "devTestComplete": true,
+    "p0LocalBypassEvidence": false,
+    "p1FindingsOpen": true,
+    "riskAcceptance": {
+      "status": "NOT_GRANTED",
+      "approver": null,
+      "expiresAt": null
+    },
+    "pilotApproved": false,
+    "productionApproved": false
+  },
+  "limitations": [
+    "The dependency audit is current for this lockfile but remediation compatibility is not decided.",
+    "Local headers/fixtures/runtime do not prove production identity, WAF/AV, secret manager, retention or paging.",
+    "No external security approver or risk acceptance identity is supplied."
+  ]
+}

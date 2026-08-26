@@ -30,6 +30,7 @@
     "uat:pilot": "node scripts/generate-uat-gap-report.mjs",
     "freeze:scope": "node scripts/run-freeze-scope-evidence.mjs",
     "observability:evidence": "node scripts/run-observability-evidence.mjs",
+    "security:review": "node scripts/run-security-review.mjs",
     "ci:local": "node scripts/ci.mjs",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"

@@ -1,33 +1,47 @@
-# Security threat review — P2.5-T03
+# Security, privacy và threat model — P3.3-T02
 
-Date: 2026-08-25  
-Scope: local/dev API and UI review before staging preparation.
+**Phiên bản review:** `SECURITY-REVIEW-1.0.0`
+**Ngày:** 2026-08-26
+**Phạm vi:** V1.1 Web MVP: auth/school scope, Excel upload, export, public links, PostgreSQL, Redis/BullMQ và Python solver.
 
-## Security boundary
+## 1. Data classification và retention
 
-The `AuthGuard` is the only API authorization boundary for protected NestJS routes. In `development` and `test`, the existing local identity adapter accepts `x-user-id`, `x-user-role`, and `x-school-id` so the pilot workflow can be tested deterministically. In `production`, this adapter fails closed with `AUTH_PROVIDER_REQUIRED`; a real OIDC/session adapter must be configured before production traffic is allowed. The frontend never decides school scope, permission, export eligibility, or solver correctness.
+| Class | Dữ liệu                                                                                | Quy tắc xử lý                                                                                   |
+| ----- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| C0    | Published read-only schedule đã được trường cho phép công bố                           | Chỉ qua published version/public token; token lưu hash; revoke/expiry phải có hiệu lực.         |
+| C1    | IDs, checksums, status, metrics và audit metadata                                      | Không chứa raw workbook/body/secret; route/metric labels phải bounded.                          |
+| C2    | Class, teacher display name, subject, room và lịch nội bộ                              | School/academic-period scope ở server; không đưa vào log/metric; export chỉ theo role/status.   |
+| C3    | Database/Redis credentials, request headers, public token nguyên bản, raw workbook tạm | Không commit, không log, không đưa vào client; production phải dùng secret manager và rotation. |
 
-## Threat checklist and disposition
+Retention của C1/C2/C3 cần được school/legal owner chốt trong production data-retention decision. Code hiện giữ audit/schedule/job history trong PostgreSQL theo lifecycle; không tự đặt thời hạn pháp lý.
 
-| Surface              | Threat                                                                                               | Disposition                                                                                                                                                       |
-| -------------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Authentication       | Forged local headers used as production identity                                                     | Closed for release by fail-closed production guard; production IdP/session integration remains a deployment gate.                                                 |
-| Session/cookie/token | Token or cookie copied into audit/log metadata                                                       | Audit metadata is allow-listed/redacted; public schedule tokens are random 32-byte values and only SHA-256 hashes are stored.                                     |
-| RBAC                 | Viewer mutates solve/import/master-data or scheduler approves/publishes                              | Permission matrix and approval/publish role checks are enforced server-side; negative tests cover denial.                                                         |
-| Object authorization | User changes a resource by guessing an ID                                                            | Controllers require path/body school scope; SQL reads/writes use school and academic-period predicates. `GET /schools` now returns only the authenticated school. |
-| Import               | Oversized, decompression-bomb, formula, hyperlink or cross-school workbook                           | Size/sheet/row/column/uncompressed limits, parse timeout, ZIP preflight, formula/hyperlink rejection and master-data scope checks are enforced.                   |
-| Export               | Draft export by viewer, cross-school snapshot, hard-conflict export or spreadsheet formula injection | Export checks role/status, snapshot scope/completeness/conflicts, and prefixes formula-like user strings with an apostrophe before writing cells.                 |
-| Public link          | Guessable/revoked/expired link exposes a non-published snapshot                                      | 32-byte base64url token, hash-at-rest lookup, expiry/revocation checks, published-only joins and school-scoped assignment joins.                                  |
-| Browser hardening    | MIME sniffing, framing, referrer and unnecessary device APIs                                         | API sets `nosniff`, `DENY`, `no-referrer`, and a restrictive Permissions-Policy; production CORS requires an explicit allow-list.                                 |
+## 2. Threat model và abuse cases
 
-## Automated evidence
+| ID      | Abuse case                                                                    | Boundary/evidence                                                                        | Severity | Owner/status                                                                                           |
+| ------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| THR-001 | Đọc/ghi chéo school bằng header hoặc path giả                                 | `auth.guard.spec.ts`, `master-data.service.spec.ts`, `scripts/test-p2-5-t04-runtime.mjs` | P0       | Covered in local/dev; staging identity test remains open.                                              |
+| THR-002 | Upload PDF/DOCX, sai template, missing/invalid/unknown rows hoặc file độc hại | import fixtures/specs, file type/size boundary, runtime matrix                           | P0       | Covered in local/dev; production WAF/AV/quota remains open.                                            |
+| THR-003 | Formula injection khi export cell chứa `=`, `+`, `-`, `@`                     | `schedule-export.service.spec.ts`, `safeWorkbookValue`                                   | P1       | Covered in local/dev; Excel consumer policy remains open.                                              |
+| THR-004 | Public link bị đoán, dùng sau expiry/revoke hoặc đọc draft                    | `public-schedule.service.spec.ts`, token hash migration                                  | P0       | Covered in local/dev; production rate-limit/monitoring remains open.                                   |
+| THR-005 | Queue payload/solver error làm lộ workbook, PII, secret hoặc raw stack        | `P3.3-T01` redaction/trace tests, audit metadata sanitizer                               | P1       | Covered in implementation; centralized log retention/redaction collector remains open.                 |
+| THR-006 | Solver resource exhaustion qua payload lớn/time limit hoặc retry storm        | preflight, bounded retry/timeout, BullMQ status tests                                    | P1       | Local controls present; production quota/rate-limit/load gate remains open.                            |
+| THR-007 | Dependency advisory trong `exceljs → uuid`                                    | `npm audit --omit=dev` dated 2026-08-26                                                  | P1       | OPEN; Platform owner must evaluate compatible upgrade/override or named risk acceptance with expiry.   |
+| THR-008 | Dev compose credentials/ports được dùng ngoài local                           | `docker-compose.yml`, `.env.example`                                                     | P1       | OPEN deployment gate; production must use secret manager, private network and non-default credentials. |
+| THR-009 | Metrics endpoint hoặc trace IDs bị expose ngoài internal network              | `ObservabilityController`, runtime metrics 200                                           | P1       | OPEN deployment gate; protect/scope scrape endpoint and configure collector access policy.             |
 
-- AuthGuard tests cover missing identity, invalid role, school-scope mismatch, viewer mutation denial, and production fail-closed behavior.
-- Master-data tests prove school listing is parameterized by the authenticated scope.
-- Import tests cover workbook abuse limits and unsafe formula/hyperlink content.
-- Export tests cover viewer draft denial, server hard gates, and formula-like cell escaping.
-- Public-link tests cover random token generation, hash-at-rest lookup, published-only access, filtering, and expiry/revocation behavior.
+Không có P0 finding mới được chứng minh là bypassed bởi local automated/runtime evidence. P0/P1 ở trên vẫn là release gates nếu chưa có staging evidence hoặc risk acceptance có approver và expiry.
 
-## Remaining release gates
+## 3. Required production controls
 
-The local adapter is not a production identity provider. Before staging/production, configure and test the approved OIDC/session/cookie integration, trusted proxy/TLS policy, rate limiting/WAF, secret rotation, database least-privilege/RLS posture, dependency/container scanning, and an authenticated browser/E2E run. These are explicitly not inferred from local implementation or from a Notion `Done` status.
+1. Chạy authenticated cross-school, malformed upload, archive/expiry/revoke và export formula cases trong staging bằng identity thật.
+2. Chốt C2/C3 retention, deletion, backup access và incident response với owner có thẩm quyền.
+3. Resolve `THR-007` bằng compatible dependency plan; không tự hạ version ExcelJS trong task review.
+4. Loại bỏ credential/port mặc định khỏi production compose; cấu hình secret manager, TLS/private network, Redis auth và DB least privilege.
+5. Đặt `/metrics` sau internal network/auth hoặc scrape allow-list; aggregate worker logs/metrics vào collector có retention/access policy.
+
+## 4. Evidence
+
+- Automated security tests: `outputs/P3.3-T02/security-review-report.json`.
+- Runtime matrix: `node scripts/test-p2-5-t04-runtime.mjs`.
+- Threat/dependency/config sources: `backend/src/auth`, `backend/src/imports`, `backend/src/timetable`, `backend/src/observability`, `docker-compose.yml`, `.env.example`.
+- This is a local/dev review and remediation register. It does not grant pilot, staging or production approval.
