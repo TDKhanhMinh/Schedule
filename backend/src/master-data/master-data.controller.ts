@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
 import type { RequestWithAuth } from "../auth/auth.types";
 import {
+  AssignHomeroomTeacherDto,
   CreateAcademicPeriodDto,
   CreateClassDto,
   CreateLessonRequirementDto,
@@ -90,6 +91,35 @@ export class MasterDataController {
   @Get(":schoolId/classes")
   listClasses(@Param("schoolId") schoolId: string) {
     return this.masterData.listClasses(schoolId);
+  }
+
+  @Get(":schoolId/academic-periods/:academicPeriodId/homeroom-assignments")
+  listHomeroomAssignments(@Param("schoolId") schoolId: string, @Param("academicPeriodId") academicPeriodId: string) {
+    return this.masterData.listHomeroomAssignments(schoolId, academicPeriodId);
+  }
+
+  @Get(":schoolId/academic-periods/:academicPeriodId/teacher-load-summary")
+  getTeacherLoadSummary(@Param("schoolId") schoolId: string, @Param("academicPeriodId") academicPeriodId: string) {
+    return this.masterData.getTeacherLoadSummary(schoolId, academicPeriodId);
+  }
+
+  @Put(":schoolId/academic-periods/:academicPeriodId/classes/:classId/homeroom")
+  assignHomeroomTeacher(
+    @Param("schoolId") schoolId: string,
+    @Param("academicPeriodId") academicPeriodId: string,
+    @Param("classId") classId: string,
+    @Body() dto: AssignHomeroomTeacherDto,
+  ) {
+    return this.masterData.assignHomeroomTeacher(schoolId, academicPeriodId, classId, dto);
+  }
+
+  @Delete(":schoolId/academic-periods/:academicPeriodId/classes/:classId/homeroom")
+  removeHomeroomTeacher(
+    @Param("schoolId") schoolId: string,
+    @Param("academicPeriodId") academicPeriodId: string,
+    @Param("classId") classId: string,
+  ) {
+    return this.masterData.removeHomeroomTeacher(schoolId, academicPeriodId, classId);
   }
 
   @Post(":schoolId/classes")

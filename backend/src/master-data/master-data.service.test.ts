@@ -93,6 +93,62 @@ describe("MasterDataService", () => {
     expect(query).toHaveBeenCalledWith(expect.stringContaining("WHERE id = $1"), ["school-001"]);
   });
 
+  it("lists homeroom assignments within the academic-period scope", async () => {
+    query.mockResolvedValueOnce({ rows: [periodRow] }).mockResolvedValueOnce({
+      rows: [
+        {
+          id: "homeroom-001",
+          school_id: "school-001",
+          academic_period_id: "period-001",
+          class_id: "class-001",
+          class_code: "7A",
+          class_name: "7A",
+          teacher_id: "teacher-001",
+          teacher_code: "GV-001",
+          teacher_name: "Nguyễn An",
+          weekly_reduction_periods: 4,
+          rule_code: "TT_05_2025_D9_1",
+          created_at: timestamp,
+          updated_at: timestamp,
+        },
+      ],
+    });
+
+    await expect(service.listHomeroomAssignments("school-001", "period-001")).resolves.toEqual([
+      expect.objectContaining({ classCode: "7A", teacherName: "Nguyễn An", weeklyReductionPeriods: 4 }),
+    ]);
+  });
+
+  it("calculates the teacher load after the homeroom reduction", async () => {
+    query.mockResolvedValueOnce({ rows: [periodRow] }).mockResolvedValueOnce({
+      rows: [
+        {
+          teacher_id: "teacher-001",
+          teacher_code: "GV-001",
+          teacher_name: "Nguyễn An",
+          education_level: "LOWER_SECONDARY",
+          standard_weekly_periods: 19,
+          teaching_periods: 13,
+          homeroom_classes: 1,
+          reduction_periods: 4,
+          adjusted_weekly_target: 15,
+        },
+      ],
+    });
+
+    await expect(service.getTeacherLoadSummary("school-001", "period-001")).resolves.toEqual([
+      expect.objectContaining({
+        teacherName: "Nguyễn An",
+        teachingPeriods: 13,
+        reductionPeriods: 4,
+        adjustedWeeklyTarget: 15,
+        difference: -2,
+        status: "UNDER",
+        duties: [{ code: "HOMEROOM_TEACHER", label: "GVCN", count: 1 }],
+      }),
+    ]);
+  });
+
   it("creates a school and maps database fields to the API contract", async () => {
     query.mockResolvedValueOnce({ rows: [schoolRow] });
 

@@ -59,3 +59,17 @@ export interface TimetableHistoryEntry {
   createdAt?: string;
   metadata?: Record<string, unknown>;
 }
+
+export interface HomeroomAssignment {
+  id: string;
+  schoolId: string;
+  academicPeriodId: string;
+  classId: string;
+  classCode: string;
+  className: string;
+  teacherId: string;
+  teacherCode: string;
+  teacherName: string;
+  weeklyReductionPeriods: number;
+  ruleCode: string;
+}

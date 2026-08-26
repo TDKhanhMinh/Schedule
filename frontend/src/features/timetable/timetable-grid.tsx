@@ -1,4 +1,4 @@
-import type { TimetableAssignment, TimetableView } from "./timetable-types";
+import type { HomeroomAssignment, TimetableAssignment, TimetableView } from "./timetable-types";
 
 const SCHOOL_DAYS = [1, 2, 3, 4, 5, 6];
 const SCHOOL_PERIODS = [1, 2, 3, 4, 5];
@@ -19,11 +19,13 @@ function viewValue(assignment: TimetableAssignment, view: TimetableView) {
 export function TimetableGrid({
   assignments,
   classLabels,
+  homerooms,
   view,
   query,
 }: {
   assignments: TimetableAssignment[];
   classLabels: string[];
+  homerooms: HomeroomAssignment[];
   view: TimetableView;
   query: string;
 }) {
@@ -51,7 +53,9 @@ export function TimetableGrid({
         classLabel.toLowerCase().includes(normalizedQuery) ||
         visibleAssignments.some((assignment) => assignment.classLabel === classLabel),
     );
-    return <SchoolOverviewView assignments={visibleAssignments} classLabels={visibleClassLabels} />;
+    return (
+      <SchoolOverviewView assignments={visibleAssignments} classLabels={visibleClassLabels} homerooms={homerooms} />
+    );
   }
   if (view === "class") {
     const visibleClassLabels = classLabels.filter(
@@ -98,9 +102,11 @@ export function TimetableGrid({
 function SchoolOverviewView({
   assignments,
   classLabels,
+  homerooms,
 }: {
   assignments: TimetableAssignment[];
   classLabels: string[];
+  homerooms: HomeroomAssignment[];
 }) {
   const days = SCHOOL_DAYS;
   const rows = SCHOOL_SHIFTS.flatMap((shift) =>
@@ -174,7 +180,7 @@ function SchoolOverviewView({
                 GVCN
               </th>
               {classLabels.map((classLabel) => (
-                <td key={classLabel}>—</td>
+                <td key={classLabel}>{homeroomTeacherName(classLabel, homerooms)}</td>
               ))}
             </tr>
           </tfoot>
@@ -278,6 +284,11 @@ function ClassShiftRows({
 function shortLabel(value: string) {
   const parts = value.split(" · ");
   return parts.at(-1) ?? value;
+}
+
+function homeroomTeacherName(classLabel: string, assignments: HomeroomAssignment[]) {
+  const assignment = assignments.find((item) => `${item.classCode} · ${item.className}` === classLabel);
+  return assignment?.teacherName ?? "—";
 }
 
 function dayLabel(day: number) {

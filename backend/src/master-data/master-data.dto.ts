@@ -180,6 +180,23 @@ export class UpdateClassDto {
   grade?: number;
 }
 
+export class AssignHomeroomTeacherDto {
+  @IsString()
+  @IsNotEmpty()
+  teacherId!: string;
+
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  @IsOptional()
+  weeklyReductionPeriods?: number;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  ruleCode?: string;
+}
+
 export class CreateSubjectDto {
   @IsString()
   @IsNotEmpty()

@@ -2,6 +2,7 @@ import { frontendConfig } from "../../config";
 import { apiRequest } from "../../lib/api-client";
 import type {
   LessonRequirement,
+  HomeroomAssignment,
   MasterRecord,
   ScheduleVersionSnapshot,
   TimeSlot,
@@ -27,7 +28,7 @@ export async function loadTimetable(signal?: AbortSignal) {
     signal,
   );
   const base = `/schools/${frontendConfig.schoolId}`;
-  const [periodSlots, lessonRequirements, classes, subjects, teachers, rooms, history] = await Promise.all([
+  const [periodSlots, lessonRequirements, classes, subjects, teachers, rooms, history, homerooms] = await Promise.all([
     getJson<TimeSlot[]>(`${base}/academic-periods/${snapshot.academicPeriodId}/time-slots`, signal),
     getJson<LessonRequirement[]>(`${base}/academic-periods/${snapshot.academicPeriodId}/lesson-requirements`, signal),
     getJson<MasterRecord[]>(`${base}/classes`, signal),
@@ -35,6 +36,7 @@ export async function loadTimetable(signal?: AbortSignal) {
     getJson<MasterRecord[]>(`${base}/teachers`, signal),
     getJson<MasterRecord[]>(`${base}/rooms`, signal),
     getJson<TimetableHistoryEntry[]>(`${base}/schedule-versions/${snapshot.id}/history?limit=20`, signal),
+    getJson<HomeroomAssignment[]>(`${base}/academic-periods/${snapshot.academicPeriodId}/homeroom-assignments`, signal),
   ]);
   const classMap = new Map(classes.map((item) => [item.id, item]));
   const subjectMap = new Map(subjects.map((item) => [item.id, item]));
@@ -69,5 +71,6 @@ export async function loadTimetable(signal?: AbortSignal) {
     history,
     timeSlots: periodSlots,
     classLabels: classes.map((item) => label(item, item.id)),
+    homerooms,
   };
 }

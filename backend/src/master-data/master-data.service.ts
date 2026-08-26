@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Inject, Injectable, NotFoundExc
 import type { Pool, QueryResultRow } from "pg";
 import { PG_POOL } from "../database/database.module";
 import {
+  AssignHomeroomTeacherDto,
   CreateAcademicPeriodDto,
   CreateClassDto,
   CreateLessonRequirementDto,
@@ -76,6 +77,34 @@ interface ClassRow extends QueryResultRow {
   status: "ACTIVE" | "ARCHIVED";
   created_at: string | Date;
   updated_at: string | Date;
+}
+
+interface HomeroomAssignmentRow extends QueryResultRow {
+  id: string;
+  school_id: string;
+  academic_period_id: string;
+  class_id: string;
+  class_code: string;
+  class_name: string;
+  teacher_id: string;
+  teacher_code: string;
+  teacher_name: string;
+  weekly_reduction_periods: number;
+  rule_code: string;
+  created_at: string | Date;
+  updated_at: string | Date;
+}
+
+interface TeacherLoadSummaryRow extends QueryResultRow {
+  teacher_id: string;
+  teacher_code: string;
+  teacher_name: string;
+  education_level: string;
+  standard_weekly_periods: number;
+  teaching_periods: number;
+  homeroom_classes: number;
+  reduction_periods: number;
+  adjusted_weekly_target: number;
 }
 
 interface SubjectRow extends QueryResultRow {
@@ -558,6 +587,153 @@ export class MasterDataService {
       [schoolId],
     );
     return result.rows.map((row) => this.toClass(row));
+  }
+
+  async listHomeroomAssignments(schoolId: string, academicPeriodId: string) {
+    await this.ensureAcademicPeriod(schoolId, academicPeriodId);
+    const result = await this.pool.query<HomeroomAssignmentRow>(
+      `SELECT assignment.id::text,
+              assignment.school_id::text,
+              assignment.academic_period_id::text,
+              assignment.class_id::text,
+              class.code AS class_code,
+              class.name AS class_name,
+              assignment.teacher_id::text,
+              teacher.code AS teacher_code,
+              teacher.display_name AS teacher_name,
+              assignment.weekly_reduction_periods,
+              assignment.rule_code,
+              assignment.created_at,
+              assignment.updated_at
+         FROM class_homeroom_assignments assignment
+         JOIN classes class ON class.tenant_id = assignment.tenant_id AND class.id = assignment.class_id
+         JOIN teachers teacher ON teacher.tenant_id = assignment.tenant_id AND teacher.id = assignment.teacher_id
+        WHERE assignment.school_id = $1 AND assignment.academic_period_id = $2
+        ORDER BY class.code`,
+      [schoolId, academicPeriodId],
+    );
+    return result.rows.map((row) => this.toHomeroomAssignment(row));
+  }
+
+  async assignHomeroomTeacher(
+    schoolId: string,
+    academicPeriodId: string,
+    classId: string,
+    dto: AssignHomeroomTeacherDto,
+  ) {
+    await this.ensureAcademicPeriod(schoolId, academicPeriodId);
+    const classResult = await this.pool.query<{ id: string }>(
+      `SELECT id::text FROM classes WHERE id = $1 AND school_id = $2 AND status = 'ACTIVE'`,
+      [classId, schoolId],
+    );
+    if (classResult.rows.length === 0) throw this.notFound("CLASS_NOT_FOUND", "Lớp không tồn tại trong school scope.");
+    const teacherResult = await this.pool.query<{ id: string }>(
+      `SELECT id::text FROM teachers WHERE id = $1 AND school_id = $2 AND status = 'ACTIVE'`,
+      [dto.teacherId, schoolId],
+    );
+    if (teacherResult.rows.length === 0)
+      throw this.notFound("TEACHER_NOT_FOUND", "Giáo viên không tồn tại trong school scope.");
+
+    await this.pool.query(
+      `INSERT INTO class_homeroom_assignments
+         (tenant_id, school_id, academic_period_id, class_id, teacher_id,
+          weekly_reduction_periods, rule_code)
+       SELECT school.tenant_id, $1, $2, $3, $4, $5, $6
+         FROM schools school
+        WHERE school.id = $1
+       ON CONFLICT (tenant_id, school_id, academic_period_id, class_id)
+       DO UPDATE SET teacher_id = EXCLUDED.teacher_id,
+                     weekly_reduction_periods = EXCLUDED.weekly_reduction_periods,
+                     rule_code = EXCLUDED.rule_code,
+                     updated_at = now()`,
+      [
+        schoolId,
+        academicPeriodId,
+        classId,
+        dto.teacherId,
+        dto.weeklyReductionPeriods ?? 4,
+        dto.ruleCode?.trim() || "TT_05_2025_D9_1",
+      ],
+    );
+    const assignments = await this.listHomeroomAssignments(schoolId, academicPeriodId);
+    const assignment = assignments.find((item) => item.classId === classId);
+    if (!assignment) throw this.notFound("HOMEROOM_ASSIGNMENT_NOT_FOUND", "Không thể đọc lại phân công GVCN vừa lưu.");
+    return assignment;
+  }
+
+  async removeHomeroomTeacher(schoolId: string, academicPeriodId: string, classId: string) {
+    await this.ensureAcademicPeriod(schoolId, academicPeriodId);
+    const result = await this.pool.query<{ id: string }>(
+      `DELETE FROM class_homeroom_assignments
+        WHERE school_id = $1 AND academic_period_id = $2 AND class_id = $3
+        RETURNING id::text`,
+      [schoolId, academicPeriodId, classId],
+    );
+    return { classId, deleted: result.rows.length > 0 };
+  }
+
+  async getTeacherLoadSummary(schoolId: string, academicPeriodId: string) {
+    await this.ensureAcademicPeriod(schoolId, academicPeriodId);
+    const result = await this.pool.query<TeacherLoadSummaryRow>(
+      `WITH teaching AS (
+             SELECT teacher_id, COALESCE(SUM(required_sessions), 0)::int AS teaching_periods
+               FROM lesson_requirements
+              WHERE school_id = $1 AND academic_period_id = $2 AND status = 'ACTIVE'
+              GROUP BY teacher_id
+           ), homeroom AS (
+             SELECT teacher_id,
+                    COUNT(*)::int AS homeroom_classes,
+                    COALESCE(SUM(weekly_reduction_periods), 0)::int AS reduction_periods
+               FROM class_homeroom_assignments
+              WHERE school_id = $1 AND academic_period_id = $2
+              GROUP BY teacher_id
+           )
+       SELECT teacher.id::text AS teacher_id,
+              teacher.code AS teacher_code,
+              teacher.display_name AS teacher_name,
+              school.education_level,
+              CASE school.education_level
+                WHEN 'PRIMARY' THEN 23
+                WHEN 'UPPER_SECONDARY' THEN 17
+                ELSE 19
+              END::int AS standard_weekly_periods,
+              COALESCE(teaching.teaching_periods, 0)::int AS teaching_periods,
+              COALESCE(homeroom.homeroom_classes, 0)::int AS homeroom_classes,
+              COALESCE(homeroom.reduction_periods, 0)::int AS reduction_periods,
+              GREATEST(
+                CASE school.education_level
+                  WHEN 'PRIMARY' THEN 23
+                  WHEN 'UPPER_SECONDARY' THEN 17
+                  ELSE 19
+                END - COALESCE(homeroom.reduction_periods, 0),
+                0
+              )::int AS adjusted_weekly_target
+         FROM teachers teacher
+         JOIN schools school ON school.id = teacher.school_id
+         LEFT JOIN teaching ON teaching.teacher_id = teacher.id
+         LEFT JOIN homeroom ON homeroom.teacher_id = teacher.id
+        WHERE teacher.school_id = $1 AND teacher.status = 'ACTIVE'
+        ORDER BY teacher.code`,
+      [schoolId, academicPeriodId],
+    );
+    return result.rows.map((row) => {
+      const difference = row.teaching_periods - row.adjusted_weekly_target;
+      return {
+        teacherId: row.teacher_id,
+        teacherCode: row.teacher_code,
+        teacherName: row.teacher_name,
+        educationLevel: row.education_level,
+        standardWeeklyPeriods: row.standard_weekly_periods,
+        teachingPeriods: row.teaching_periods,
+        homeroomClasses: row.homeroom_classes,
+        reductionPeriods: row.reduction_periods,
+        adjustedWeeklyTarget: row.adjusted_weekly_target,
+        difference,
+        status: difference > 0 ? "OVER" : difference < 0 ? "UNDER" : "ON_TARGET",
+        duties:
+          row.homeroom_classes > 0 ? [{ code: "HOMEROOM_TEACHER", label: "GVCN", count: row.homeroom_classes }] : [],
+      };
+    });
   }
 
   async getClass(schoolId: string, classId: string) {
@@ -1210,6 +1386,24 @@ export class MasterDataService {
       name: row.name,
       grade: row.grade,
       status: row.status,
+      createdAt: new Date(row.created_at).toISOString(),
+      updatedAt: new Date(row.updated_at).toISOString(),
+    };
+  }
+
+  private toHomeroomAssignment(row: HomeroomAssignmentRow) {
+    return {
+      id: row.id,
+      schoolId: row.school_id,
+      academicPeriodId: row.academic_period_id,
+      classId: row.class_id,
+      classCode: row.class_code,
+      className: row.class_name,
+      teacherId: row.teacher_id,
+      teacherCode: row.teacher_code,
+      teacherName: row.teacher_name,
+      weeklyReductionPeriods: row.weekly_reduction_periods,
+      ruleCode: row.rule_code,
       createdAt: new Date(row.created_at).toISOString(),
       updatedAt: new Date(row.updated_at).toISOString(),
     };

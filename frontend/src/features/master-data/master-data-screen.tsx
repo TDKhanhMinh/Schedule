@@ -13,6 +13,7 @@ import {
 import { authHeaders, frontendConfig } from "../../config";
 import { navigateTo } from "../../routing";
 import { useWorkspace } from "../../app/workspace-provider";
+import { HomeroomAssignmentPanel, TeacherLoadSummaryPanel } from "./teacher-duty-panels";
 
 type Status = "ACTIVE" | "ARCHIVED";
 type MasterDataEntity = "school" | "period" | "slot" | "teacher" | "class" | "subject" | "room" | "assignment";
@@ -880,7 +881,7 @@ export function MasterDataScreen() {
           ))}
         </div>
 
-        {activeEntity === "slot" || activeEntity === "assignment" ? (
+        {activeEntity === "slot" || activeEntity === "assignment" || activeEntity === "class" ? (
           <label className="period-picker">
             <span>Năm học/kỳ học</span>
             <select
@@ -899,6 +900,15 @@ export function MasterDataScreen() {
               ))}
             </select>
           </label>
+        ) : null}
+
+        {activeEntity === "class" && selectedPeriodId ? (
+          <HomeroomAssignmentPanel
+            classes={classes}
+            teachers={teachers}
+            periodId={selectedPeriodId}
+            canWrite={canWrite}
+          />
         ) : null}
 
         <div className="master-layout">
@@ -1035,6 +1045,7 @@ export function MasterDataScreen() {
             )}
           </div>
         </div>
+        {selectedPeriodId ? <TeacherLoadSummaryPanel periodId={selectedPeriodId} /> : null}
       </section>
       <AlertDialog
         open={Boolean(pendingDelete)}

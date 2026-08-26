@@ -155,7 +155,13 @@ export function TimetableScreen() {
             </button>
           </div>
         ) : (
-          <TimetableGrid assignments={filtered} classLabels={data?.classLabels ?? []} view={view} query={query} />
+          <TimetableGrid
+            assignments={filtered}
+            classLabels={data?.classLabels ?? []}
+            homerooms={data?.homerooms ?? []}
+            view={view}
+            query={query}
+          />
         )}
         <section className="history-panel" aria-labelledby="history-panel-title">
           <div className="history-heading">
