@@ -1,0 +1,35 @@
+{
+  "task": "P3.3-T05",
+  "reportVersion": "PRODUCTION-READINESS-PREFLIGHT-1.0.0",
+  "generatedAt": "2026-08-26T06:13:42.698Z",
+  "decision": "BLOCKED_OPEN_GATES",
+  "releaseRecord": "outputs/P3.3-T05/release-record.json",
+  "plan": "docs/production-readiness-plan.md",
+  "checks": {
+    "scopePlanPresent": true,
+    "releaseRecordPresent": true,
+    "webFirstScope": true,
+    "tenantMigrationApplied": true,
+    "applicationTenantContextConfigured": true,
+    "productionIdentityProviderConfigured": false,
+    "localCi": true,
+    "officialWorkbookAndStakeholder": false,
+    "securityP1ClosedOrAccepted": false,
+    "productionCollectorAndPaging": false,
+    "productionSecretsAndEnvironment": false,
+    "namedReleaseApprover": false,
+    "postReleaseOwnerAndWindow": false,
+    "productionApproved": false
+  },
+  "openGates": [
+    "productionIdentityProviderConfigured",
+    "officialWorkbookAndStakeholder",
+    "securityP1ClosedOrAccepted",
+    "productionCollectorAndPaging",
+    "productionSecretsAndEnvironment",
+    "namedReleaseApprover",
+    "postReleaseOwnerAndWindow",
+    "productionApproved"
+  ],
+  "boundary": "Read-only preflight; it does not deploy, approve, or mutate production."
+}

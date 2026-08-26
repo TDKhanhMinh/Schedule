@@ -7,3 +7,4 @@ data:
   API_PORT: "3000"
   API_PREFIX: api/v1
   CORS_ORIGIN: https://schedule-staging.example.invalid
+  TENANT_DB_ENFORCEMENT: "true"

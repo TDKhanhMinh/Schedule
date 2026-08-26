@@ -21,6 +21,10 @@ class EnvironmentVariables {
   @IsString()
   REDIS_URL!: string;
 
+  @IsIn(["true", "false"])
+  @IsOptional()
+  TENANT_DB_ENFORCEMENT = "false";
+
   @IsString()
   @IsOptional()
   CORS_ORIGIN?: string;
@@ -43,6 +47,10 @@ export function validateEnvironment(config: Record<string, unknown>) {
     throw new Error("Invalid environment configuration: CORS_ORIGIN is required in production");
   }
 
+  if (variables.NODE_ENV === "production" && variables.TENANT_DB_ENFORCEMENT !== "true") {
+    throw new Error("Invalid environment configuration: TENANT_DB_ENFORCEMENT=true is required in production");
+  }
+
   return {
     ...config,
     NODE_ENV: variables.NODE_ENV,
@@ -50,6 +58,7 @@ export function validateEnvironment(config: Record<string, unknown>) {
     API_PREFIX: variables.API_PREFIX,
     DATABASE_URL: variables.DATABASE_URL,
     REDIS_URL: variables.REDIS_URL,
+    TENANT_DB_ENFORCEMENT: variables.TENANT_DB_ENFORCEMENT,
     ...(variables.CORS_ORIGIN ? { CORS_ORIGIN: variables.CORS_ORIGIN } : {}),
   };
 }

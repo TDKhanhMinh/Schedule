@@ -34,4 +34,16 @@ describe("validateEnvironment", () => {
       }),
     ).toThrow("CORS_ORIGIN is required in production");
   });
+
+  it("requires tenant database enforcement in production", () => {
+    expect(() =>
+      validateEnvironment({
+        NODE_ENV: "production",
+        API_PORT: "3100",
+        DATABASE_URL: "postgresql://scheduler_app/production",
+        REDIS_URL: "redis://localhost:6379",
+        CORS_ORIGIN: "https://schedule.example.com",
+      }),
+    ).toThrow("TENANT_DB_ENFORCEMENT=true is required in production");
+  });
 });

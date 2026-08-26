@@ -48,6 +48,7 @@ const performance = await readJson("outputs/P3.3-T03/load-soak-report.json");
 const recovery = await readJson("outputs/P3.3-T04/disaster-recovery-report.json");
 const observability = await readJson("outputs/P3.3-T01/observability-report.json");
 const tenantGate = await readJson("outputs/P4.1-T05/cross-tenant-gate-report.json");
+const productionPreflight = await readJson("outputs/P3.3-T05/production-readiness-preflight.json");
 const statusLines = run("git", ["status", "--short"])?.split(/\r?\n/).filter(Boolean) ?? [];
 const currentSha = run("git", ["rev-parse", "HEAD"]);
 const migrationCount = Number(
@@ -137,6 +138,11 @@ const releaseRecord = {
       migrationApplied: tenantMigrationApplied,
       applicationTenantContextConfigured: tenantGate?.gates?.applicationTenantContextConfigured ?? false,
       crossTenantLeakageProven: tenantGate?.gates?.crossTenantLeakageProven ?? false,
+    },
+    productionReadiness: {
+      path: "outputs/P3.3-T05/production-readiness-preflight.json",
+      decision: productionPreflight?.decision ?? "NOT_RUN",
+      openGates: productionPreflight?.openGates ?? [],
     },
   },
   runtime: {

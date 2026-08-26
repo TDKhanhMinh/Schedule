@@ -42,6 +42,7 @@
     "tenant:migration:rehearse": "node scripts/run-tenant-migration-rehearsal.mjs",
     "repair:evidence": "node scripts/run-local-repair-evidence.mjs",
     "p3.2:evidence": "node scripts/run-p3-2-evidence.mjs",
+    "production:preflight": "node scripts/check-production-readiness.cjs",
     "ci:local": "node scripts/ci.mjs",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
