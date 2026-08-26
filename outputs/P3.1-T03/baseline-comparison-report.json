@@ -1,0 +1,414 @@
+{
+  "task": "P3.1-T03",
+  "generatedAt": "2026-08-26T02:00:36.140Z",
+  "scope": "local Docker/dev synthetic baseline; no school or third-party superiority claim",
+  "benchmark": {
+    "reportVersion": "1.0",
+    "rubricVersion": "1.0",
+    "benchmarkVersion": "1.0",
+    "contractVersion": "1.0",
+    "generatedAt": "2026-08-26T02:00:35.900088+00:00",
+    "environment": {
+      "python": "3.11.9",
+      "platform": "Windows-10-10.0.26200-SP0",
+      "processor": "AMD64 Family 25 Model 68 Stepping 1, AuthenticAMD",
+      "seedSet": [
+        0,
+        1,
+        7
+      ]
+    },
+    "datasets": [
+      {
+        "id": "small-feasible",
+        "category": "feasible-small",
+        "input": {
+          "file": "small-feasible.json",
+          "sha256": "F62421FB5B95C35A5A9D5F4E60F5D67A0064E52FC0B2CB73A262D86F1B2762AF",
+          "expectedSha256": "F62421FB5B95C35A5A9D5F4E60F5D67A0064E52FC0B2CB73A262D86F1B2762AF",
+          "contractVersion": "1.0"
+        },
+        "expected": {
+          "status": "OPTIMAL",
+          "assignmentCount": 5,
+          "conflictContains": []
+        },
+        "checks": {
+          "status": true,
+          "assignmentCount": true,
+          "hardConstraints": true,
+          "runtime": true,
+          "optimality": true,
+          "seedStability": true,
+          "explainability": true,
+          "softScore": true
+        },
+        "objectiveGapPercent": 0,
+        "softScore": 4000,
+        "runtimeLimitSeconds": 5,
+        "seedRuns": [
+          {
+            "seed": 0,
+            "status": "OPTIMAL",
+            "assignmentCount": 5,
+            "hardConflictCount": 0,
+            "runtimeMs": 17.554,
+            "diagnostics": [],
+            "objectiveValue": 4000,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 2,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 2,
+              "weightedTotal": 4000
+            }
+          },
+          {
+            "seed": 1,
+            "status": "OPTIMAL",
+            "assignmentCount": 5,
+            "hardConflictCount": 0,
+            "runtimeMs": 13.872,
+            "diagnostics": [],
+            "objectiveValue": 4000,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 2,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 2,
+              "weightedTotal": 4000
+            }
+          },
+          {
+            "seed": 7,
+            "status": "OPTIMAL",
+            "assignmentCount": 5,
+            "hardConflictCount": 0,
+            "runtimeMs": 15.74,
+            "diagnostics": [],
+            "objectiveValue": 4000,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 2,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 2,
+              "weightedTotal": 4000
+            }
+          }
+        ],
+        "passed": true
+      },
+      {
+        "id": "medium-near-realistic",
+        "category": "near-realistic-medium",
+        "input": {
+          "file": "medium-near-realistic.json",
+          "sha256": "C958A266EE8E8E6B2AF5ED2A98941C67EC2D9F889138F984085EA0A5AA46EBDE",
+          "expectedSha256": "C958A266EE8E8E6B2AF5ED2A98941C67EC2D9F889138F984085EA0A5AA46EBDE",
+          "contractVersion": "1.0"
+        },
+        "expected": {
+          "status": "OPTIMAL",
+          "assignmentCount": 40,
+          "conflictContains": []
+        },
+        "checks": {
+          "status": true,
+          "assignmentCount": true,
+          "hardConstraints": true,
+          "runtime": true,
+          "optimality": true,
+          "seedStability": true,
+          "explainability": true,
+          "softScore": true
+        },
+        "objectiveGapPercent": 0,
+        "softScore": 192000,
+        "runtimeLimitSeconds": 30,
+        "seedRuns": [
+          {
+            "seed": 0,
+            "status": "OPTIMAL",
+            "assignmentCount": 40,
+            "hardConflictCount": 0,
+            "runtimeMs": 10792.951,
+            "diagnostics": [],
+            "objectiveValue": 192000,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 80,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 112,
+              "weightedTotal": 192000
+            }
+          },
+          {
+            "seed": 1,
+            "status": "OPTIMAL",
+            "assignmentCount": 40,
+            "hardConflictCount": 0,
+            "runtimeMs": 11651.337,
+            "diagnostics": [],
+            "objectiveValue": 192000,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 80,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 112,
+              "weightedTotal": 192000
+            }
+          },
+          {
+            "seed": 7,
+            "status": "OPTIMAL",
+            "assignmentCount": 40,
+            "hardConflictCount": 0,
+            "runtimeMs": 11070.924,
+            "diagnostics": [],
+            "objectiveValue": 192000,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 80,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 112,
+              "weightedTotal": 192000
+            }
+          }
+        ],
+        "passed": true
+      },
+      {
+        "id": "infeasible-teacher-conflict",
+        "category": "intentionally-infeasible",
+        "input": {
+          "file": "infeasible-teacher-conflict.json",
+          "sha256": "335A8E9034A9EF593B819C39F567930475845D6F3A04EF4649D6DF3A1C6E1B2F",
+          "expectedSha256": "335A8E9034A9EF593B819C39F567930475845D6F3A04EF4649D6DF3A1C6E1B2F",
+          "contractVersion": "1.0"
+        },
+        "expected": {
+          "status": "INFEASIBLE",
+          "assignmentCount": 0,
+          "conflictContains": [
+            "No feasible assignment satisfies all hard class and teacher constraints"
+          ]
+        },
+        "checks": {
+          "status": true,
+          "assignmentCount": true,
+          "hardConstraints": true,
+          "runtime": true,
+          "optimality": true,
+          "seedStability": true,
+          "explainability": true,
+          "softScore": true
+        },
+        "objectiveGapPercent": null,
+        "softScore": 0,
+        "runtimeLimitSeconds": 5,
+        "seedRuns": [
+          {
+            "seed": 0,
+            "status": "INFEASIBLE",
+            "assignmentCount": 0,
+            "hardConflictCount": 2,
+            "runtimeMs": 0.211,
+            "diagnostics": [
+              "TEACHER_SLOT_CAPACITY_EXCEEDED: teacherId teacher-1 needs 2 sessions but has 1 candidate slots.",
+              "No feasible assignment satisfies all hard class and teacher constraints"
+            ],
+            "objectiveValue": null,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 0,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 0,
+              "weightedTotal": 0
+            }
+          },
+          {
+            "seed": 1,
+            "status": "INFEASIBLE",
+            "assignmentCount": 0,
+            "hardConflictCount": 2,
+            "runtimeMs": 0.116,
+            "diagnostics": [
+              "TEACHER_SLOT_CAPACITY_EXCEEDED: teacherId teacher-1 needs 2 sessions but has 1 candidate slots.",
+              "No feasible assignment satisfies all hard class and teacher constraints"
+            ],
+            "objectiveValue": null,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 0,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 0,
+              "weightedTotal": 0
+            }
+          },
+          {
+            "seed": 7,
+            "status": "INFEASIBLE",
+            "assignmentCount": 0,
+            "hardConflictCount": 2,
+            "runtimeMs": 0.061,
+            "diagnostics": [
+              "TEACHER_SLOT_CAPACITY_EXCEEDED: teacherId teacher-1 needs 2 sessions but has 1 candidate slots.",
+              "No feasible assignment satisfies all hard class and teacher constraints"
+            ],
+            "objectiveValue": null,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 0,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 0,
+              "weightedTotal": 0
+            }
+          }
+        ],
+        "passed": true
+      }
+    ],
+    "summary": {
+      "datasetCount": 3,
+      "passedCount": 3,
+      "allPassed": true,
+      "softScore": "versioned SOLVER-OBJECTIVE-1.0.0 weightedTotal; lower is better"
+    }
+  },
+  "regression": [
+    {
+      "dataset": "small-feasible",
+      "current": {
+        "status": "OPTIMAL",
+        "assignmentCount": 5,
+        "hardConflictCount": 0,
+        "seedSet": [
+          0,
+          1,
+          7
+        ],
+        "passed": true
+      },
+      "previous": {
+        "status": "OPTIMAL",
+        "assignmentCount": 5,
+        "hardConflictCount": 0
+      },
+      "stableAgainstPrior": true
+    },
+    {
+      "dataset": "medium-near-realistic",
+      "current": {
+        "status": "OPTIMAL",
+        "assignmentCount": 40,
+        "hardConflictCount": 0,
+        "seedSet": [
+          0,
+          1,
+          7
+        ],
+        "passed": true
+      },
+      "previous": {
+        "status": "OPTIMAL",
+        "assignmentCount": 40,
+        "hardConflictCount": 0
+      },
+      "stableAgainstPrior": true
+    },
+    {
+      "dataset": "infeasible-teacher-conflict",
+      "current": {
+        "status": "INFEASIBLE",
+        "assignmentCount": 0,
+        "hardConflictCount": 2,
+        "seedSet": [
+          0,
+          1,
+          7
+        ],
+        "passed": true
+      },
+      "previous": {
+        "status": "INFEASIBLE",
+        "assignmentCount": 0,
+        "hardConflictCount": 2
+      },
+      "stableAgainstPrior": true
+    }
+  ],
+  "comparison": {
+    "syntheticBaseline": {
+      "status": "PASS",
+      "seedSet": [
+        0,
+        1,
+        7
+      ],
+      "datasetCount": 3,
+      "feasibleHardConstraintGatesPass": true,
+      "infeasibleCasesMatchExpectedDiagnostics": true,
+      "allSeedStabilityGatesPass": true,
+      "allPerformanceGatesPass": true
+    },
+    "manualSchedule": {
+      "status": "NOT_SUPPLIED",
+      "comparable": false,
+      "reason": "No manual schedule artifact with the same input snapshot, rule set, seed/time limit and rubric was supplied."
+    },
+    "thirdPartySoftware": {
+      "status": "NOT_SUPPLIED",
+      "comparable": false,
+      "reason": "No third-party output or reproducible configuration was supplied."
+    }
+  },
+  "pilotGate": {
+    "reconciliationSnapshotHash": "3c41b97cc3078b53abdaa139edfc20cdbb1fb6db5b7f744d05895c7fe49186a6",
+    "solveAllowedForPilotSnapshot": false,
+    "pilotBaselineRun": "BLOCKED_UNRECONCILED_SNAPSHOT",
+    "externalComparable": false,
+    "pilotApproved": false,
+    "productionApproved": false,
+    "blockers": [
+      {
+        "id": "REC-001",
+        "owner": "Pilot data steward",
+        "action": "Quarantine repeated dev imports and confirm one approved batch/period before solve"
+      },
+      {
+        "id": "REC-002",
+        "owner": "Product/API owner",
+        "action": "Bind the approved pilot snapshot to an academic period before production solve"
+      },
+      {
+        "id": "REC-003",
+        "owner": "School coordinator / rule approver",
+        "action": "Confirm legal/school rule source, effective period, hard/soft rules and stakeholder approval"
+      },
+      {
+        "id": "REC-004",
+        "owner": "Solver/pilot coordinator",
+        "action": "Do not evaluate solver quality or sign off until the approved snapshot is solved and reconciled"
+      }
+    ]
+  },
+  "decision": "Synthetic baseline passes the versioned rubric and is regression-stable; it is not evidence that the product beats a school/manual/third-party schedule."
+}
