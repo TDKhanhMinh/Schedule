@@ -1,13 +1,13 @@
 {
   "task": "P3.3-T05",
   "recordVersion": "RELEASE-CHECKLIST-1.0.0",
-  "generatedAt": "2026-08-26T04:30:54.732Z",
+  "generatedAt": "2026-08-26T06:13:56.251Z",
   "applicationVersion": "0.1.0",
   "decision": "NO-GO_PENDING_GATES",
   "productionApproved": false,
   "pilotApproved": false,
   "source": {
-    "commit": "5ed22ee222e29d770df51f69858832d4ef096897",
+    "commit": "9e2dc15a95837558ee616885a6267f3f536f61a1",
     "branch": "main",
     "workingTreeHasUnrelatedChanges": true,
     "unrelatedChangesPreserved": [
@@ -17,11 +17,11 @@
     ],
     "images": [
       {
-        "id": "sha256:3051a650c69af29220efc747541367a4dc48ab7a5af341bbf34a9f4a5487e939",
+        "id": "sha256:0828f3ef09310eeb0dc171e10a1d79102d45db7677e9dc7c3149410229cff5d2",
         "repoDigests": [
-          "schedule-api@sha256:3051a650c69af29220efc747541367a4dc48ab7a5af341bbf34a9f4a5487e939"
+          "schedule-api@sha256:0828f3ef09310eeb0dc171e10a1d79102d45db7677e9dc7c3149410229cff5d2"
         ],
-        "created": "2026-08-26T04:15:44.70861711Z"
+        "created": "2026-08-26T05:11:54.897043862Z"
       },
       {
         "id": "sha256:0c7d37a22f8ec69b0961f1fea72af9282908cfdabd19e74e0aba76242bce889f",
@@ -65,6 +65,20 @@
       "migrationApplied": true,
       "applicationTenantContextConfigured": true,
       "crossTenantLeakageProven": true
+    },
+    "productionReadiness": {
+      "path": "outputs/P3.3-T05/production-readiness-preflight.json",
+      "decision": "BLOCKED_OPEN_GATES",
+      "openGates": [
+        "productionIdentityProviderConfigured",
+        "officialWorkbookAndStakeholder",
+        "securityP1ClosedOrAccepted",
+        "productionCollectorAndPaging",
+        "productionSecretsAndEnvironment",
+        "namedReleaseApprover",
+        "postReleaseOwnerAndWindow",
+        "productionApproved"
+      ]
     }
   },
   "runtime": {
