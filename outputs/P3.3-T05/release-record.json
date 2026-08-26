@@ -1,0 +1,119 @@
+{
+  "task": "P3.3-T05",
+  "recordVersion": "RELEASE-CHECKLIST-1.0.0",
+  "generatedAt": "2026-08-26T03:04:52.505Z",
+  "applicationVersion": "0.1.0",
+  "decision": "NO-GO_PENDING_GATES",
+  "productionApproved": false,
+  "pilotApproved": false,
+  "source": {
+    "commit": "57397128c8cc4add151ab9b650f8c0fc477ff780",
+    "branch": "main",
+    "workingTreeHasUnrelatedChanges": true,
+    "unrelatedChangesPreserved": [
+      "?? outputs/P1.3-T01/school-timetable-mvp-0.1.0-template-v1.0.xlsx.inspect.ndjson",
+      "?? outputs/P2.4-T05/",
+      "?? outputs/P3.3-T05/",
+      "?? tmp/"
+    ],
+    "images": [
+      {
+        "id": "sha256:d214cb7acb71a54865ef4de8637a718f00857c467752bcc20d646920b19b70de",
+        "repoDigests": [
+          "schedule-api@sha256:d214cb7acb71a54865ef4de8637a718f00857c467752bcc20d646920b19b70de"
+        ],
+        "created": "2026-08-26T02:36:01.882327479Z"
+      },
+      {
+        "id": "sha256:c4dd1ea14b5579261756bea02619b24aa81c0d4e8aba6517f9bfa761d943bc6c",
+        "repoDigests": [
+          "schedule-worker@sha256:c4dd1ea14b5579261756bea02619b24aa81c0d4e8aba6517f9bfa761d943bc6c"
+        ],
+        "created": "2026-08-26T02:36:37.003430904Z"
+      }
+    ],
+    "migrationCount": 12
+  },
+  "evidence": {
+    "uat": {
+      "path": "outputs/P3.1-T05/uat-gap-report.json",
+      "devTestComplete": true,
+      "pilotApproved": false
+    },
+    "security": {
+      "path": "outputs/P3.3-T02/security-review-report.json",
+      "devTestComplete": true,
+      "p1FindingsOpen": true
+    },
+    "performance": {
+      "path": "outputs/P3.3-T03/load-soak-report.json",
+      "benchmarkPass": true,
+      "capacityLimit": "3 concurrent synthetic solve jobs and bounded local request load only"
+    },
+    "recovery": {
+      "path": "outputs/P3.3-T04/disaster-recovery-report.json",
+      "rehearsalPass": true,
+      "rtoSeconds": 1.563,
+      "rpoSeconds": 2.306
+    },
+    "observability": {
+      "path": "outputs/P3.3-T01/observability-report.json",
+      "devTestComplete": true,
+      "runtime": "PASS"
+    }
+  },
+  "runtime": {
+    "composeServices": [
+      "api",
+      "frontend",
+      "postgres",
+      "redis",
+      "worker"
+    ],
+    "apiReadiness": true,
+    "workerRunning": true
+  },
+  "gates": {
+    "sourceVersion": true,
+    "ciLocal": true,
+    "uatImplementationEvidence": true,
+    "officialWorkbookAndStakeholder": false,
+    "securityLocalEvidence": true,
+    "securityP1ClosedOrAccepted": false,
+    "performanceLocalEvidence": true,
+    "recoveryLocalEvidence": true,
+    "observabilityLocalEvidence": true,
+    "productionCollectorAndPaging": false,
+    "productionSecretsAndEnvironment": false,
+    "namedReleaseApprover": false,
+    "postReleaseOwnerAndWindow": false
+  },
+  "openGates": [
+    "officialWorkbookAndStakeholder",
+    "securityP1ClosedOrAccepted",
+    "productionCollectorAndPaging",
+    "productionSecretsAndEnvironment",
+    "namedReleaseApprover",
+    "postReleaseOwnerAndWindow"
+  ],
+  "rollback": {
+    "strategy": "Freeze writes, drain queue, redeploy previous approved image, restore only after isolated consistency check.",
+    "owner": null,
+    "verificationWindow": null
+  },
+  "approvals": {
+    "releaseApprover": null,
+    "securityRiskApprover": null,
+    "pilotStakeholderApprover": null,
+    "waiver": {
+      "status": "NOT_GRANTED",
+      "scope": null,
+      "expiresAt": null
+    }
+  },
+  "limitations": [
+    "Local/dev evidence only; no staging/production deployment or real school workbook approval.",
+    "P1 dependency and deployment findings remain open; no risk acceptance identity/expiry is supplied.",
+    "The record is a no-go decision package, not a production approval."
+  ]
+}
