@@ -1,7 +1,7 @@
 {
   "task": "P4.1-T05",
   "gateVersion": "CROSS-TENANT-MIGRATION-GATE-1.0.0",
-  "generatedAt": "2026-08-26T03:56:31.336Z",
+  "generatedAt": "2026-08-26T04:29:42.902Z",
   "policyTests": {
     "status": "PASS",
     "exitCode": 0,
@@ -9,6 +9,7 @@
   },
   "database": {
     "tenantColumnCount": 21,
+    "migrationCount": 16,
     "migrationApplied": true,
     "rlsTableCount": 21,
     "rlsPolicyTest": {
@@ -21,27 +22,92 @@
   "areas": {
     "identityPayload": "PASS",
     "queueNamespace": "PASS_POLICY_ONLY",
-    "apiRepositoryIsolation": "RLS_POLICY_PASS_APP_CONTEXT_OPEN",
-    "importExportIsolation": "BLOCKED_APP_REPOSITORY_SCOPE",
-    "publicLinkIsolation": "BLOCKED_APP_REPOSITORY_SCOPE",
-    "largeMigrationRehearsal": "BLOCKED_LARGE_TABLE_REHEARSAL"
+    "apiRepositoryIsolation": "PASS_RUNTIME_API_CONTEXT",
+    "importExportIsolation": "PASS_RUNTIME_EXPORT_CONTEXT",
+    "publicLinkIsolation": "PASS_TOKEN_RESOLVER_CONTEXT",
+    "largeMigrationRehearsal": "PASS_ISOLATED_LARGE_TABLE_REHEARSAL"
   },
-  "decision": "REQUIRES_APPLICATION_TENANT_CONTEXT",
+  "decision": "REQUIRES_SECURITY_ARCHITECTURE_RELEASE_APPROVAL",
+  "runtime": {
+    "apiTenantContextTest": {
+      "executed": true,
+      "primarySchoolRows": [
+        "00000000-0000-0000-0000-000000000001"
+      ],
+      "secondarySchoolRows": [
+        "00000000-0000-0000-0000-000000000002"
+      ],
+      "crossTenantReadStatus": 404,
+      "crossTenantExportStatus": 404,
+      "publicLinkStatus": 200,
+      "pass": true
+    },
+    "migrationRehearsal": {
+      "task": "P4.1-T05",
+      "rehearsalVersion": "TENANT-MIGRATION-REHEARSAL-1.0.0",
+      "generatedAt": "2026-08-26T04:28:13.942Z",
+      "isolatedDatabase": "scheduler_p41_t05_rehearsal_4160_1787718491634",
+      "seeded": {
+        "schools": 2,
+        "auditRowsPerSchool": 20000,
+        "totalAuditRows": 40000
+      },
+      "before": {
+        "rows": 40000,
+        "checksum": "a2764fa81c8b2097a0fc3c1e204b4a31",
+        "nullTenantRows": 0,
+        "tableBytes": 8454144
+      },
+      "after": {
+        "rows": 40000,
+        "checksum": "a2764fa81c8b2097a0fc3c1e204b4a31",
+        "nullTenantRows": 0,
+        "tableBytes": 17408000
+      },
+      "tenantCounts": [
+        {
+          "schoolId": "10000000-0000-0000-0000-000000000001",
+          "tenantId": "48d34c10-be3c-4eb9-a849-8d326c41ece2",
+          "auditRows": 20000
+        },
+        {
+          "schoolId": "10000000-0000-0000-0000-000000000002",
+          "tenantId": "d019aa80-5813-4d37-9786-b0dad14b6a9a",
+          "auditRows": 20000
+        }
+      ],
+      "migration": {
+        "appliedMigrations": [
+          "013",
+          "014",
+          "015",
+          "016"
+        ],
+        "durationSeconds": 0.743,
+        "checksumPass": true,
+        "rowCountPass": true,
+        "nullTenantPass": true,
+        "tenantDistributionPass": true
+      },
+      "gate": {
+        "rehearsalPass": true,
+        "productionApproved": false,
+        "limitation": "Local isolated rehearsal; no production lock-budget or online cutover measurement."
+      }
+    }
+  },
   "gates": {
     "devPolicyTestsComplete": true,
     "migrationApplied": true,
     "rlsPolicyIsolationProven": true,
-    "applicationTenantContextConfigured": false,
-    "crossTenantLeakageProven": false,
+    "applicationTenantContextConfigured": true,
+    "crossTenantLeakageProven": true,
+    "largeMigrationRehearsalProven": true,
     "migrationApproved": false,
     "pilotApproved": false,
     "productionApproved": false
   },
   "nextSteps": [
-    "set app.tenant_id from trusted request context for non-owner application role",
-    "tenant-aware repository/import/export/public-link queries",
-    "isolated two-tenant negative matrix",
-    "large-table checksum/throughput/RTO rehearsal",
     "security/architecture/release approval"
   ]
 }

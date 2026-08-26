@@ -53,6 +53,12 @@ export class AuthGuard implements CanActivate {
       }
       throw error;
     }
+    if (this.config.get<string>("TENANT_DB_ENFORCEMENT", "false") === "true" && !tenantId) {
+      throw new ForbiddenException({
+        code: "TENANT_CONTEXT_REQUIRED",
+        message: "Yêu cầu x-tenant-id khi tenant database isolation đang được bật.",
+      });
+    }
 
     const requestedSchoolId = this.requestSchoolId(request);
     if (requestedSchoolId && requestedSchoolId !== schoolId) {

@@ -1,37 +1,64 @@
 {
   "task": "P3.3-T05",
   "recordVersion": "RELEASE-CHECKLIST-1.0.0",
-  "generatedAt": "2026-08-26T04:02:05.156Z",
+  "generatedAt": "2026-08-26T04:29:43.866Z",
   "applicationVersion": "0.1.0",
   "decision": "NO-GO_PENDING_GATES",
   "productionApproved": false,
   "pilotApproved": false,
   "source": {
-    "commit": "9c9368f5aadcbda1ceed47c2929248912c9e00f2",
+    "commit": "02f91602cd67c5c12e4b0b08b463006e5af9f956",
     "branch": "main",
     "workingTreeHasUnrelatedChanges": true,
     "unrelatedChangesPreserved": [
+      "M .env.example",
+      " M backend/src/auth/auth.guard.ts",
+      " M backend/src/auth/auth.module.ts",
+      " M backend/src/database/database.module.ts",
+      " M backend/src/timetable/public-schedule.service.spec.ts",
+      " M backend/src/timetable/public-schedule.service.ts",
+      " M backend/src/worker/main.ts",
+      " M docker-compose.yml",
+      " M docs/cross-tenant-migration-gate.md",
+      " M frontend/Dockerfile",
+      " M outputs/P3.3-T03/load-soak-report.json",
+      " M outputs/P3.3-T04/disaster-recovery-report.json",
+      " M outputs/P3.3-T05/release-record.json",
+      " M outputs/P4.1-T05/cross-tenant-gate-report.json",
+      " M package.json",
+      " M scripts/generate-release-record.mjs",
+      " M scripts/run-cross-tenant-gate.mjs",
+      " M scripts/run-load-soak-benchmark.mjs",
+      " M scripts/run-pilot-workbook-evidence.mjs",
+      " M scripts/test-p2-5-t04-runtime.mjs",
+      "?? backend/database/migrations/015_tenant_application_role.sql",
+      "?? backend/database/migrations/016_public_link_resolver_error_semantics.sql",
+      "?? backend/src/auth/tenant-context.interceptor.ts",
+      "?? backend/src/database/tenant-aware-pool.ts",
+      "?? backend/src/database/tenant-context.ts",
       "?? outputs/P1.3-T01/school-timetable-mvp-0.1.0-template-v1.0.xlsx.inspect.ndjson",
       "?? outputs/P2.4-T05/",
+      "?? outputs/P4.1-T05/tenant-migration-rehearsal.json",
+      "?? scripts/run-tenant-migration-rehearsal.mjs",
       "?? tmp/"
     ],
     "images": [
       {
-        "id": "sha256:ca298d11a4d86407b56d1cf98fe2de964047be028c45ad14693f5608abe2c7aa",
+        "id": "sha256:3051a650c69af29220efc747541367a4dc48ab7a5af341bbf34a9f4a5487e939",
         "repoDigests": [
-          "schedule-api@sha256:ca298d11a4d86407b56d1cf98fe2de964047be028c45ad14693f5608abe2c7aa"
+          "schedule-api@sha256:3051a650c69af29220efc747541367a4dc48ab7a5af341bbf34a9f4a5487e939"
         ],
-        "created": "2026-08-26T03:55:10.710238224Z"
+        "created": "2026-08-26T04:15:44.70861711Z"
       },
       {
-        "id": "sha256:168e27c519b1618662f0ec209d6d1618d8c9d475b6e29227bf77d7dd97cb597d",
+        "id": "sha256:0c7d37a22f8ec69b0961f1fea72af9282908cfdabd19e74e0aba76242bce889f",
         "repoDigests": [
-          "schedule-worker@sha256:168e27c519b1618662f0ec209d6d1618d8c9d475b6e29227bf77d7dd97cb597d"
+          "schedule-worker@sha256:0c7d37a22f8ec69b0961f1fea72af9282908cfdabd19e74e0aba76242bce889f"
         ],
-        "created": "2026-08-26T03:55:52.135011776Z"
+        "created": "2026-08-26T04:16:15.037766898Z"
       }
     ],
-    "migrationCount": 14
+    "migrationCount": 16
   },
   "evidence": {
     "uat": {
@@ -52,8 +79,8 @@
     "recovery": {
       "path": "outputs/P3.3-T04/disaster-recovery-report.json",
       "rehearsalPass": true,
-      "rtoSeconds": 1.933,
-      "rpoSeconds": 2.712
+      "rtoSeconds": 1.688,
+      "rpoSeconds": 2.41
     },
     "observability": {
       "path": "outputs/P3.3-T01/observability-report.json",
@@ -63,7 +90,8 @@
     "tenant": {
       "path": "outputs/P4.1-T05/cross-tenant-gate-report.json",
       "migrationApplied": true,
-      "applicationTenantContextConfigured": false
+      "applicationTenantContextConfigured": true,
+      "crossTenantLeakageProven": true
     }
   },
   "runtime": {
@@ -85,7 +113,7 @@
     "securityLocalEvidence": true,
     "securityP1ClosedOrAccepted": false,
     "tenantMigrationApplied": true,
-    "applicationTenantContextConfigured": false,
+    "applicationTenantContextConfigured": true,
     "performanceLocalEvidence": true,
     "recoveryLocalEvidence": true,
     "observabilityLocalEvidence": true,
@@ -97,7 +125,6 @@
   "openGates": [
     "officialWorkbookAndStakeholder",
     "securityP1ClosedOrAccepted",
-    "applicationTenantContextConfigured",
     "productionCollectorAndPaging",
     "productionSecretsAndEnvironment",
     "namedReleaseApprover",

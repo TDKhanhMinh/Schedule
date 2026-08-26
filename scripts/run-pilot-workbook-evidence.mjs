@@ -17,6 +17,7 @@ const inputPath = resolve(root, argumentValue("--input", defaultInput));
 const outputPath = resolve(root, argumentValue("--output", defaultOutput));
 const apiBaseUrl = (process.env.PILOT_API_BASE_URL ?? "http://localhost:3011/api/v1").replace(/\/$/, "");
 const schoolId = process.env.PILOT_SCHOOL_ID ?? "00000000-0000-0000-0000-000000000001";
+const tenantId = process.env.PILOT_TENANT_ID ?? "34ec13a2-7f70-4325-8439-408885feca58";
 const actorId = process.env.PILOT_ACTOR_ID ?? "p3-1-t01-workbook-evidence";
 const role = process.env.PILOT_ACTOR_ROLE ?? "ADMIN";
 
@@ -91,6 +92,7 @@ const authHeaders = {
   "x-user-id": actorId,
   "x-user-role": role,
   "x-school-id": schoolId,
+  "x-tenant-id": tenantId,
 };
 const form = new FormData();
 form.append("schoolId", schoolId);

@@ -5,11 +5,13 @@ import { resolve } from "node:path";
 const root = process.cwd();
 const baseUrl = process.env.P33_T03_API_BASE_URL ?? "http://localhost:3011/api/v1";
 const schoolId = process.env.P33_T03_SCHOOL_ID ?? "00000000-0000-0000-0000-000000000001";
+const tenantId = process.env.P33_T03_TENANT_ID ?? "34ec13a2-7f70-4325-8439-408885feca58";
 const outputPath = resolve(root, process.env.LOAD_SOAK_REPORT ?? "outputs/P3.3-T03/load-soak-report.json");
 const adminHeaders = {
   "x-user-id": "p3-3-t03-load",
   "x-user-role": "ADMIN",
   "x-school-id": schoolId,
+  "x-tenant-id": tenantId,
 };
 const terminalStates = new Set(["OPTIMAL", "FEASIBLE", "INFEASIBLE", "INVALID", "FAILED", "CANCELLED", "UNKNOWN"]);
 

@@ -1,36 +1,36 @@
 {
   "task": "P3.3-T04",
   "rehearsalVersion": "DR-REHEARSAL-1.0.0",
-  "generatedAt": "2026-08-26T03:59:11.281Z",
+  "generatedAt": "2026-08-26T04:27:56.465Z",
   "sourceDatabase": "scheduler",
   "backup": {
     "path": "outputs/P2.5-T06/p3.3-t04-dr-rehearsal.dump",
-    "bytes": 179405,
-    "sha256": "916e8a2a12c9e803c62037250ba190c252e9a9e9b5be376df64ce5924ed41d0d",
+    "bytes": 183420,
+    "sha256": "9c4a9cb0aaac4f2a2e89a76c77a438299de664be92581fbb1ad091bf29163ea5",
     "catalogVerified": true,
     "gitTracked": false,
-    "durationSeconds": 0.496
+    "durationSeconds": 0.472
   },
   "restore": {
-    "targetDatabase": "scheduler_dr_rehearsal_32312_1787716748073",
+    "targetDatabase": "scheduler_dr_rehearsal_27048_1787718473583",
     "succeeded": true,
     "sourceCounts": {
-      "schemaMigrations": 14,
+      "schemaMigrations": 16,
       "publishedVersions": 2,
       "scheduleTransitions": 17,
-      "importBatches": 51,
-      "auditLogs": 163
+      "importBatches": 53,
+      "auditLogs": 196
     },
     "restoredCounts": {
-      "schemaMigrations": 14,
+      "schemaMigrations": 16,
       "publishedVersions": 2,
       "scheduleTransitions": 17,
-      "importBatches": 51,
-      "auditLogs": 163
+      "importBatches": 53,
+      "auditLogs": 196
     },
     "consistencyPass": true,
-    "rtoSeconds": 1.933,
-    "rpoSeconds": 2.712,
+    "rtoSeconds": 1.688,
+    "rpoSeconds": 2.41,
     "targets": {
       "rtoSeconds": 3600,
       "rpoSeconds": 86400
@@ -50,7 +50,7 @@
     "readiness": {
       "status": 200,
       "ok": true,
-      "body": "{\"status\":\"ready\",\"service\":\"schedule-api\",\"dependencies\":{\"postgres\":\"ok\",\"redis\":\"ok\"},\"timestamp\":\"2026-08-26T03:59:11.239Z\"}"
+      "body": "{\"status\":\"ready\",\"service\":\"schedule-api\",\"dependencies\":{\"postgres\":\"ok\",\"redis\":\"ok\"},\"timestamp\":\"2026-08-26T04:27:56.428Z\"}"
     }
   },
   "gate": {

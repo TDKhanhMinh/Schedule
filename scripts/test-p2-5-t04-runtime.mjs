@@ -5,15 +5,18 @@ import { resolve } from "node:path";
 const baseUrl = process.env.P25_T04_API_BASE_URL ?? "http://localhost:3011/api/v1";
 const schoolId = process.env.P25_T04_SCHOOL_ID ?? "00000000-0000-0000-0000-000000000001";
 const otherSchoolId = process.env.P25_T04_OTHER_SCHOOL_ID ?? "00000000-0000-0000-0000-000000000002";
+const tenantId = process.env.P25_T04_TENANT_ID ?? "34ec13a2-7f70-4325-8439-408885feca58";
 const adminHeaders = {
   "x-user-id": "p2-5-t04-runtime-admin",
   "x-user-role": "ADMIN",
   "x-school-id": schoolId,
+  "x-tenant-id": tenantId,
 };
 const viewerHeaders = {
   "x-user-id": "p2-5-t04-runtime-viewer",
   "x-user-role": "VIEWER",
   "x-school-id": schoolId,
+  "x-tenant-id": tenantId,
 };
 
 async function request(path, options = {}) {

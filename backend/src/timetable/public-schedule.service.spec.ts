@@ -80,6 +80,7 @@ describe("PublicScheduleService", () => {
 
   it("returns safe filtered read-only data without internal assignment IDs", async () => {
     query
+      .mockResolvedValueOnce({ rows: [{ tenant_id: "tenant-001" }] })
       .mockResolvedValueOnce({
         rows: [
           {
@@ -110,6 +111,7 @@ describe("PublicScheduleService", () => {
 
   it("renders an A4 PDF with version and read-only metadata", async () => {
     query
+      .mockResolvedValueOnce({ rows: [{ tenant_id: "tenant-001" }] })
       .mockResolvedValueOnce({
         rows: [
           {
@@ -133,6 +135,9 @@ describe("PublicScheduleService", () => {
 
   it("returns Gone for an expired or revoked link", async () => {
     query.mockResolvedValueOnce({
+      rows: [{ tenant_id: "tenant-001" }],
+    });
+    query.mockResolvedValueOnce({
       rows: [
         {
           id: "link-001",
@@ -145,6 +150,6 @@ describe("PublicScheduleService", () => {
     });
 
     await expect(service.getPublicView("expired-token")).rejects.toBeInstanceOf(GoneException);
-    expect(query).toHaveBeenCalledTimes(1);
+    expect(query).toHaveBeenCalledTimes(2);
   });
 });

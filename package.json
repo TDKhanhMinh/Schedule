@@ -39,6 +39,7 @@
     "tenant:evidence": "node scripts/run-tenant-scope-evidence.mjs",
     "integration:evidence": "node scripts/run-integration-contract-evidence.mjs",
     "cross-tenant:gate": "node scripts/run-cross-tenant-gate.mjs",
+    "tenant:migration:rehearse": "node scripts/run-tenant-migration-rehearsal.mjs",
     "ci:local": "node scripts/ci.mjs",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"

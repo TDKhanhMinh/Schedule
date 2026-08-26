@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import PDFDocument from "pdfkit";
 import type { Pool } from "pg";
 import { PG_POOL } from "../database/database.module";
+import { tenantContext } from "../database/tenant-context";
 import {
   SCHEDULE_PDF_CONTRACT_VERSION,
   SCHEDULE_PUBLIC_LINK_CONTRACT_VERSION,
@@ -145,7 +146,16 @@ export class PublicScheduleService {
     view: SchedulePublicView = "all",
     resource?: string,
   ): Promise<PublicScheduleViewResult> {
-    const data = await this.loadPublicSnapshot(token);
+    const tokenHash = this.hashToken(token);
+    const tenantResult = await this.pool.query<{ tenant_id: string }>(
+      "SELECT resolve_public_schedule_tenant($1)::text AS tenant_id",
+      [tokenHash],
+    );
+    const tenantId = tenantResult.rows[0]?.tenant_id;
+    if (!tenantId) {
+      throw new NotFoundException({ code: "SCHEDULE_PUBLIC_LINK_NOT_FOUND", message: "Public link không tồn tại." });
+    }
+    const data = await tenantContext.run(tenantId, () => this.loadPublicSnapshot(token));
     const assignments = this.filterAssignments(data.assignments, view, resource);
     return this.toPublicView(data.version, data.link, assignments, view, resource ?? null);
   }

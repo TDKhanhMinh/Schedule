@@ -1,0 +1,53 @@
+{
+  "task": "P4.1-T05",
+  "rehearsalVersion": "TENANT-MIGRATION-REHEARSAL-1.0.0",
+  "generatedAt": "2026-08-26T04:28:13.942Z",
+  "isolatedDatabase": "scheduler_p41_t05_rehearsal_4160_1787718491634",
+  "seeded": {
+    "schools": 2,
+    "auditRowsPerSchool": 20000,
+    "totalAuditRows": 40000
+  },
+  "before": {
+    "rows": 40000,
+    "checksum": "a2764fa81c8b2097a0fc3c1e204b4a31",
+    "nullTenantRows": 0,
+    "tableBytes": 8454144
+  },
+  "after": {
+    "rows": 40000,
+    "checksum": "a2764fa81c8b2097a0fc3c1e204b4a31",
+    "nullTenantRows": 0,
+    "tableBytes": 17408000
+  },
+  "tenantCounts": [
+    {
+      "schoolId": "10000000-0000-0000-0000-000000000001",
+      "tenantId": "48d34c10-be3c-4eb9-a849-8d326c41ece2",
+      "auditRows": 20000
+    },
+    {
+      "schoolId": "10000000-0000-0000-0000-000000000002",
+      "tenantId": "d019aa80-5813-4d37-9786-b0dad14b6a9a",
+      "auditRows": 20000
+    }
+  ],
+  "migration": {
+    "appliedMigrations": [
+      "013",
+      "014",
+      "015",
+      "016"
+    ],
+    "durationSeconds": 0.743,
+    "checksumPass": true,
+    "rowCountPass": true,
+    "nullTenantPass": true,
+    "tenantDistributionPass": true
+  },
+  "gate": {
+    "rehearsalPass": true,
+    "productionApproved": false,
+    "limitation": "Local isolated rehearsal; no production lock-budget or online cutover measurement."
+  }
+}

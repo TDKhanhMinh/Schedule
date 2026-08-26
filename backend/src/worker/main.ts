@@ -1,5 +1,4 @@
 import "reflect-metadata";
-import { Pool } from "pg";
 import { Worker } from "bullmq";
 import { OPTIMIZATION_QUEUE } from "../contracts";
 import { parseRedisConnection } from "../jobs/redis-connection";
@@ -8,17 +7,24 @@ import { OptimizationRunStore } from "../jobs/optimization-run.store";
 import { processOptimizationJob } from "./optimization-worker";
 import { runPythonSolver } from "./solver-process";
 import { ObservabilityService } from "../observability/observability.service";
+import { createTenantAwarePool } from "../database/tenant-aware-pool";
+import { tenantContext } from "../database/tenant-context";
 
 const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is required for the solver worker.");
-const pool = new Pool({ connectionString: databaseUrl });
+const pool = createTenantAwarePool(databaseUrl, {
+  enforceTenantContext: process.env.TENANT_DB_ENFORCEMENT === "true",
+});
 const store = new OptimizationRunStore(pool);
 const observability = new ObservabilityService();
 
 const worker = new Worker<OptimizationJobData>(
   OPTIMIZATION_QUEUE,
-  async (job) => processOptimizationJob(job, { store, solve: runPythonSolver, observability }),
+  async (job) =>
+    tenantContext.run(job.data.tenantId, () =>
+      processOptimizationJob(job, { store, solve: runPythonSolver, observability }),
+    ),
   { connection: parseRedisConnection(redisUrl) },
 );
 

@@ -47,6 +47,7 @@ const security = await readJson("outputs/P3.3-T02/security-review-report.json");
 const performance = await readJson("outputs/P3.3-T03/load-soak-report.json");
 const recovery = await readJson("outputs/P3.3-T04/disaster-recovery-report.json");
 const observability = await readJson("outputs/P3.3-T01/observability-report.json");
+const tenantGate = await readJson("outputs/P4.1-T05/cross-tenant-gate-report.json");
 const statusLines = run("git", ["status", "--short"])?.split(/\r?\n/).filter(Boolean) ?? [];
 const currentSha = run("git", ["rev-parse", "HEAD"]);
 const migrationCount = Number(
@@ -65,7 +66,7 @@ const migrationCount = Number(
     "SELECT count(*) FROM schema_migrations",
   ]) ?? 0,
 );
-const tenantMigrationApplied = migrationCount >= 14;
+const tenantMigrationApplied = migrationCount >= 16;
 const composeServices =
   run("docker", ["compose", "ps", "--status", "running", "--services"])?.split(/\r?\n/).filter(Boolean) ?? [];
 
@@ -77,7 +78,7 @@ const gates = {
   securityLocalEvidence: security?.gates?.devTestComplete === true,
   securityP1ClosedOrAccepted: security?.gates?.p1FindingsOpen === false,
   tenantMigrationApplied,
-  applicationTenantContextConfigured: false,
+  applicationTenantContextConfigured: tenantGate?.gates?.applicationTenantContextConfigured === true,
   performanceLocalEvidence: performance?.gate?.benchmarkPass === true,
   recoveryLocalEvidence: recovery?.gate?.rehearsalPass === true,
   observabilityLocalEvidence: observability?.gates?.devTestComplete === true,
@@ -134,7 +135,8 @@ const releaseRecord = {
     tenant: {
       path: "outputs/P4.1-T05/cross-tenant-gate-report.json",
       migrationApplied: tenantMigrationApplied,
-      applicationTenantContextConfigured: false,
+      applicationTenantContextConfigured: tenantGate?.gates?.applicationTenantContextConfigured ?? false,
+      crossTenantLeakageProven: tenantGate?.gates?.crossTenantLeakageProven ?? false,
     },
   },
   runtime: {

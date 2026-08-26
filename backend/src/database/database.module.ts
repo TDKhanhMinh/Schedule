@@ -1,6 +1,7 @@
 import { Inject, Injectable, Module, OnModuleDestroy } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Pool } from "pg";
+import { createTenantAwarePool } from "./tenant-aware-pool";
 
 export const PG_POOL = "PG_POOL";
 
@@ -19,8 +20,8 @@ class DatabaseLifecycle implements OnModuleDestroy {
       provide: PG_POOL,
       inject: [ConfigService],
       useFactory: (config: ConfigService) =>
-        new Pool({
-          connectionString: config.getOrThrow<string>("DATABASE_URL"),
+        createTenantAwarePool(config.getOrThrow<string>("DATABASE_URL"), {
+          enforceTenantContext: config.get<string>("TENANT_DB_ENFORCEMENT", "false") === "true",
         }),
     },
     DatabaseLifecycle,
