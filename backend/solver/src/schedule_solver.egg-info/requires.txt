@@ -1,2 +1,0 @@
-ortools<10,>=9.10
-pydantic<3,>=2.7
