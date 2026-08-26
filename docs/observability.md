@@ -1,7 +1,7 @@
 # Observability API → queue → worker → Python solver — P3.3-T01
 
-**Contract:** `SCHEDULE-OBSERVABILITY-1.0.0`  
-**Ngày:** 2026-08-26  
+**Contract:** `SCHEDULE-OBSERVABILITY-1.0.0`
+**Ngày:** 2026-08-26
 **Phạm vi:** local/dev implementation cho V1.1; production collector, retention và paging policy vẫn là release work.
 
 ## Trace flow

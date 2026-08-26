@@ -1,7 +1,7 @@
 {
   "task": "P3.3-T01",
   "contractVersion": "SCHEDULE-OBSERVABILITY-1.0.0",
-  "generatedAt": "2026-08-26T02:38:35.687Z",
+  "generatedAt": "2026-08-26T02:40:45.933Z",
   "environment": "local unit test; API/queue/worker trace model; no production collector",
   "command": "npm.cmd run test --workspace @schedule/backend -- --runTestsByPath src/observability/observability.service.spec.ts",
   "result": "PASS",
@@ -34,8 +34,8 @@
     },
     {
       "path": "docs/observability.md",
-      "bytes": 2462,
-      "sha256": "7f9a14eb7a3fd918cb72d2a2faed7f8f1c1495ae48e7673e029d015243f80b93"
+      "bytes": 2458,
+      "sha256": "0e8cedc92a6d7a3de2e5a53add7542659d1af5117c3801f51b775887e5c4a004"
     },
     {
       "path": "deploy/observability/dashboard.json",
