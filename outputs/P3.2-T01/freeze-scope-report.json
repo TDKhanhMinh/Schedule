@@ -3,7 +3,7 @@
   "contractVersion": "FREEZE-SCOPE-1.0.0",
   "generatedAt": "2026-08-26T02:23:01.913Z",
   "environment": "local unit test; immutable synthetic baseline fixture",
-  "command": "npm.cmd run test --workspace @schedule/backend -- --runTestsByPath src/timetable/freeze-scope.spec.ts",
+  "command": "npm.cmd run test --workspace @schedule/backend -- --runTestsByPath src/timetable/freeze-scope.test.ts",
   "result": "PASS",
   "exitCode": 0,
   "checks": [

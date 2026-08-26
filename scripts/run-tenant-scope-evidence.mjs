@@ -9,9 +9,9 @@ const args = [
   jestPath,
   "--runInBand",
   "--runTestsByPath",
-  "src/auth/tenant-scope.spec.ts",
-  "src/auth/auth.guard.spec.ts",
-  "src/jobs/optimization-queue.service.spec.ts",
+  "src/auth/tenant-scope.test.ts",
+  "src/auth/auth.guard.test.ts",
+  "src/jobs/optimization-queue.service.test.ts",
 ];
 const result = spawnSync(process.execPath, args, { cwd: resolve(root, "backend"), encoding: "utf8" });
 const report = {

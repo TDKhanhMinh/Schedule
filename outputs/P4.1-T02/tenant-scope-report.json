@@ -3,7 +3,7 @@
   "contractVersion": "TENANT-SCOPE-1.0.0",
   "generatedAt": "2026-08-26T03:16:42.530Z",
   "environment": "local unit tests; V1-compatible auth/queue boundary; no tenant DB migration",
-  "command": "C:\\Program Files\\nodejs\\node.exe D:\\Schedule\\node_modules\\jest\\bin\\jest.js --runInBand --runTestsByPath src/auth/tenant-scope.spec.ts src/auth/auth.guard.spec.ts src/jobs/optimization-queue.service.spec.ts",
+  "command": "C:\\Program Files\\nodejs\\node.exe D:\\Schedule\\node_modules\\jest\\bin\\jest.js --runInBand --runTestsByPath src/auth/tenant-scope.test.ts src/auth/auth.guard.test.ts src/jobs/optimization-queue.service.test.ts",
   "result": "PASS",
   "exitCode": 0,
   "checks": [

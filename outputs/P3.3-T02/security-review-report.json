@@ -10,27 +10,27 @@
       "sha256": "669f2dda85c2ae090c7e528ff42cc52bf4f40291615bad2d3b9f68b7433ad9d7"
     },
     {
-      "path": "backend/src/auth/auth.guard.spec.ts",
+      "path": "backend/src/auth/auth.guard.test.ts",
       "bytes": 4158,
       "sha256": "ffbcfbd826c5d153661df1b7c18645c402314010585359133b6a3c25e8de4a23"
     },
     {
-      "path": "backend/src/imports/imports.service.spec.ts",
+      "path": "backend/src/imports/imports.service.test.ts",
       "bytes": 18775,
       "sha256": "fec6b20f527da0100ec3f3b4c541db4eeac47157a40149038b8a69769dc45cd6"
     },
     {
-      "path": "backend/src/timetable/public-schedule.service.spec.ts",
+      "path": "backend/src/timetable/public-schedule.service.test.ts",
       "bytes": 4641,
       "sha256": "47fb89056059927eeb378fa459c355703941c7dacf09e124d8c5657b5fcdf6f7"
     },
     {
-      "path": "backend/src/timetable/schedule-export.service.spec.ts",
+      "path": "backend/src/timetable/schedule-export.service.test.ts",
       "bytes": 5049,
       "sha256": "b71c4beee15d571391aeb019dff0b8d9e8ffa848679838bbfc6d7fa255b695b3"
     },
     {
-      "path": "backend/src/common/http/api-exception.filter.spec.ts",
+      "path": "backend/src/common/http/api-exception.filter.test.ts",
       "bytes": 2053,
       "sha256": "c331200495288daf826b178c1629fdd7025e16327f3fdda9232fa5b1814968ad"
     },
@@ -123,7 +123,7 @@
       "status": "COVERED_LOCAL_OPEN_STAGING",
       "owner": "Security/release approver",
       "evidence": [
-        "backend/src/auth/auth.guard.spec.ts",
+        "backend/src/auth/auth.guard.test.ts",
         "scripts/test-p2-5-t04-runtime.mjs"
       ],
       "nextStep": "Repeat with staging identity and verify tenant/school isolation against real data boundary."
@@ -134,7 +134,7 @@
       "status": "COVERED_LOCAL_OPEN_STAGING",
       "owner": "Platform/security owner",
       "evidence": [
-        "backend/src/imports/imports.service.spec.ts",
+        "backend/src/imports/imports.service.test.ts",
         "backend/solver/examples/import-fixtures/*"
       ],
       "nextStep": "Add staging AV/WAF/quota evidence and confirm file retention/deletion behavior."

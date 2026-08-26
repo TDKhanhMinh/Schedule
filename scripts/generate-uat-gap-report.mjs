@@ -60,7 +60,7 @@ const cases = [
     evidence: [
       "backend/solver/examples/import-fixtures/invalid.pdf",
       "backend/solver/examples/import-fixtures/invalid.docx",
-      "backend/src/imports/imports.service.spec.ts",
+      "backend/src/imports/imports.service.test.ts",
     ],
     reason: "Covered by import validation tests; staging/UAT execution is not evidenced.",
   },
@@ -71,7 +71,7 @@ const cases = [
     pilotUat: "BLOCKED",
     evidence: [
       "backend/solver/examples/import-fixtures/missing-required-column.xlsx",
-      "backend/src/imports/imports.service.spec.ts",
+      "backend/src/imports/imports.service.test.ts",
     ],
     reason: "Covered by import validation tests; official pilot workbook is not attached.",
   },
@@ -82,7 +82,7 @@ const cases = [
     pilotUat: "BLOCKED",
     evidence: [
       "backend/solver/examples/import-fixtures/missing-value.xlsx",
-      "backend/src/imports/imports.service.spec.ts",
+      "backend/src/imports/imports.service.test.ts",
     ],
     reason: "Covered by import validation tests; no named QC/UAT operator record is attached.",
   },
@@ -93,7 +93,7 @@ const cases = [
     pilotUat: "BLOCKED",
     evidence: [
       "backend/solver/examples/import-fixtures/wrong-number.xlsx",
-      "backend/src/imports/imports.service.spec.ts",
+      "backend/src/imports/imports.service.test.ts",
     ],
     reason: "Covered by import validation tests; no school UAT environment evidence is attached.",
   },
@@ -104,7 +104,7 @@ const cases = [
     pilotUat: "BLOCKED",
     evidence: [
       "backend/solver/examples/import-fixtures/unknown-master-data.xlsx",
-      "backend/src/imports/imports.service.spec.ts",
+      "backend/src/imports/imports.service.test.ts",
     ],
     reason: "Covered by import validation tests; master-data ownership and approval remain open.",
   },
@@ -154,7 +154,7 @@ const cases = [
     name: "Review/Edit/Approve/Lock/Publish",
     devTest: "PASS_WITH_LIMITATION",
     pilotUat: "BLOCKED",
-    evidence: [matrix.path, "backend/src/timetable/schedule-version.service.spec.ts", "frontend/src/App.tsx"],
+    evidence: [matrix.path, "backend/src/timetable/schedule-version.service.test.ts", "frontend/src/App.tsx"],
     reason:
       "Lifecycle controls and contracts are covered by repository evidence and project-owner review; authenticated school UAT trace is not attached and the current published fixture has zero assignments.",
   },
@@ -165,8 +165,8 @@ const cases = [
     pilotUat: "BLOCKED",
     evidence: [
       matrix.path,
-      "backend/src/timetable/schedule-export.service.spec.ts",
-      "backend/src/timetable/public-schedule.service.spec.ts",
+      "backend/src/timetable/schedule-export.service.test.ts",
+      "backend/src/timetable/public-schedule.service.test.ts",
     ],
     reason:
       "Synthetic published read/export boundary is covered; pilot publication and stakeholder acceptance remain open.",

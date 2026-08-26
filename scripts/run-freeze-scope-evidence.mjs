@@ -12,7 +12,7 @@ const args = [
   "@schedule/backend",
   "--",
   "--runTestsByPath",
-  "src/timetable/freeze-scope.spec.ts",
+  "src/timetable/freeze-scope.test.ts",
 ];
 const result = spawnSync(npmCommand, args, {
   cwd: root,

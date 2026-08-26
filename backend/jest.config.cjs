@@ -3,6 +3,5 @@ module.exports = {
   testEnvironment: "node",
   roots: ["<rootDir>/src"],
   moduleFileExtensions: ["js", "json", "ts"],
-  testRegex: ".*\\.spec\\.ts$"
+  testRegex: ".*\\.test\\.ts$"
 };
-

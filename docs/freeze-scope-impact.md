@@ -37,7 +37,7 @@ Graph không tự sửa snapshot. Kết quả được sort ổn định theo ke
 
 ## Evidence và giới hạn
 
-- Automated evidence: `backend/src/timetable/freeze-scope.spec.ts`.
+- Automated evidence: `backend/src/timetable/freeze-scope.test.ts`.
 - Contract schemas: `backend/contracts/schemas/freeze-scope.schema.json`, `freeze-change-event.schema.json`, `affected-neighborhood.schema.json`.
 - Reproducible report: `outputs/P3.2-T01/freeze-scope-report.json`.
 - Đây là contract/model và deterministic unit evidence; chưa phải staging/pilot/production approval, chưa thay thế database transaction hoặc authenticated browser evidence.

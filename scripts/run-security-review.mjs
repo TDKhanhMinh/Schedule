@@ -19,11 +19,11 @@ const testArgs = [
   resolve(root, "node_modules/jest/bin/jest.js"),
   "--runInBand",
   "--runTestsByPath",
-  "src/auth/auth.guard.spec.ts",
-  "src/imports/imports.service.spec.ts",
-  "src/timetable/public-schedule.service.spec.ts",
-  "src/timetable/schedule-export.service.spec.ts",
-  "src/common/http/api-exception.filter.spec.ts",
+  "src/auth/auth.guard.test.ts",
+  "src/imports/imports.service.test.ts",
+  "src/timetable/public-schedule.service.test.ts",
+  "src/timetable/schedule-export.service.test.ts",
+  "src/common/http/api-exception.filter.test.ts",
 ];
 const tests = run(process.execPath, testArgs, resolve(root, "backend"));
 const runtime = run(process.execPath, [resolve(root, "scripts", "test-p2-5-t04-runtime.mjs")]);
@@ -37,11 +37,11 @@ try {
 
 const sourcePaths = [
   "docs/security-threat-model.md",
-  "backend/src/auth/auth.guard.spec.ts",
-  "backend/src/imports/imports.service.spec.ts",
-  "backend/src/timetable/public-schedule.service.spec.ts",
-  "backend/src/timetable/schedule-export.service.spec.ts",
-  "backend/src/common/http/api-exception.filter.spec.ts",
+  "backend/src/auth/auth.guard.test.ts",
+  "backend/src/imports/imports.service.test.ts",
+  "backend/src/timetable/public-schedule.service.test.ts",
+  "backend/src/timetable/schedule-export.service.test.ts",
+  "backend/src/common/http/api-exception.filter.test.ts",
   "scripts/test-p2-5-t04-runtime.mjs",
   "docker-compose.yml",
   ".env.example",
@@ -86,7 +86,7 @@ const report = {
       severity: "P0",
       status: "COVERED_LOCAL_OPEN_STAGING",
       owner: "Security/release approver",
-      evidence: ["backend/src/auth/auth.guard.spec.ts", "scripts/test-p2-5-t04-runtime.mjs"],
+      evidence: ["backend/src/auth/auth.guard.test.ts", "scripts/test-p2-5-t04-runtime.mjs"],
       nextStep: "Repeat with staging identity and verify tenant/school isolation against real data boundary.",
     },
     {
@@ -94,7 +94,7 @@ const report = {
       severity: "P0",
       status: "COVERED_LOCAL_OPEN_STAGING",
       owner: "Platform/security owner",
-      evidence: ["backend/src/imports/imports.service.spec.ts", "backend/solver/examples/import-fixtures/*"],
+      evidence: ["backend/src/imports/imports.service.test.ts", "backend/solver/examples/import-fixtures/*"],
       nextStep: "Add staging AV/WAF/quota evidence and confirm file retention/deletion behavior.",
     },
     {

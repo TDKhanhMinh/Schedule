@@ -8,7 +8,7 @@ const args = [
   resolve(root, "node_modules/jest/bin/jest.js"),
   "--runInBand",
   "--runTestsByPath",
-  "src/integrations/integration-contract.spec.ts",
+  "src/integrations/integration-contract.test.ts",
 ];
 const result = spawnSync(process.execPath, args, { cwd: resolve(root, "backend"), encoding: "utf8" });
 const report = {

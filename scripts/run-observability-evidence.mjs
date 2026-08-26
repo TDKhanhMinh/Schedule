@@ -13,7 +13,7 @@ const args = [
   "@schedule/backend",
   "--",
   "--runTestsByPath",
-  "src/observability/observability.service.spec.ts",
+  "src/observability/observability.service.test.ts",
 ];
 const result = spawnSync(npmCommand, args, {
   cwd: root,
@@ -23,7 +23,7 @@ const result = spawnSync(npmCommand, args, {
 
 const sources = [
   "backend/src/observability/observability.service.ts",
-  "backend/src/observability/observability.service.spec.ts",
+  "backend/src/observability/observability.service.test.ts",
   "backend/src/observability/observability.interceptor.ts",
   "backend/src/worker/optimization-worker.ts",
   "backend/src/worker/solver-process.ts",
