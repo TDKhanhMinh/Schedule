@@ -1,10 +1,11 @@
-import type { TimetableAssignment, TimetableView, TimeSlot } from "./timetable-types";
+import type { TimetableAssignment, TimetableView } from "./timetable-types";
 
 const SCHOOL_DAYS = [1, 2, 3, 4, 5, 6];
-const SHIFT_LABELS: Record<string, string> = {
-  MORNING: "Sáng",
-  AFTERNOON: "Chiều",
-};
+const SCHOOL_PERIODS = [1, 2, 3, 4, 5];
+const SCHOOL_SHIFTS = [
+  { code: "MORNING", label: "Sáng" },
+  { code: "AFTERNOON", label: "Chiều" },
+] as const;
 
 function viewLabel(view: TimetableView) {
   if (view === "school") return "Toàn trường";
@@ -18,13 +19,11 @@ function viewValue(assignment: TimetableAssignment, view: TimetableView) {
 export function TimetableGrid({
   assignments,
   classLabels,
-  timeSlots,
   view,
   query,
 }: {
   assignments: TimetableAssignment[];
   classLabels: string[];
-  timeSlots: TimeSlot[];
   view: TimetableView;
   query: string;
 }) {
@@ -34,7 +33,8 @@ export function TimetableGrid({
       .toLowerCase()
       .includes(normalizedQuery),
   );
-  if (visibleAssignments.length === 0)
+  const isGridView = view === "school" || view === "class";
+  if (visibleAssignments.length === 0 && !isGridView)
     return (
       <div className="timetable-state" role="status">
         <div className="state-icon empty-icon" aria-hidden="true">
@@ -51,9 +51,7 @@ export function TimetableGrid({
         classLabel.toLowerCase().includes(normalizedQuery) ||
         visibleAssignments.some((assignment) => assignment.classLabel === classLabel),
     );
-    return (
-      <SchoolOverviewView assignments={visibleAssignments} classLabels={visibleClassLabels} timeSlots={timeSlots} />
-    );
+    return <SchoolOverviewView assignments={visibleAssignments} classLabels={visibleClassLabels} />;
   }
   if (view === "class") {
     const visibleClassLabels = classLabels.filter(
@@ -62,7 +60,7 @@ export function TimetableGrid({
         classLabel.toLowerCase().includes(normalizedQuery) ||
         visibleAssignments.some((assignment) => assignment.classLabel === classLabel),
     );
-    return <ClassBoardsView assignments={visibleAssignments} classLabels={visibleClassLabels} timeSlots={timeSlots} />;
+    return <ClassBoardsView assignments={visibleAssignments} classLabels={visibleClassLabels} />;
   }
   return (
     <div className="table-wrap">
@@ -100,21 +98,15 @@ export function TimetableGrid({
 function SchoolOverviewView({
   assignments,
   classLabels,
-  timeSlots,
 }: {
   assignments: TimetableAssignment[];
   classLabels: string[];
-  timeSlots: TimeSlot[];
 }) {
-  const days =
-    timeSlots.some((slot) => slot.day === 7) || assignments.some((assignment) => assignment.day === 7)
-      ? [...SCHOOL_DAYS, 7]
-      : SCHOOL_DAYS;
-  const shifts = buildShiftRows(timeSlots, assignments);
-  const rows = shifts.flatMap((shift) =>
-    shift.periods.map((period) => ({
+  const days = SCHOOL_DAYS;
+  const rows = SCHOOL_SHIFTS.flatMap((shift) =>
+    SCHOOL_PERIODS.map((period) => ({
       key: `${shift.code}-${period}`,
-      label: shifts.length > 1 ? `${shift.label} ${period}` : String(period),
+      label: `${shift.label} ${period}`,
       shiftCode: shift.code,
       period,
     })),
@@ -182,23 +174,11 @@ function SchoolOverviewView({
   );
 }
 
-function ClassBoardsView({
-  assignments,
-  classLabels,
-  timeSlots,
-}: {
-  assignments: TimetableAssignment[];
-  classLabels: string[];
-  timeSlots: TimeSlot[];
-}) {
+function ClassBoardsView({ assignments, classLabels }: { assignments: TimetableAssignment[]; classLabels: string[] }) {
   const groups = classLabels.map(
     (classLabel) => [classLabel, assignments.filter((assignment) => assignment.classLabel === classLabel)] as const,
   );
-  const days =
-    timeSlots.some((slot) => slot.day === 7) || assignments.some((assignment) => assignment.day === 7)
-      ? [...SCHOOL_DAYS, 7]
-      : SCHOOL_DAYS;
-  const shifts = buildShiftRows(timeSlots, assignments);
+  const days = SCHOOL_DAYS;
 
   return (
     <div className="school-wide-groups">
@@ -213,14 +193,14 @@ function ClassBoardsView({
               <caption className="sr-only">Thời khóa biểu lớp {classLabel}</caption>
               <thead>
                 <tr>
-                  <th>{shifts[0]?.label ?? "Tiết"}</th>
+                  <th>{SCHOOL_SHIFTS[0].label}</th>
                   {days.map((day) => (
                     <th key={day}>{dayLabel(day)}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {shifts.map((shift, shiftIndex) => (
+                {SCHOOL_SHIFTS.map((shift, shiftIndex) => (
                   <ClassShiftRows
                     key={shift.code}
                     assignments={classAssignments}
@@ -247,7 +227,7 @@ function ClassShiftRows({
   assignments: TimetableAssignment[];
   days: number[];
   showShiftLabel: boolean;
-  shift: { code: string; label: string; periods: number[] };
+  shift: { code: string; label: string };
 }) {
   const cells = new Map<string, TimetableAssignment[]>();
   for (const assignment of assignments) {
@@ -266,7 +246,7 @@ function ClassShiftRows({
           ))}
         </tr>
       ) : null}
-      {shift.periods.map((period) => (
+      {SCHOOL_PERIODS.map((period) => (
         <tr key={`${shift.code}-${period}`}>
           <th className="school-period-cell" scope="row">
             {period}
@@ -283,35 +263,6 @@ function ClassShiftRows({
       ))}
     </>
   );
-}
-
-function buildShiftRows(timeSlots: TimeSlot[], assignments: TimetableAssignment[]) {
-  const periodMap = new Map<string, Set<number>>();
-  for (const slot of timeSlots) {
-    const code = slot.shiftCode ?? "MORNING";
-    const periods = periodMap.get(code) ?? new Set<number>();
-    periods.add(slot.period);
-    periodMap.set(code, periods);
-  }
-  for (const assignment of assignments) {
-    const code = assignment.shiftCode ?? "MORNING";
-    const periods = periodMap.get(code) ?? new Set<number>();
-    if (assignment.period !== null) periods.add(assignment.period);
-    periodMap.set(code, periods);
-  }
-  return [...periodMap.entries()]
-    .sort(([left], [right]) => shiftOrder(left) - shiftOrder(right) || left.localeCompare(right))
-    .map(([code, periods]) => ({
-      code,
-      label: SHIFT_LABELS[code] ?? code,
-      periods: [...periods].sort((left, right) => left - right),
-    }));
-}
-
-function shiftOrder(code: string) {
-  if (code === "MORNING") return 0;
-  if (code === "AFTERNOON") return 1;
-  return 2;
 }
 
 function shortLabel(value: string) {

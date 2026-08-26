@@ -57,7 +57,7 @@ export async function loadTimetable(signal?: AbortSignal) {
         lesson?.teacherId ?? "Giáo viên chưa xác định",
       ),
       roomLabel: assignment.roomId ? label(roomMap.get(assignment.roomId), assignment.roomId) : "Chưa chỉ định phòng",
-      shiftCode: slot?.shiftCode ?? null,
+      shiftCode: slot?.shiftCode ?? "MORNING",
       day: slot?.day ?? null,
       period: slot?.period ?? null,
       timeLabel: slot?.startsAt && slot.endsAt ? `${slot.startsAt}–${slot.endsAt}` : "—",
