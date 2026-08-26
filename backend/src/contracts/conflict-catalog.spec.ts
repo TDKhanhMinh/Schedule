@@ -1,6 +1,7 @@
 import {
   CONFLICT_CATALOG,
   CONFLICT_CATALOG_VERSION,
+  createConflictChain,
   createConflictDiagnostic,
   getConflictDefinition,
 } from "./conflict-catalog";
@@ -25,5 +26,22 @@ describe("conflict catalog", () => {
         remediationHint: expect.stringContaining("Dùng đúng mã"),
       }),
     );
+  });
+
+  it("creates a deterministic verifiable conflict chain", () => {
+    const first = createConflictChain("ROOM_CAPABILITY_UNSATISFIED", "Không có phòng phù hợp.", {
+      lessonId: "lesson-1",
+      room: "room-1",
+    });
+    const second = createConflictChain("ROOM_CAPABILITY_UNSATISFIED", "Không có phòng phù hợp.", {
+      room: "room-1",
+      lessonId: "lesson-1",
+    });
+
+    expect(second).toEqual(first);
+    expect(first.contractVersion).toBe("CONFLICT-CHAIN-1.0.0");
+    expect(first.nodes.some((node) => node.type === "CONSTRAINT")).toBe(true);
+    expect(first.nodes.some((node) => node.type === "OUTCOME")).toBe(true);
+    expect(first.edges.some((edge) => edge.relation === "RESULTS_IN")).toBe(true);
   });
 });

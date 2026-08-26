@@ -72,6 +72,63 @@
             "objectiveGapPercent": { "type": ["number", "null"], "minimum": 0 }
           }
         },
+        "localRepair": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "contractVersion",
+            "baselineSnapshotHash",
+            "affectedAssignmentKeys",
+            "frozenAssignmentKeys",
+            "movedAssignmentCount",
+            "preservedAssignmentCount",
+            "outsideScopeUnchanged"
+          ],
+          "properties": {
+            "contractVersion": { "const": "LOCAL-REPAIR-1.0.0" },
+            "baselineSnapshotHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "affectedAssignmentKeys": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+            "frozenAssignmentKeys": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+            "movedAssignmentCount": { "type": "integer", "minimum": 0 },
+            "preservedAssignmentCount": { "type": "integer", "minimum": 0 },
+            "outsideScopeUnchanged": { "type": "boolean" }
+          }
+        },
+        "relaxationProposals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "proposalId",
+              "rank",
+              "kind",
+              "targetCode",
+              "priorityScore",
+              "affectedLessonCount",
+              "affectedEntityIds",
+              "ruleSource",
+              "impact",
+              "requiresApproval",
+              "autoApply",
+              "hardRuleProtected"
+            ],
+            "properties": {
+              "proposalId": { "type": "string", "minLength": 1 },
+              "rank": { "type": "integer", "minimum": 1 },
+              "kind": { "enum": ["SOFT_RULE_WEIGHT", "STAKEHOLDER_DATA_CHANGE", "STAKEHOLDER_HARD_RULE_REVIEW"] },
+              "targetCode": { "type": "string", "minLength": 1 },
+              "priorityScore": { "type": "integer", "minimum": 0 },
+              "affectedLessonCount": { "type": "integer", "minimum": 0 },
+              "affectedEntityIds": { "type": "array", "items": { "type": "string" } },
+              "ruleSource": { "type": "object", "additionalProperties": { "type": "string" } },
+              "impact": { "type": "string", "minLength": 1 },
+              "requiresApproval": { "type": "boolean" },
+              "autoApply": { "type": "boolean" },
+              "hardRuleProtected": { "type": "boolean" }
+            }
+          }
+        },
         "modelMetrics": {
           "type": "object",
           "additionalProperties": false,

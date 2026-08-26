@@ -9,12 +9,14 @@ from .contracts import (
     Assignment,
     CONTRACT_VERSION,
     DEFAULT_TIME_LIMIT_SECONDS,
+    LockedAssignment,
     SOLVER_VERSION,
     SolveJobRequest,
     SolveJobResult,
 )
 from .teacher_availability import TeacherAvailabilityRule
 from .pre_solve import run_pre_solve_checks
+from .relaxation import build_relaxation_proposals
 from .solver_adapter import SolverAdapterPayload
 
 
@@ -111,6 +113,39 @@ def _empty_objective_breakdown() -> dict[str, int]:
     return {group: 0 for group in (*OBJECTIVE_GROUPS, "weightedTotal")}
 
 
+def _assignment_key(lesson_id: str, session_index: int) -> str:
+    return f"{lesson_id}:{session_index}"
+
+
+def _local_repair_diagnostics(request: SolveJobRequest, assignments: list[Assignment], solved: bool):
+    repair = request.localRepair
+    if repair is None:
+        return None
+    baseline = {
+        _assignment_key(item.lessonId, item.sessionIndex): (item.slotId, item.roomId)
+        for item in repair.baselineAssignments
+    }
+    affected = set(repair.affectedAssignmentKeys)
+    actual = {
+        _assignment_key(item.lessonId, item.sessionIndex): (item.slotId, item.roomId)
+        for item in assignments
+    }
+    moved = sum(1 for key in affected if actual.get(key) != baseline.get(key)) if solved else 0
+    preserved = sum(1 for key in affected if actual.get(key) == baseline.get(key)) if solved else 0
+    outside_unchanged = solved and all(
+        actual.get(key) == value for key, value in baseline.items() if key not in affected
+    )
+    return {
+        "contractVersion": repair.contractVersion,
+        "baselineSnapshotHash": repair.baselineSnapshotHash,
+        "affectedAssignmentKeys": sorted(affected),
+        "frozenAssignmentKeys": sorted(repair.frozenAssignmentKeys),
+        "movedAssignmentCount": moved,
+        "preservedAssignmentCount": preserved,
+        "outsideScopeUnchanged": outside_unchanged,
+    }
+
+
 def _build_run_metrics(
     started_at: float,
     solver: cp_model.CpSolver | None = None,
@@ -142,6 +177,8 @@ def solve(
 ) -> SolveJobResult:
     started_at = time.perf_counter()
     pre_solve = run_pre_solve_checks(request)
+    local_repair_details = _local_repair_diagnostics(request, [], False)
+    relaxation_proposals = build_relaxation_proposals(request, [issue.code for issue in pre_solve.issues])
     if not pre_solve.canSolve:
         pre_solve_conflicts = [f"{issue.code}: {issue.message}" for issue in pre_solve.issues]
         conflict_details = [
@@ -170,6 +207,8 @@ def solve(
                 "hardConstraintViolations": [],
                 "objectiveBreakdown": _empty_objective_breakdown(),
                 "runMetrics": _build_run_metrics(started_at),
+                "localRepair": local_repair_details,
+                "relaxationProposals": relaxation_proposals,
                 "modelMetrics": {
                     "variableCount": 0,
                     "candidatePairCount": 0,
@@ -198,15 +237,55 @@ def solve(
     room_domain_count = 0
     room_model_enabled = request.rooms is not None
     rooms_by_id = {room.id: room for room in request.rooms or []}
+    repair = request.localRepair
+    baseline_by_occurrence = {
+        (item.lessonId, item.sessionIndex): item for item in (repair.baselineAssignments if repair else [])
+    }
+    affected_repair_keys = set(repair.affectedAssignmentKeys) if repair else set()
+    frozen_repair_keys = set(repair.frozenAssignmentKeys) if repair else set()
     locked_by_occurrence = {
         (item.lessonId, item.sessionIndex): item for item in (request.lockedAssignments.assignments if request.lockedAssignments else [])
     }
+    if repair:
+        expected_keys = {
+            (lesson.id, session_index)
+            for lesson in request.lessons
+            for session_index in range(lesson.requiredSessions)
+        }
+        missing_keys = sorted(expected_keys - set(baseline_by_occurrence))
+        extra_keys = sorted(set(baseline_by_occurrence) - expected_keys)
+        if missing_keys:
+            conflicts.append(
+                "LOCAL_REPAIR_BASELINE_INCOMPLETE:missing="
+                + ",".join(_assignment_key(*key) for key in missing_keys)
+            )
+        if extra_keys:
+            conflicts.append(
+                "LOCAL_REPAIR_BASELINE_UNKNOWN:extra="
+                + ",".join(_assignment_key(*key) for key in extra_keys)
+            )
+        for key, baseline in baseline_by_occurrence.items():
+            key_text = _assignment_key(*key)
+            if key_text not in affected_repair_keys or key_text in frozen_repair_keys:
+                existing = locked_by_occurrence.get(key)
+                if existing and (existing.slotId != baseline.slotId or existing.roomId != baseline.roomId):
+                    conflicts.append(f"LOCAL_REPAIR_LOCK_CONFLICT:{key_text}")
+                else:
+                    locked_by_occurrence[key] = LockedAssignment(
+                        lessonId=baseline.lessonId,
+                        sessionIndex=baseline.sessionIndex,
+                        slotId=baseline.slotId,
+                        roomId=baseline.roomId,
+                        scope="LESSON",
+                        scopeId=baseline.lessonId,
+                    )
     availability_rules = _active_availability_rules(request)
     hard_unavailable = [rule for rule in availability_rules if rule.strength == "HARD_UNAVAILABLE"]
     preference_rules = [rule for rule in availability_rules if rule.strength != "HARD_UNAVAILABLE"]
     objective_weights = _objective_weights(request)
     objective_scales = {group: round(objective_weights[group] * 1000) for group in OBJECTIVE_GROUPS}
     objective_terms: list[object] = []
+    repair_move_terms: list[cp_model.IntVar] = []
     objective_score_terms: dict[str, list[tuple[cp_model.IntVar, int]]] = {
         group: [] for group in OBJECTIVE_GROUPS
     }
@@ -349,6 +428,16 @@ def solve(
                                 )
             if choices:
                 model.AddExactlyOne(choices)
+                repair_key = _assignment_key(lesson.id, session_index)
+                if repair and repair_key in affected_repair_keys and repair_key not in frozen_repair_keys:
+                    baseline = baseline_by_occurrence[(lesson.id, session_index)]
+                    moved = model.NewBoolVar(f"local_repair_moved_{lesson.id}_{session_index}")
+                    baseline_variable = variables.get((lesson.id, session_index, baseline.slotId, baseline.roomId))
+                    if baseline_variable is None:
+                        model.Add(moved == 1)
+                    else:
+                        model.Add(moved + baseline_variable == 1)
+                    repair_move_terms.append(moved)
             else:
                 if class_blocked_slots == len(session_allowed) and session_allowed:
                     code = "CLASS_AVAILABILITY_CONFLICT"
@@ -383,6 +472,11 @@ def solve(
                 "hardConstraintViolations": [],
                 "objectiveBreakdown": _empty_objective_breakdown(),
                 "runMetrics": _build_run_metrics(started_at),
+                "localRepair": _local_repair_diagnostics(request, [], False),
+                "relaxationProposals": build_relaxation_proposals(
+                    request,
+                    [issue.code for issue in pre_solve.issues] + [detail.code for detail in conflict_details],
+                ),
                 "modelMetrics": {
                     "variableCount": len(variables),
                     "candidatePairCount": candidate_pair_count,
@@ -480,8 +574,10 @@ def solve(
                 if choices:
                     model.AddAtMostOne(choices)
 
-    if objective_terms:
-        model.Minimize(sum(objective_terms))
+    if objective_terms or repair_move_terms:
+        # Repair preservation is lexicographically more important than ordinary
+        # soft preferences; hard constraints remain authoritative.
+        model.Minimize(sum(repair_move_terms) * 1_000_000 + sum(objective_terms))
 
     solver = cp_model.CpSolver()
     # The seed is a harness-level control for reproducibility checks; it is not
@@ -543,7 +639,7 @@ def solve(
     run_metrics = _build_run_metrics(
         started_at,
         solver,
-        bool(objective_terms),
+        bool(objective_terms or repair_move_terms),
         status_name,
     )
 
@@ -566,6 +662,11 @@ def solve(
                         )
                     )
 
+    local_repair_details = _local_repair_diagnostics(request, assignments, status_name in {"OPTIMAL", "FEASIBLE"})
+    relaxation_proposals = build_relaxation_proposals(
+        request,
+        [issue.code for issue in pre_solve.issues] + [item.split(":", 1)[0] for item in conflicts],
+    )
     return SolveJobResult(
         schemaVersion=CONTRACT_VERSION,
         jobId=request.jobId,
@@ -580,6 +681,8 @@ def solve(
             "hardConstraintViolations": hard_constraint_violations,
             "objectiveBreakdown": objective_breakdown,
             "runMetrics": run_metrics,
+            "localRepair": local_repair_details,
+            "relaxationProposals": relaxation_proposals,
             "modelMetrics": {
                 "variableCount": len(variables),
                 "candidatePairCount": candidate_pair_count,

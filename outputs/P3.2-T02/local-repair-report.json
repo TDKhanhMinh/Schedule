@@ -1,0 +1,37 @@
+{
+  "task": "P3.2-T02",
+  "evidenceVersion": "LOCAL-REPAIR-EVIDENCE-1.0.0",
+  "generatedAt": "2026-08-26T05:14:18.476Z",
+  "fixture": "backend/solver/examples/local-repair.json",
+  "contractVersion": "LOCAL-REPAIR-1.0.0",
+  "status": "OPTIMAL",
+  "assignments": [
+    {
+      "lessonId": "lesson-a",
+      "sessionIndex": 0,
+      "slotId": "tue-1",
+      "roomId": null
+    },
+    {
+      "lessonId": "lesson-b",
+      "sessionIndex": 0,
+      "slotId": "mon-2",
+      "roomId": null
+    }
+  ],
+  "localRepair": {
+    "contractVersion": "LOCAL-REPAIR-1.0.0",
+    "baselineSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "affectedAssignmentKeys": [
+      "lesson-a:0"
+    ],
+    "frozenAssignmentKeys": [
+      "lesson-b:0"
+    ],
+    "movedAssignmentCount": 1,
+    "preservedAssignmentCount": 0,
+    "outsideScopeUnchanged": true
+  },
+  "hardConstraintViolations": [],
+  "environment": "local Python + OR-Tools CP-SAT; synthetic fixture; no pilot/production approval"
+}

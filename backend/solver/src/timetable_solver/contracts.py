@@ -11,6 +11,8 @@ SOLVER_VERSION = "0.1.0"
 OBJECTIVE_CONTRACT_VERSION = "SOLVER-OBJECTIVE-1.0.0"
 DEFAULT_TIME_LIMIT_SECONDS = 10.0
 LOCKED_ASSIGNMENTS_CONTRACT_VERSION = "LOCKED-ASSIGNMENTS-1.0.0"
+LOCAL_REPAIR_CONTRACT_VERSION = "LOCAL-REPAIR-1.0.0"
+RELAXATION_CONTRACT_VERSION = "RELAXATION-PROPOSAL-1.0.0"
 
 
 class TimeSlot(BaseModel):
@@ -75,6 +77,43 @@ class LockedAssignments(BaseModel):
         return self
 
 
+class LocalRepairAssignment(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    lessonId: str = Field(min_length=1)
+    sessionIndex: int = Field(ge=0)
+    slotId: str = Field(min_length=1)
+    roomId: str | None = None
+
+
+class LocalRepairRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    contractVersion: Literal["LOCAL-REPAIR-1.0.0"]
+    baselineSnapshotHash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    baselineAssignments: list[LocalRepairAssignment]
+    affectedAssignmentKeys: list[str]
+    frozenAssignmentKeys: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_scope(self) -> "LocalRepairRequest":
+        baseline_keys = {
+            f"{assignment.lessonId}:{assignment.sessionIndex}" for assignment in self.baselineAssignments
+        }
+        if len(baseline_keys) != len(self.baselineAssignments):
+            raise ValueError("local repair baseline cannot repeat the same lesson session")
+        if not self.affectedAssignmentKeys:
+            raise ValueError("local repair must include at least one affected assignment key")
+        if len(set(self.affectedAssignmentKeys)) != len(self.affectedAssignmentKeys):
+            raise ValueError("local repair affected assignment keys must be unique")
+        if len(set(self.frozenAssignmentKeys)) != len(self.frozenAssignmentKeys):
+            raise ValueError("local repair frozen assignment keys must be unique")
+        unknown = (set(self.affectedAssignmentKeys) | set(self.frozenAssignmentKeys)) - baseline_keys
+        if unknown:
+            raise ValueError(f"local repair scope references unknown baseline assignments: {sorted(unknown)}")
+        return self
+
+
 class SolverObjectiveWeights(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -108,6 +147,7 @@ class SolveJobRequest(BaseModel):
     classUnavailableSlotIds: dict[str, list[str]] | None = None
     rooms: list[RoomCapability] | None = None
     lockedAssignments: LockedAssignments | None = None
+    localRepair: LocalRepairRequest | None = None
     options: SolveJobOptions | None = None
     objective: SolverObjective | None = None
 
@@ -157,6 +197,35 @@ class SolverRunMetrics(BaseModel):
     objectiveGapPercent: float | None = Field(default=None, ge=0)
 
 
+class LocalRepairDiagnostics(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    contractVersion: Literal["LOCAL-REPAIR-1.0.0"]
+    baselineSnapshotHash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    affectedAssignmentKeys: list[str]
+    frozenAssignmentKeys: list[str]
+    movedAssignmentCount: int = Field(ge=0)
+    preservedAssignmentCount: int = Field(ge=0)
+    outsideScopeUnchanged: bool
+
+
+class RelaxationProposal(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    proposalId: str
+    rank: int = Field(ge=1)
+    kind: Literal["SOFT_RULE_WEIGHT", "STAKEHOLDER_DATA_CHANGE", "STAKEHOLDER_HARD_RULE_REVIEW"]
+    targetCode: str
+    priorityScore: int = Field(ge=0)
+    affectedLessonCount: int = Field(ge=0)
+    affectedEntityIds: list[str]
+    ruleSource: dict[str, str] = Field(default_factory=dict)
+    impact: str
+    requiresApproval: bool
+    autoApply: bool
+    hardRuleProtected: bool
+
+
 class SolveDiagnostics(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -177,6 +246,8 @@ class SolveDiagnostics(BaseModel):
         )
     )
     runMetrics: SolverRunMetrics
+    localRepair: LocalRepairDiagnostics | None = None
+    relaxationProposals: list[RelaxationProposal] = Field(default_factory=list)
     modelMetrics: SolverModelMetrics | None = None
     preSolve: PreSolveReport | None = None
 

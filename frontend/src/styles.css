@@ -1703,6 +1703,134 @@ tr.has-warning td {
 .heatmap-legend-note {
   margin-left: auto;
 }
+.repair-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 16px;
+  border: 1px solid #d7defe;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #fafbff, #f4f7ff);
+}
+.repair-heading,
+.repair-summary,
+.repair-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px 14px;
+}
+.repair-heading {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.repair-heading h3 {
+  font-size: 0.95rem;
+}
+.repair-summary span,
+.repair-preview-result {
+  padding: 7px 9px;
+  border: 1px solid #dbe2f6;
+  border-radius: 7px;
+  color: var(--muted);
+  background: #fff;
+  font-size: 0.7rem;
+}
+.repair-summary b,
+.repair-preview-result {
+  color: var(--ink);
+}
+.repair-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.repair-chain-card,
+.repair-proposals-card {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #dbe2f6;
+  border-radius: 9px;
+  background: rgb(255 255 255 / 72%);
+}
+.repair-chain-list,
+.repair-proposal-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.repair-chain-list li,
+.repair-proposal-list li {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+.repair-chain-list li {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+.chain-node,
+.proposal-rank,
+.proposal-approval,
+.proposal-protected {
+  display: inline-flex;
+  width: fit-content;
+  padding: 3px 6px;
+  border-radius: 999px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+.chain-node-constraint {
+  color: var(--red);
+  background: var(--red-soft);
+}
+.chain-node-entity {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+.chain-node-outcome {
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+.repair-chain-card small,
+.repair-proposal-list small {
+  color: var(--muted);
+  font-size: 0.63rem;
+}
+.repair-proposal-list li {
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e8ecf7;
+}
+.repair-proposal-list li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.repair-proposal-list li > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+}
+.proposal-rank {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+.proposal-approval {
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+.proposal-protected {
+  color: var(--red);
+  background: var(--red-soft);
+}
+.repair-actions {
+  padding-top: 4px;
+}
 .move-review-panel {
   display: flex;
   align-items: center;
@@ -2386,6 +2514,9 @@ tr.has-warning td {
     text-align: left;
   }
   .quality-metrics {
+    grid-template-columns: 1fr;
+  }
+  .repair-grid {
     grid-template-columns: 1fr;
   }
   .heatmap-legend-note {

@@ -4,6 +4,8 @@ import type { PreSolveReport, RoomCapability } from "./pre-solve";
 export const CONTRACT_VERSION = "1.0" as const;
 export const SOLVER_OBJECTIVE_CONTRACT_VERSION = "SOLVER-OBJECTIVE-1.0.0" as const;
 export const LOCKED_ASSIGNMENTS_CONTRACT_VERSION = "LOCKED-ASSIGNMENTS-1.0.0" as const;
+export const LOCAL_REPAIR_CONTRACT_VERSION = "LOCAL-REPAIR-1.0.0" as const;
+export const RELAXATION_CONTRACT_VERSION = "RELAXATION-PROPOSAL-1.0.0" as const;
 export const SCHEDULE_VERSION_OPERATIONS_CONTRACT_VERSION = "SCHEDULE-VERSION-OPS-1.0.0" as const;
 export const FREEZE_SCOPE_CONTRACT_VERSION = "FREEZE-SCOPE-1.0.0" as const;
 export const OPTIMIZATION_QUEUE = "optimization" as const;
@@ -58,6 +60,14 @@ export interface LockedAssignments {
   assignments: LockedAssignment[];
 }
 
+export interface LocalRepairRequest {
+  contractVersion: typeof LOCAL_REPAIR_CONTRACT_VERSION;
+  baselineSnapshotHash: string;
+  baselineAssignments: Assignment[];
+  affectedAssignmentKeys: string[];
+  frozenAssignmentKeys?: string[];
+}
+
 export interface SolverObjectiveWeights {
   teacherGap: number;
   compactness: number;
@@ -85,6 +95,7 @@ export interface SolveJobRequest {
   classUnavailableSlotIds?: Record<string, string[]>;
   rooms?: RoomCapability[];
   lockedAssignments?: LockedAssignments;
+  localRepair?: LocalRepairRequest;
   options?: SolveJobOptions;
   objective?: SolverObjective;
 }
@@ -119,6 +130,31 @@ export interface SolverRunMetrics {
   objectiveGapPercent: number | null;
 }
 
+export interface LocalRepairDiagnostics {
+  contractVersion: typeof LOCAL_REPAIR_CONTRACT_VERSION;
+  baselineSnapshotHash: string;
+  affectedAssignmentKeys: string[];
+  frozenAssignmentKeys: string[];
+  movedAssignmentCount: number;
+  preservedAssignmentCount: number;
+  outsideScopeUnchanged: boolean;
+}
+
+export interface RelaxationProposal {
+  proposalId: string;
+  rank: number;
+  kind: "SOFT_RULE_WEIGHT" | "STAKEHOLDER_DATA_CHANGE" | "STAKEHOLDER_HARD_RULE_REVIEW";
+  targetCode: string;
+  priorityScore: number;
+  affectedLessonCount: number;
+  affectedEntityIds: string[];
+  ruleSource: Record<string, string>;
+  impact: string;
+  requiresApproval: boolean;
+  autoApply: boolean;
+  hardRuleProtected: boolean;
+}
+
 export interface SolveDiagnostics {
   warnings: string[];
   conflicts: string[];
@@ -127,6 +163,8 @@ export interface SolveDiagnostics {
   hardConstraintViolations?: string[];
   objectiveBreakdown?: ObjectiveBreakdown;
   runMetrics?: SolverRunMetrics;
+  localRepair?: LocalRepairDiagnostics;
+  relaxationProposals?: RelaxationProposal[];
   modelMetrics?: SolverModelMetrics;
   preSolve?: PreSolveReport;
 }

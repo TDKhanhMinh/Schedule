@@ -1,4 +1,5 @@
 export const CONFLICT_CATALOG_VERSION = "CONFLICT-CATALOG-1.0.0" as const;
+export const CONFLICT_CHAIN_CONTRACT_VERSION = "CONFLICT-CHAIN-1.0.0" as const;
 
 export type ConflictSeverity = "ERROR" | "WARNING" | "INFO";
 export type ConflictEntity = "IMPORT" | "JOB" | "LESSON" | "CLASS" | "TEACHER" | "ROOM" | "SLOT" | "RULE";
@@ -236,6 +237,61 @@ export interface ConflictDiagnostic {
   message: string;
   remediationHint: string;
   entityReferences: Record<string, string>;
+  conflictChain?: ConflictChain;
+}
+
+export type ConflictChainNodeType = "CONSTRAINT" | "ENTITY" | "OUTCOME";
+
+export interface ConflictChainNode {
+  nodeId: string;
+  type: ConflictChainNodeType;
+  label: string;
+  references: Record<string, string>;
+}
+
+export interface ConflictChain {
+  contractVersion: typeof CONFLICT_CHAIN_CONTRACT_VERSION;
+  chainId: string;
+  rootCode: string;
+  nodes: ConflictChainNode[];
+  edges: Array<{ from: string; to: string; relation: "CAUSES" | "RESULTS_IN" }>;
+}
+
+export function createConflictChain(
+  code: string,
+  message: string,
+  entityReferences: Record<string, string> = {},
+  severity: ConflictSeverity = "ERROR",
+): ConflictChain {
+  const referenceEntries = Object.entries(entityReferences).sort(([left], [right]) => left.localeCompare(right));
+  const chainId = `chain:${code}:${referenceEntries.map(([key, value]) => `${key}=${value}`).join("|") || "root"}`;
+  const rootId = `${chainId}:constraint`;
+  const outcomeId = `${chainId}:outcome`;
+  const entityNodes = referenceEntries.map(([key, value]) => ({
+    nodeId: `${chainId}:entity:${key}:${value}`,
+    type: "ENTITY" as const,
+    label: `${key}=${value}`,
+    references: { [key]: value },
+  }));
+  return {
+    contractVersion: CONFLICT_CHAIN_CONTRACT_VERSION,
+    chainId,
+    rootCode: code,
+    nodes: [
+      { nodeId: rootId, type: "CONSTRAINT", label: message, references: { code } },
+      ...entityNodes,
+      {
+        nodeId: outcomeId,
+        type: "OUTCOME",
+        label: severity === "ERROR" ? "Không thể tạo lịch hợp lệ." : "Cần review kết quả.",
+        references: { outcome: severity === "ERROR" ? "INFEASIBLE" : "REVIEW_REQUIRED" },
+      },
+    ],
+    edges: [
+      ...entityNodes.map((node) => ({ from: node.nodeId, to: rootId, relation: "CAUSES" as const })),
+      { from: rootId, to: outcomeId, relation: "RESULTS_IN" },
+    ],
+  };
 }
 
 export function getConflictDefinition(code: string): ConflictDefinition | undefined {
@@ -249,13 +305,15 @@ export function createConflictDiagnostic(
   severity?: ConflictSeverity,
 ): ConflictDiagnostic {
   const definition = getConflictDefinition(code);
+  const resolvedSeverity = severity ?? definition?.severity ?? "ERROR";
   return {
     catalogVersion: CONFLICT_CATALOG_VERSION,
     code,
-    severity: severity ?? definition?.severity ?? "ERROR",
+    severity: resolvedSeverity,
     entity: definition?.entity ?? "JOB",
     message,
     remediationHint: definition?.remediationHintVi ?? "Kiểm tra lại dữ liệu và rule liên quan rồi thử lại.",
     entityReferences,
+    conflictChain: createConflictChain(code, message, entityReferences, resolvedSeverity),
   };
 }

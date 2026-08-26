@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  type ConflictChain,
   type LockedAssignments,
   type ObjectiveBreakdown,
+  type RelaxationProposal,
   type ScheduleVersionCompareResult,
   type ScheduleVersionDiffEntry,
 } from "@schedule/backend/contracts";
@@ -83,7 +85,17 @@ interface LockUndoState {
   message: string;
 }
 
-type ManualHistoryKind = "MOVE" | "LOCK" | "UNLOCK" | "UNDO" | "CLONE" | "ROLLBACK" | "APPROVE" | "PUBLISH";
+type ManualHistoryKind =
+  | "MOVE"
+  | "LOCK"
+  | "UNLOCK"
+  | "UNDO"
+  | "CLONE"
+  | "ROLLBACK"
+  | "APPROVE"
+  | "PUBLISH"
+  | "REPAIR_PREVIEW"
+  | "REPAIR_CONFIRM";
 
 interface ManualHistoryEntry {
   id: string;
@@ -968,6 +980,194 @@ function TimetableGrid({
   );
 }
 
+const DEMO_REPAIR_REASON_CODE = "CLASS_AVAILABILITY_CONFLICT";
+const DEMO_REPAIR_CHAIN: ConflictChain = {
+  contractVersion: "CONFLICT-CHAIN-1.0.0",
+  chainId: "chain:CLASS_AVAILABILITY_CONFLICT:demo",
+  rootCode: DEMO_REPAIR_REASON_CODE,
+  nodes: [
+    {
+      nodeId: "demo:constraint",
+      type: "CONSTRAINT",
+      label: "Lớp 7A không còn slot khả dụng sau khi áp dụng change event.",
+      references: { code: DEMO_REPAIR_REASON_CODE },
+    },
+    {
+      nodeId: "demo:class",
+      type: "ENTITY",
+      label: "classId=class-7a1",
+      references: { classId: "class-7a1" },
+    },
+    {
+      nodeId: "demo:lesson",
+      type: "ENTITY",
+      label: "lessonId=lesson-conflict-7a1",
+      references: { lessonId: "lesson-conflict-7a1" },
+    },
+    {
+      nodeId: "demo:slot",
+      type: "ENTITY",
+      label: "slotId=wed-2",
+      references: { slotId: "wed-2" },
+    },
+    {
+      nodeId: "demo:outcome",
+      type: "OUTCOME",
+      label: "Không thể tạo lịch hợp lệ.",
+      references: { outcome: "INFEASIBLE" },
+    },
+  ],
+  edges: [
+    { from: "demo:class", to: "demo:constraint", relation: "CAUSES" },
+    { from: "demo:lesson", to: "demo:constraint", relation: "CAUSES" },
+    { from: "demo:slot", to: "demo:constraint", relation: "CAUSES" },
+    { from: "demo:constraint", to: "demo:outcome", relation: "RESULTS_IN" },
+  ],
+};
+const DEMO_RELAXATION_PROPOSALS: RelaxationProposal[] = [
+  {
+    proposalId: "relax:SOFT_RULE_WEIGHT:RULE-TEACHER-PREFERRED-DAY:teacher-1",
+    rank: 1,
+    kind: "SOFT_RULE_WEIGHT",
+    targetCode: "RULE-TEACHER-PREFERRED-DAY",
+    priorityScore: 1200,
+    affectedLessonCount: 2,
+    affectedEntityIds: ["teacher-1", "lesson-conflict-7a1"],
+    ruleSource: {
+      sourceUrl: "https://schedule.local/rules/pilot-soft-preference",
+      ruleSnapshotId: "snapshot-demo-1",
+      ruleSetVersion: "RULE-SET-1.0.0",
+    },
+    impact: "Có thể mở thêm slot cho 2 session; không tự thay đổi rule.",
+    requiresApproval: true,
+    autoApply: false,
+    hardRuleProtected: false,
+  },
+  {
+    proposalId: "relax:STAKEHOLDER_HARD_RULE_REVIEW:RULE-CLASS-UNAVAILABLE:class-7a1",
+    rank: 2,
+    kind: "STAKEHOLDER_HARD_RULE_REVIEW",
+    targetCode: "RULE-CLASS-UNAVAILABLE",
+    priorityScore: 1000,
+    affectedLessonCount: 1,
+    affectedEntityIds: ["class-7a1", "lesson-conflict-7a1"],
+    ruleSource: {
+      sourceUrl: "https://schedule.local/rules/pilot-hard-rule",
+      ruleSnapshotId: "snapshot-demo-1",
+      ruleSetVersion: "RULE-SET-1.0.0",
+    },
+    impact: "Hard rule chỉ được stakeholder có thẩm quyền review; không được tự nới.",
+    requiresApproval: true,
+    autoApply: false,
+    hardRuleProtected: true,
+  },
+];
+
+interface LocalRepairPreviewState {
+  contractVersion: "LOCAL-REPAIR-1.0.0";
+  baselineSnapshotHash: string;
+  affectedAssignmentKeys: string[];
+  frozenAssignmentKeys: string[];
+  movedAssignmentCount: number;
+  preservedAssignmentCount: number;
+  outsideScopeUnchanged: boolean;
+}
+
+function RepairExplanationPanel({
+  selectedLessonCount,
+  lockedLessonCount,
+  repairPreview,
+  notice,
+  onPreview,
+  onConfirm,
+}: {
+  selectedLessonCount: number;
+  lockedLessonCount: number;
+  repairPreview: LocalRepairPreviewState | null;
+  notice: string;
+  onPreview: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <section className="panel repair-panel" aria-labelledby="repair-panel-title">
+      <div className="repair-heading">
+        <div>
+          <p className="eyebrow">P3.2-T02 · T03 · T04</p>
+          <h3 id="repair-panel-title">Explain conflict và local repair</h3>
+          <p className="small-note">
+            Preview dùng baseline hash, vùng ảnh hưởng và frozen scope. UI không tự hạ hard rule, không tự publish và
+            không thay thế server/solver validation.
+          </p>
+        </div>
+        <span className="contract-pill">LOCAL-REPAIR-1.0.0</span>
+      </div>
+      <div className="repair-summary" aria-label="Local repair scope summary">
+        <span>
+          Đã chọn: <b>{selectedLessonCount}</b> lesson
+        </span>
+        <span>
+          Frozen: <b>{lockedLessonCount}</b> lesson
+        </span>
+        <span>
+          Reason: <b>{DEMO_REPAIR_REASON_CODE}</b>
+        </span>
+      </div>
+      <div className="repair-grid">
+        <div className="repair-chain-card">
+          <strong>Conflict chain kiểm chứng được</strong>
+          <ol className="repair-chain-list" aria-label="Conflict chain">
+            {DEMO_REPAIR_CHAIN.nodes.map((node) => (
+              <li key={node.nodeId}>
+                <span className={`chain-node chain-node-${node.type.toLowerCase()}`}>{node.type}</span>
+                <span>{node.label}</span>
+              </li>
+            ))}
+          </ol>
+          <small>
+            {DEMO_REPAIR_CHAIN.contractVersion} · {DEMO_REPAIR_CHAIN.chainId}
+          </small>
+        </div>
+        <div className="repair-proposals-card">
+          <strong>Relaxation proposals</strong>
+          <ul className="repair-proposal-list" aria-label="Ranked relaxation proposals">
+            {DEMO_RELAXATION_PROPOSALS.map((proposal) => (
+              <li key={proposal.proposalId}>
+                <div>
+                  <span className="proposal-rank">#{proposal.rank}</span>
+                  <b>{proposal.targetCode}</b>
+                </div>
+                <small>{proposal.impact}</small>
+                <span className={proposal.hardRuleProtected ? "proposal-protected" : "proposal-approval"}>
+                  {proposal.hardRuleProtected ? "Hard rule · approval bắt buộc" : "Soft rule · approval bắt buộc"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <div className="repair-actions">
+        <button type="button" onClick={onPreview}>
+          Tạo repair preview
+        </button>
+        <button className="button-secondary" type="button" onClick={onConfirm} disabled={!repairPreview}>
+          Xác nhận áp dụng draft repair
+        </button>
+        {repairPreview ? (
+          <span className="repair-preview-result" role="status" aria-live="polite">
+            {repairPreview.movedAssignmentCount} move · ngoài scope giữ nguyên:{" "}
+            {repairPreview.outsideScopeUnchanged ? "Có" : "Không"}
+          </span>
+        ) : null}
+      </div>
+      {notice ? (
+        <div className="version-notice" role="status" aria-live="polite">
+          {notice}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export function TimetableScreen() {
   const [lessons, setLessons] = useState(DEMO_LESSONS);
   const [view, setView] = useState<TimetableView>("class");
@@ -992,6 +1192,8 @@ export function TimetableScreen() {
   const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>("LOCKED");
   const [exportNotice, setExportNotice] = useState("Sẵn sàng xuất từ schedule version được chọn ở server.");
   const [exportingView, setExportingView] = useState<"all" | TimetableView | null>(null);
+  const [repairPreview, setRepairPreview] = useState<LocalRepairPreviewState | null>(null);
+  const [repairNotice, setRepairNotice] = useState("");
 
   const entities = useMemo(() => getEntityOptions(view, lessons), [lessons, view]);
   const selectedEntity = entities.find((entity) => entity.id === selectedEntityId) ?? entities[0];
@@ -1180,6 +1382,43 @@ export function TimetableScreen() {
       target === "APPROVED" ? "APPROVE" : "PUBLISH",
       target === "APPROVED" ? "Approval phương án" : "Publish phương án",
       `${target} · actor ${frontendConfig.actorId} · server sẽ kiểm tra gate và ghi timestamp`,
+    );
+  }
+
+  function previewLocalRepair() {
+    const affectedIds =
+      selectedLessonIds.length > 0
+        ? selectedLessonIds
+        : lessons.filter((lesson) => lesson.status === "CONFLICT").map((lesson) => lesson.id);
+    const frozenIds = lessons.filter((lesson) => lockedLessonIds.has(lesson.id)).map((lesson) => lesson.id);
+    const movableAffected = affectedIds.filter((lessonId) => !frozenIds.includes(lessonId));
+    const nextPreview: LocalRepairPreviewState = {
+      contractVersion: "LOCAL-REPAIR-1.0.0",
+      baselineSnapshotHash: "a".repeat(64),
+      affectedAssignmentKeys: affectedIds.map((lessonId) => `${lessonId}:0`).sort(),
+      frozenAssignmentKeys: frozenIds.map((lessonId) => `${lessonId}:0`).sort(),
+      movedAssignmentCount: movableAffected.length > 0 ? 1 : 0,
+      preservedAssignmentCount: Math.max(0, movableAffected.length - 1),
+      outsideScopeUnchanged: true,
+    };
+    setRepairPreview(nextPreview);
+    setRepairNotice("Đã tạo preview từ baseline; chưa mutate draft và chưa gửi request server.");
+    recordManualHistory(
+      "REPAIR_PREVIEW",
+      "Tạo local repair preview",
+      `${nextPreview.affectedAssignmentKeys.length} affected · ${nextPreview.frozenAssignmentKeys.length} frozen`,
+    );
+  }
+
+  function confirmLocalRepair() {
+    if (!repairPreview) return;
+    setRepairNotice(
+      "Đã xác nhận draft repair để review; server vẫn phải revalidate hard constraints, ETag và quyền trước khi ghi.",
+    );
+    recordManualHistory(
+      "REPAIR_CONFIRM",
+      "Xác nhận draft repair",
+      `${repairPreview.movedAssignmentCount} move · baseline ${repairPreview.baselineSnapshotHash.slice(0, 8)}…`,
     );
   }
 
@@ -1469,6 +1708,15 @@ export function TimetableScreen() {
             <span className="heatmap-legend-note">Màu luôn đi kèm nhãn Soft N để không phụ thuộc vào màu sắc.</span>
           </div>
         </section>
+
+        <RepairExplanationPanel
+          selectedLessonCount={selectedLessonIds.length}
+          lockedLessonCount={lockedLessonIds.size}
+          repairPreview={repairPreview}
+          notice={repairNotice}
+          onPreview={previewLocalRepair}
+          onConfirm={confirmLocalRepair}
+        />
 
         <section className="version-panel" aria-labelledby="version-panel-title">
           <div className="version-heading">

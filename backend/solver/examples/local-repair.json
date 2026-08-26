@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "jobId": "local-repair-demo-v1",
+  "schoolId": "school-repair-demo",
+  "timeSlots": [
+    { "id": "mon-1", "day": 1, "period": 1 },
+    { "id": "mon-2", "day": 1, "period": 2 },
+    { "id": "tue-1", "day": 2, "period": 1 }
+  ],
+  "classUnavailableSlotIds": { "class-7a": ["mon-1"] },
+  "lessons": [
+    {
+      "id": "lesson-a",
+      "classId": "class-7a",
+      "subjectId": "math",
+      "teacherId": "teacher-1",
+      "requiredSessions": 1
+    },
+    {
+      "id": "lesson-b",
+      "classId": "class-7b",
+      "subjectId": "physics",
+      "teacherId": "teacher-1",
+      "requiredSessions": 1
+    }
+  ],
+  "localRepair": {
+    "contractVersion": "LOCAL-REPAIR-1.0.0",
+    "baselineSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "baselineAssignments": [
+      { "lessonId": "lesson-a", "sessionIndex": 0, "slotId": "mon-1" },
+      { "lessonId": "lesson-b", "sessionIndex": 0, "slotId": "mon-2" }
+    ],
+    "affectedAssignmentKeys": ["lesson-a:0"],
+    "frozenAssignmentKeys": ["lesson-b:0"]
+  }
+}

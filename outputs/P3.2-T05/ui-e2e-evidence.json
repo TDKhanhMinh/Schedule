@@ -1,0 +1,34 @@
+{
+  "task": "P3.2-T05",
+  "evidenceVersion": "P3.2-UI-E2E-1.0.0",
+  "generatedAt": "2026-08-26T12:16:47.2977513+07:00",
+  "environment": "Docker Compose local frontend/API; synthetic timetable fixture; no pilot/production approval",
+  "browser": {
+    "url": "http://localhost:8080/timetable",
+    "pageLoaded": true,
+    "apiStatus": "API đang hoạt động",
+    "repairPanelPresent": true,
+    "conflictChainPresent": true,
+    "relaxationProposalsPresent": true,
+    "previewConfirmFlow": {
+      "selectedConflictLesson": true,
+      "previewNotice": "Đã tạo preview từ baseline; chưa mutate draft và chưa gửi request server.",
+      "previewMovedAssignmentCount": 1,
+      "outsideScopeUnchanged": true,
+      "confirmNotice": "Đã xác nhận draft repair để review; server vẫn phải revalidate hard constraints, ETag và quyền trước khi ghi."
+    },
+    "consoleErrors": 0,
+    "errorOverlay": false
+  },
+  "automated": {
+    "jestSuites": 28,
+    "jestTests": 122,
+    "pythonTests": 35,
+    "workerCancellationCoverage": true,
+    "concurrentUpdateCoverage": true
+  },
+  "limitations": [
+    "Browser flow is local synthetic evidence only.",
+    "Server persistence, approval and publish remain authoritative gates."
+  ]
+}

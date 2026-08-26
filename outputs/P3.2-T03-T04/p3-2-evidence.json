@@ -1,0 +1,129 @@
+{
+  "evidenceVersion": "P3.2-EVIDENCE-1.0.0",
+  "generatedAt": "2026-08-26T05:14:55.997Z",
+  "environment": "local Python + OR-Tools CP-SAT; synthetic fixtures; no pilot/production approval",
+  "t02LocalRepair": {
+    "task": "P3.2-T02",
+    "evidenceVersion": "LOCAL-REPAIR-EVIDENCE-1.0.0",
+    "generatedAt": "2026-08-26T05:14:18.476Z",
+    "fixture": "backend/solver/examples/local-repair.json",
+    "contractVersion": "LOCAL-REPAIR-1.0.0",
+    "status": "OPTIMAL",
+    "assignments": [
+      {
+        "lessonId": "lesson-a",
+        "sessionIndex": 0,
+        "slotId": "tue-1",
+        "roomId": null
+      },
+      {
+        "lessonId": "lesson-b",
+        "sessionIndex": 0,
+        "slotId": "mon-2",
+        "roomId": null
+      }
+    ],
+    "localRepair": {
+      "contractVersion": "LOCAL-REPAIR-1.0.0",
+      "baselineSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "affectedAssignmentKeys": [
+        "lesson-a:0"
+      ],
+      "frozenAssignmentKeys": [
+        "lesson-b:0"
+      ],
+      "movedAssignmentCount": 1,
+      "preservedAssignmentCount": 0,
+      "outsideScopeUnchanged": true
+    },
+    "hardConstraintViolations": [],
+    "environment": "local Python + OR-Tools CP-SAT; synthetic fixture; no pilot/production approval"
+  },
+  "t03ConflictChains": {
+    "status": "PASS",
+    "catalogVersion": "CONFLICT-CATALOG-1.0.0",
+    "chainContractVersion": "CONFLICT-CHAIN-1.0.0",
+    "cases": {
+      "capacity": {
+        "status": "INFEASIBLE",
+        "codes": [
+          "TEACHER_SLOT_CAPACITY_EXCEEDED",
+          "NO_FEASIBLE_ASSIGNMENT"
+        ]
+      },
+      "fixedConflict": {
+        "status": "INFEASIBLE",
+        "codes": [
+          "TEACHER_SLOT_CAPACITY_EXCEEDED",
+          "FIXED_RESOURCE_CONFLICT",
+          "NO_FEASIBLE_ASSIGNMENT"
+        ]
+      },
+      "unavailableCluster": {
+        "status": "INFEASIBLE",
+        "codes": [
+          "CLASS_AVAILABILITY_CONFLICT",
+          "LESSON_SLOT_CAPACITY_EXCEEDED",
+          "TOTAL_SLOT_CAPACITY_EXCEEDED",
+          "CLASS_SLOT_CAPACITY_EXCEEDED",
+          "TEACHER_SLOT_CAPACITY_EXCEEDED",
+          "NO_FEASIBLE_ASSIGNMENT"
+        ]
+      },
+      "roomMismatch": {
+        "status": "INFEASIBLE",
+        "codes": [
+          "ROOM_CAPABILITY_UNSATISFIED",
+          "NO_FEASIBLE_ASSIGNMENT"
+        ]
+      }
+    }
+  },
+  "t04RelaxationProposals": {
+    "status": "INFEASIBLE",
+    "contractVersion": "RELAXATION-PROPOSAL-1.0.0",
+    "proposals": [
+      {
+        "proposalId": "relax:SOFT_RULE_WEIGHT:RULE-SOFT-DAY:teacher-1",
+        "rank": 1,
+        "kind": "SOFT_RULE_WEIGHT",
+        "targetCode": "RULE-SOFT-DAY",
+        "priorityScore": 2050,
+        "affectedLessonCount": 2,
+        "affectedEntityIds": [
+          "lesson-a",
+          "lesson-b",
+          "teacher-1"
+        ],
+        "ruleSource": {
+          "sourceUrl": "https://schedule.local/rules/soft-1",
+          "ruleSnapshotId": "snapshot-1",
+          "ruleSetVersion": "RULE-SET-1.0.0",
+          "ruleSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "impact": "Có thể tăng số slot khả dụng cho 2 session của giáo viên teacher-1; không thay đổi rule tự động.",
+        "requiresApproval": true,
+        "autoApply": false,
+        "hardRuleProtected": false
+      },
+      {
+        "proposalId": "relax:STAKEHOLDER_DATA_CHANGE:TEACHER_SLOT_CAPACITY_EXCEEDED:teacher-1",
+        "rank": 2,
+        "kind": "STAKEHOLDER_DATA_CHANGE",
+        "targetCode": "TEACHER_SLOT_CAPACITY_EXCEEDED",
+        "priorityScore": 2000,
+        "affectedLessonCount": 2,
+        "affectedEntityIds": [
+          "lesson-a",
+          "lesson-b",
+          "teacher-1"
+        ],
+        "ruleSource": {},
+        "impact": "Cần stakeholder xem xét mở rộng slot hoặc điều chỉnh dữ liệu cho giáo viên teacher-1; không tự nới hard constraint.",
+        "requiresApproval": true,
+        "autoApply": false,
+        "hardRuleProtected": true
+      }
+    ]
+  }
+}

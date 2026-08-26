@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 CONFLICT_CATALOG_VERSION = "CONFLICT-CATALOG-1.0.0"
+CONFLICT_CHAIN_CONTRACT_VERSION = "CONFLICT-CHAIN-1.0.0"
 ConflictSeverity = Literal["ERROR", "WARNING", "INFO"]
 ConflictEntity = Literal["IMPORT", "JOB", "LESSON", "CLASS", "TEACHER", "ROOM", "SLOT", "RULE"]
 
@@ -27,6 +28,29 @@ class ConflictDiagnostic(BaseModel):
     message: str = Field(min_length=1)
     remediationHint: str = Field(min_length=1)
     entityReferences: dict[str, str] = Field(default_factory=dict)
+    conflictChain: "ConflictChain | None" = None
+
+
+class ConflictChainNode(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    nodeId: str
+    type: Literal["CONSTRAINT", "ENTITY", "OUTCOME"]
+    label: str
+    references: dict[str, str] = Field(default_factory=dict)
+
+
+class ConflictChain(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    contractVersion: Literal["CONFLICT-CHAIN-1.0.0"]
+    chainId: str
+    rootCode: str
+    nodes: list[ConflictChainNode]
+    edges: list[dict[str, str]]
+
+
+ConflictDiagnostic.model_rebuild()
 
 
 _CATALOG = [
@@ -64,12 +88,51 @@ def conflict_diagnostic(
     severity: ConflictSeverity | None = None,
 ) -> ConflictDiagnostic:
     definition = CONFLICT_CATALOG.get(code)
+    resolved_severity = severity or (definition.severity if definition else "ERROR")
+    references = entity_references or {}
+    sorted_references = sorted(references.items())
+    suffix = "|".join(f"{key}={value}" for key, value in sorted_references) or "root"
+    chain_id = f"chain:{code}:{suffix}"
+    root_id = f"{chain_id}:constraint"
+    outcome_id = f"{chain_id}:outcome"
+    entity_nodes = [
+        ConflictChainNode(
+            nodeId=f"{chain_id}:entity:{key}:{value}",
+            type="ENTITY",
+            label=f"{key}={value}",
+            references={key: value},
+        )
+        for key, value in sorted_references
+    ]
+    chain = ConflictChain(
+        contractVersion=CONFLICT_CHAIN_CONTRACT_VERSION,
+        chainId=chain_id,
+        rootCode=code,
+        nodes=[
+            ConflictChainNode(nodeId=root_id, type="CONSTRAINT", label=message, references={"code": code}),
+            *entity_nodes,
+            ConflictChainNode(
+                nodeId=outcome_id,
+                type="OUTCOME",
+                label="Không thể tạo lịch hợp lệ." if resolved_severity == "ERROR" else "Cần review kết quả.",
+                references={"outcome": "INFEASIBLE" if resolved_severity == "ERROR" else "REVIEW_REQUIRED"},
+            ),
+        ],
+        edges=[
+            *[
+                {"from": node.nodeId, "to": root_id, "relation": "CAUSES"}
+                for node in entity_nodes
+            ],
+            {"from": root_id, "to": outcome_id, "relation": "RESULTS_IN"},
+        ],
+    )
     return ConflictDiagnostic(
         catalogVersion=CONFLICT_CATALOG_VERSION,
         code=code,
-        severity=severity or (definition.severity if definition else "ERROR"),
+        severity=resolved_severity,
         entity=definition.entity if definition else "JOB",
         message=message,
         remediationHint=definition.remediationHintVi if definition else "Kiểm tra lại dữ liệu và rule liên quan rồi thử lại.",
-        entityReferences=entity_references or {},
+        entityReferences=references,
+        conflictChain=chain,
     )

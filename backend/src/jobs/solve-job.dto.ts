@@ -255,6 +255,49 @@ export class SolveJobOptionsDto {
   timeLimitSeconds?: number;
 }
 
+export class LocalRepairAssignmentDto {
+  @IsString()
+  @IsNotEmpty()
+  lessonId!: string;
+
+  @IsInt()
+  @Min(0)
+  sessionIndex!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  slotId!: string;
+
+  @IsString()
+  @IsOptional()
+  roomId?: string | null;
+}
+
+export class LocalRepairDto {
+  @IsString()
+  @IsIn(["LOCAL-REPAIR-1.0.0"])
+  contractVersion!: "LOCAL-REPAIR-1.0.0";
+
+  @IsString()
+  @Matches(/^[0-9a-f]{64}$/)
+  baselineSnapshotHash!: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => LocalRepairAssignmentDto)
+  baselineAssignments!: LocalRepairAssignmentDto[];
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  affectedAssignmentKeys!: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  frozenAssignmentKeys?: string[];
+}
+
 export class SolveJobDto implements SolveJobRequest {
   @IsString()
   @IsIn(["1.0"])
@@ -334,4 +377,9 @@ export class SolveJobDto implements SolveJobRequest {
   @Type(() => SolverObjectiveDto)
   @IsOptional()
   objective?: SolverObjectiveDto;
+
+  @ValidateNested()
+  @Type(() => LocalRepairDto)
+  @IsOptional()
+  localRepair?: LocalRepairDto;
 }

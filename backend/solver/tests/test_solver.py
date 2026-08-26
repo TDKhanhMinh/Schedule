@@ -6,6 +6,66 @@ from timetable_solver.solver import solve
 
 
 class SolverTest(unittest.TestCase):
+    def test_local_repair_preserves_outside_scope_and_minimizes_affected_moves(self):
+        request = SolveJobRequest.model_validate(
+            {
+                "schemaVersion": "1.0",
+                "jobId": "job-local-repair",
+                "schoolId": "school-1",
+                "timeSlots": [
+                    {"id": "mon-1", "day": 1, "period": 1},
+                    {"id": "mon-2", "day": 1, "period": 2},
+                    {"id": "tue-1", "day": 2, "period": 1},
+                ],
+                "classUnavailableSlotIds": {"class-7a": ["mon-1"]},
+                "lessons": [
+                    {"id": "lesson-a", "classId": "class-7a", "subjectId": "math", "teacherId": "teacher-1", "requiredSessions": 1},
+                    {"id": "lesson-b", "classId": "class-7b", "subjectId": "physics", "teacherId": "teacher-1", "requiredSessions": 1},
+                ],
+                "localRepair": {
+                    "contractVersion": "LOCAL-REPAIR-1.0.0",
+                    "baselineSnapshotHash": "a" * 64,
+                    "baselineAssignments": [
+                        {"lessonId": "lesson-a", "sessionIndex": 0, "slotId": "mon-1"},
+                        {"lessonId": "lesson-b", "sessionIndex": 0, "slotId": "mon-2"},
+                    ],
+                    "affectedAssignmentKeys": ["lesson-a:0"],
+                    "frozenAssignmentKeys": ["lesson-b:0"],
+                },
+            }
+        )
+
+        result = solve(request)
+
+        self.assertEqual(result.status, "OPTIMAL")
+        self.assertEqual({(item.lessonId, item.slotId) for item in result.assignments}, {("lesson-a", "tue-1"), ("lesson-b", "mon-2")})
+        self.assertEqual(result.diagnostics.localRepair.movedAssignmentCount, 1)
+        self.assertEqual(result.diagnostics.localRepair.preservedAssignmentCount, 0)
+        self.assertTrue(result.diagnostics.localRepair.outsideScopeUnchanged)
+
+    def test_local_repair_freeze_is_hard_and_incomplete_baseline_is_diagnostic(self):
+        base = {
+            "schemaVersion": "1.0",
+            "jobId": "job-local-repair-invalid",
+            "schoolId": "school-1",
+            "timeSlots": [{"id": "mon-1", "day": 1, "period": 1}, {"id": "tue-1", "day": 2, "period": 1}],
+            "classUnavailableSlotIds": {"class-7a": ["mon-1"]},
+            "lessons": [{"id": "lesson-a", "classId": "class-7a", "subjectId": "math", "teacherId": "teacher-1", "requiredSessions": 1}],
+            "localRepair": {
+                "contractVersion": "LOCAL-REPAIR-1.0.0",
+                "baselineSnapshotHash": "b" * 64,
+                "baselineAssignments": [{"lessonId": "lesson-a", "sessionIndex": 0, "slotId": "mon-1"}],
+                "affectedAssignmentKeys": ["lesson-a:0"],
+                "frozenAssignmentKeys": ["lesson-a:0"],
+            },
+        }
+        frozen_result = solve(SolveJobRequest.model_validate(base))
+        self.assertEqual(frozen_result.status, "INFEASIBLE")
+
+        incomplete = {**base, "jobId": "job-local-repair-incomplete", "localRepair": {**base["localRepair"], "baselineAssignments": []}}
+        with self.assertRaises(ValueError):
+            SolveJobRequest.model_validate(incomplete)
+
     def test_assigns_distinct_slots_for_same_teacher(self):
         request = SolveJobRequest.model_validate(
             {
