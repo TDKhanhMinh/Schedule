@@ -10,6 +10,7 @@ export const frontendConfig = {
   actorId: import.meta.env.VITE_USER_ID?.trim() || DEFAULT_ACTOR_ID,
   actorRole: import.meta.env.VITE_USER_ROLE?.trim().toUpperCase() || DEFAULT_ACTOR_ROLE,
   scheduleVersionId: import.meta.env.VITE_DEMO_SCHEDULE_VERSION_ID?.trim() || DEFAULT_SCHEDULE_VERSION_ID,
+  tenantId: import.meta.env.VITE_TENANT_ID?.trim() || "",
 } as const;
 
 export function authHeaders() {
@@ -17,5 +18,6 @@ export function authHeaders() {
     "x-user-id": frontendConfig.actorId,
     "x-user-role": frontendConfig.actorRole,
     "x-school-id": frontendConfig.schoolId,
+    ...(frontendConfig.tenantId ? { "x-tenant-id": frontendConfig.tenantId } : {}),
   };
 }

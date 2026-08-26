@@ -56,6 +56,7 @@ for (const id of [
   "IT-10",
   "UT-15",
   "UT-16",
+  "E2E-03",
   "E2E-02",
 ]) {
   if (!matrix.includes(id)) {

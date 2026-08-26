@@ -92,14 +92,6 @@ interface ConfirmResponse {
   } | null;
 }
 
-const architecture = [
-  ["Web", "React + TypeScript + Vite"],
-  ["API/core", "NestJS + TypeScript"],
-  ["Nguồn dữ liệu", "PostgreSQL"],
-  ["Điều phối job", "Redis + BullMQ"],
-  ["Tối ưu", "Python + OR-Tools CP-SAT"],
-] as const;
-
 const navigation: Array<{
   route: AppRoute;
   label: string;
@@ -226,13 +218,97 @@ function PageHeader({
   );
 }
 
+interface DashboardAuditEntry {
+  id: string;
+  action: string;
+  entityType: string;
+  actorId: string;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface DashboardSnapshot {
+  readiness: { status: string; dependencies?: Record<string, string>; timestamp?: string };
+  metricsText: string;
+  auditLogs: DashboardAuditEntry[];
+  fetchedAt: string;
+}
+
+function metricValue(metricsText: string, metricName: string, label?: string) {
+  const line = metricsText
+    .split("\n")
+    .find((candidate) => candidate.startsWith(metricName) && (!label || candidate.includes(label)));
+  const value = line?.match(/ ([0-9]+(?:\.[0-9]+)?)$/)?.[1];
+  return value ? Number(value) : 0;
+}
+
 function DashboardScreen() {
+  const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [auditQuery, setAuditQuery] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const headers = authHeaders();
+    const loadDashboard = async () => {
+      try {
+        const [readinessResponse, metricsResponse, auditResponse] = await Promise.all([
+          fetch(frontendConfig.apiBaseUrl + "/health/ready", { signal: controller.signal }),
+          fetch(frontendConfig.apiBaseUrl + "/metrics", { signal: controller.signal }),
+          fetch(
+            frontendConfig.apiBaseUrl +
+              "/schools/" +
+              encodeURIComponent(frontendConfig.schoolId) +
+              "/audit-logs?limit=12",
+            {
+              headers,
+              signal: controller.signal,
+            },
+          ),
+        ]);
+        const [readiness, metricsText, auditPayload] = await Promise.all([
+          readinessResponse.json(),
+          metricsResponse.text(),
+          auditResponse.json(),
+        ]);
+        if (!readinessResponse.ok || !metricsResponse.ok || !auditResponse.ok) {
+          throw new Error(readApiMessage(readinessResponse.ok ? auditPayload : readiness));
+        }
+        setSnapshot({
+          readiness: readiness as DashboardSnapshot["readiness"],
+          metricsText,
+          auditLogs: Array.isArray(auditPayload) ? (auditPayload as DashboardAuditEntry[]) : [],
+          fetchedAt: new Date().toISOString(),
+        });
+        setError("");
+      } catch (requestError) {
+        if (requestError instanceof DOMException && requestError.name === "AbortError") return;
+        setError(requestError instanceof Error ? requestError.message : "Không thể tải dashboard vận hành.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void loadDashboard();
+    return () => controller.abort();
+  }, []);
+
+  const filteredAuditLogs = (snapshot?.auditLogs ?? []).filter((entry) =>
+    `${entry.action} ${entry.entityType} ${entry.actorId}`.toLowerCase().includes(auditQuery.toLowerCase().trim()),
+  );
+  const queueCompleted = snapshot
+    ? metricValue(snapshot.metricsText, "schedule_queue_events_total", 'event="COMPLETED"')
+    : 0;
+  const queueFailed = snapshot ? metricValue(snapshot.metricsText, "schedule_queue_events_total", 'event="FAILED"') : 0;
+  const solverRuns = snapshot ? metricValue(snapshot.metricsText, "schedule_solver_runs_total") : 0;
+  const importAudits = filteredAuditLogs.filter((entry) => entry.action === "IMPORT").length;
+
   return (
     <>
       <PageHeader
         eyebrow="Workspace overview"
-        title="Bắt đầu một thời khóa biểu rõ ràng."
-        description="Chuẩn hóa dữ liệu, chạy solver và theo dõi bản draft từ một workspace duy nhất."
+        title="Dashboard quản trị trường và vận hành."
+        description="Theo dõi scope, data freshness, import/solve, queue health và audit trong đúng school context hiện tại."
         action={
           <button type="button" onClick={() => navigateTo("imports")}>
             + Nhập dữ liệu
@@ -242,9 +318,9 @@ function DashboardScreen() {
 
       <section className="dashboard-grid" aria-label="Tổng quan workspace">
         <article className="stat-card featured-card">
-          <div className="card-kicker">Next step</div>
-          <h2>Đưa dữ liệu vào hệ thống</h2>
-          <p>Upload workbook theo template MVP hoặc bắt đầu với nhập tay.</p>
+          <div className="card-kicker">Workspace scope</div>
+          <h2>{frontendConfig.tenantId ? `Tenant ${frontendConfig.tenantId}` : "V1 legacy school scope"}</h2>
+          <p>Đang hiển thị dữ liệu của school hiện tại: {frontendConfig.schoolId}.</p>
           <button type="button" onClick={() => navigateTo("imports")}>
             Upload & Preview <span aria-hidden="true">→</span>
           </button>
@@ -260,25 +336,25 @@ function DashboardScreen() {
           <div className="stat-icon blue" aria-hidden="true">
             01
           </div>
-          <span className="card-kicker">Data input</span>
-          <strong>Chưa có batch</strong>
-          <small>0 dòng · 0 lỗi</small>
+          <span className="card-kicker">Import / audit</span>
+          <strong>{isLoading ? "Đang tải…" : `${importAudits} event`}</strong>
+          <small>Audit log trong cửa sổ hiện tại</small>
         </article>
         <article className="stat-card">
           <div className="stat-icon amber" aria-hidden="true">
             02
           </div>
           <span className="card-kicker">Latest solve</span>
-          <strong>Chưa chạy</strong>
-          <small>Chờ dataset và rule profile</small>
+          <strong>{isLoading ? "Đang tải…" : `${solverRuns} run`}</strong>
+          <small>Metric solver process-local</small>
         </article>
         <article className="stat-card">
           <div className="stat-icon green" aria-hidden="true">
             03
           </div>
-          <span className="card-kicker">Published version</span>
-          <strong>Chưa có</strong>
-          <small>Approve → Lock → Publish</small>
+          <span className="card-kicker">Queue health</span>
+          <strong>{isLoading ? "Đang tải…" : `${queueCompleted} hoàn tất`}</strong>
+          <small>{queueFailed} lỗi · refresh theo lần mở dashboard</small>
         </article>
       </section>
 
@@ -286,38 +362,85 @@ function DashboardScreen() {
         <article className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Recent activity</p>
-              <h2>Hoạt động gần đây</h2>
+              <p className="eyebrow">Operations</p>
+              <h2>Sức khỏe và freshness</h2>
             </div>
-            <span className="quiet-badge">Empty state</span>
-          </div>
-          <div className="empty-inline">
-            <span className="empty-icon" aria-hidden="true">
-              ◎
+            <span className={snapshot?.readiness.status === "ready" ? "health-chip healthy" : "health-chip"}>
+              {isLoading ? "Đang tải" : snapshot?.readiness.status === "ready" ? "Ready" : "Kiểm tra lại"}
             </span>
-            <strong>Chưa có hoạt động</strong>
-            <p>Upload hoặc nhập requirement đầu tiên để bắt đầu workflow.</p>
-            <button className="button-secondary" type="button" onClick={() => navigateTo("imports")}>
-              Mở import
-            </button>
+          </div>
+          {error ? (
+            <div className="alert alert-error" role="alert">
+              {error}
+            </div>
+          ) : null}
+          <div className="ops-grid">
+            <div className="ops-card">
+              <span>PostgreSQL</span>
+              <strong>{snapshot?.readiness.dependencies?.postgres ?? "—"}</strong>
+            </div>
+            <div className="ops-card">
+              <span>Redis</span>
+              <strong>{snapshot?.readiness.dependencies?.redis ?? "—"}</strong>
+            </div>
+            <div className="ops-card">
+              <span>Actor / role</span>
+              <strong>{frontendConfig.actorRole}</strong>
+            </div>
+            <div className="ops-card">
+              <span>Freshness</span>
+              <strong>{snapshot ? new Date(snapshot.fetchedAt).toLocaleTimeString("vi-VN") : "—"}</strong>
+            </div>
           </div>
         </article>
-        <article className="panel dark-panel">
+        <article className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Architecture baseline</p>
-              <h2>Các lớp đã chốt</h2>
+              <p className="eyebrow">Scoped audit</p>
+              <h2>Audit gần đây</h2>
             </div>
+            <label className="audit-search">
+              <span className="sr-only">Tìm audit</span>
+              <input
+                value={auditQuery}
+                onChange={(event) => setAuditQuery(event.target.value)}
+                placeholder="Tìm action / actor"
+              />
+            </label>
           </div>
-          <dl className="architecture-list">
-            {architecture.map(([label, value]) => (
-              <div className="architecture-row" key={label}>
-                <dt>{label}</dt>
-                <dd>{value}</dd>
-              </div>
-            ))}
-          </dl>
+          <div className="audit-list">
+            {filteredAuditLogs.length === 0 ? (
+              <p className="small-note">Chưa có audit phù hợp trong school scope.</p>
+            ) : (
+              filteredAuditLogs.slice(0, 8).map((entry) => (
+                <div className="audit-row" key={entry.id}>
+                  <div>
+                    <strong>{entry.action}</strong>
+                    <span>
+                      {entry.entityType} · {entry.actorId}
+                    </span>
+                  </div>
+                  <time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString("vi-VN")}</time>
+                </div>
+              ))
+            )}
+          </div>
         </article>
+      </section>
+
+      <section className="panel dark-panel" aria-label="Định nghĩa dashboard">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Definitions</p>
+            <h2>Phạm vi chỉ số</h2>
+          </div>
+          <span className="quiet-badge">V1 local / scoped</span>
+        </div>
+        <p className="small-note">
+          Metrics queue/solver là process-local và chỉ dùng quan sát vận hành ban đầu. Storage/usage chưa có metric
+          backend nên dashboard không hiển thị số giả. Audit chỉ được fetch theo school context của actor; tenant-wide
+          DB/RLS dashboard chờ P4.1-T03/T05.
+        </p>
       </section>
     </>
   );
