@@ -1,0 +1,847 @@
+{
+  "reportVersion": "1.0",
+  "task": "P3.1-T04",
+  "generatedAt": "2026-08-26T02:06:19.998201+00:00",
+  "scope": "local/dev synthetic sensitivity; candidate profiles are not stakeholder-approved",
+  "seedSet": [
+    0,
+    1,
+    7
+  ],
+  "hardConstraintPolicy": "Objective weights never relax hard constraints; feasible cases must keep zero hard conflicts and infeasible diagnostics must remain expected.",
+  "profiles": {
+    "baseline-v1": [
+      {
+        "profileId": "baseline-v1",
+        "dataset": "small-feasible",
+        "expectedStatus": "OPTIMAL",
+        "expectedAssignmentCount": 5,
+        "rationale": "Existing P2.2-T05 rubric weights; reference only.",
+        "contractVersion": "1.0",
+        "objectiveContractVersion": "SOLVER-OBJECTIVE-1.0.0",
+        "weights": {
+          "teacherGap": 1,
+          "compactness": 1,
+          "dayDistribution": 1,
+          "undesirableSlots": 1,
+          "preferredDays": 1,
+          "fairness": 1
+        },
+        "seedRuns": [
+          {
+            "seed": 0,
+            "status": "OPTIMAL",
+            "assignmentCount": 5,
+            "hardConflictCount": 0,
+            "runtimeMs": 20.359,
+            "objectiveValue": 4000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 2,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 2,
+              "weightedTotal": 4000
+            }
+          },
+          {
+            "seed": 1,
+            "status": "OPTIMAL",
+            "assignmentCount": 5,
+            "hardConflictCount": 0,
+            "runtimeMs": 14.343,
+            "objectiveValue": 4000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 2,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 2,
+              "weightedTotal": 4000
+            }
+          },
+          {
+            "seed": 7,
+            "status": "OPTIMAL",
+            "assignmentCount": 5,
+            "hardConflictCount": 0,
+            "runtimeMs": 15.357,
+            "objectiveValue": 4000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 2,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 2,
+              "weightedTotal": 4000
+            }
+          }
+        ]
+      },
+      {
+        "profileId": "baseline-v1",
+        "dataset": "medium-near-realistic",
+        "expectedStatus": "OPTIMAL",
+        "expectedAssignmentCount": 40,
+        "rationale": "Existing P2.2-T05 rubric weights; reference only.",
+        "contractVersion": "1.0",
+        "objectiveContractVersion": "SOLVER-OBJECTIVE-1.0.0",
+        "weights": {
+          "teacherGap": 1,
+          "compactness": 1,
+          "dayDistribution": 1,
+          "undesirableSlots": 1,
+          "preferredDays": 1,
+          "fairness": 1
+        },
+        "seedRuns": [
+          {
+            "seed": 0,
+            "status": "OPTIMAL",
+            "assignmentCount": 40,
+            "hardConflictCount": 0,
+            "runtimeMs": 10336.382,
+            "objectiveValue": 192000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 80,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 112,
+              "weightedTotal": 192000
+            }
+          },
+          {
+            "seed": 1,
+            "status": "OPTIMAL",
+            "assignmentCount": 40,
+            "hardConflictCount": 0,
+            "runtimeMs": 11213.535,
+            "objectiveValue": 192000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 80,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 112,
+              "weightedTotal": 192000
+            }
+          },
+          {
+            "seed": 7,
+            "status": "OPTIMAL",
+            "assignmentCount": 40,
+            "hardConflictCount": 0,
+            "runtimeMs": 11867.368,
+            "objectiveValue": 192000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 80,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 112,
+              "weightedTotal": 192000
+            }
+          }
+        ]
+      },
+      {
+        "profileId": "baseline-v1",
+        "dataset": "infeasible-teacher-conflict",
+        "expectedStatus": "INFEASIBLE",
+        "expectedAssignmentCount": 0,
+        "rationale": "Existing P2.2-T05 rubric weights; reference only.",
+        "contractVersion": "1.0",
+        "objectiveContractVersion": "SOLVER-OBJECTIVE-1.0.0",
+        "weights": {
+          "teacherGap": 1,
+          "compactness": 1,
+          "dayDistribution": 1,
+          "undesirableSlots": 1,
+          "preferredDays": 1,
+          "fairness": 1
+        },
+        "seedRuns": [
+          {
+            "seed": 0,
+            "status": "INFEASIBLE",
+            "assignmentCount": 0,
+            "hardConflictCount": 2,
+            "runtimeMs": 0.315,
+            "objectiveValue": null,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 0,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 0,
+              "weightedTotal": 0
+            }
+          },
+          {
+            "seed": 1,
+            "status": "INFEASIBLE",
+            "assignmentCount": 0,
+            "hardConflictCount": 2,
+            "runtimeMs": 0.189,
+            "objectiveValue": null,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 0,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 0,
+              "weightedTotal": 0
+            }
+          },
+          {
+            "seed": 7,
+            "status": "INFEASIBLE",
+            "assignmentCount": 0,
+            "hardConflictCount": 2,
+            "runtimeMs": 0.196,
+            "objectiveValue": null,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 0,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 0,
+              "weightedTotal": 0
+            }
+          }
+        ]
+      }
+    ],
+    "candidate-teacher-fairness-v1": [
+      {
+        "profileId": "candidate-teacher-fairness-v1",
+        "dataset": "small-feasible",
+        "expectedStatus": "OPTIMAL",
+        "expectedAssignmentCount": 5,
+        "rationale": "Sensitivity candidate: prioritize teacher gaps and fairness; requires school workload feedback before approval.",
+        "contractVersion": "1.0",
+        "objectiveContractVersion": "SOLVER-OBJECTIVE-1.0.0",
+        "weights": {
+          "teacherGap": 3,
+          "compactness": 1,
+          "dayDistribution": 1,
+          "undesirableSlots": 1,
+          "preferredDays": 1,
+          "fairness": 2
+        },
+        "seedRuns": [
+          {
+            "seed": 0,
+            "status": "OPTIMAL",
+            "assignmentCount": 5,
+            "hardConflictCount": 0,
+            "runtimeMs": 12.05,
+            "objectiveValue": 6000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 2,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 2,
+              "weightedTotal": 6000
+            }
+          },
+          {
+            "seed": 1,
+            "status": "OPTIMAL",
+            "assignmentCount": 5,
+            "hardConflictCount": 0,
+            "runtimeMs": 15.909,
+            "objectiveValue": 6000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 2,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 2,
+              "weightedTotal": 6000
+            }
+          },
+          {
+            "seed": 7,
+            "status": "OPTIMAL",
+            "assignmentCount": 5,
+            "hardConflictCount": 0,
+            "runtimeMs": 15.444,
+            "objectiveValue": 6000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 2,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 2,
+              "weightedTotal": 6000
+            }
+          }
+        ]
+      },
+      {
+        "profileId": "candidate-teacher-fairness-v1",
+        "dataset": "medium-near-realistic",
+        "expectedStatus": "OPTIMAL",
+        "expectedAssignmentCount": 40,
+        "rationale": "Sensitivity candidate: prioritize teacher gaps and fairness; requires school workload feedback before approval.",
+        "contractVersion": "1.0",
+        "objectiveContractVersion": "SOLVER-OBJECTIVE-1.0.0",
+        "weights": {
+          "teacherGap": 3,
+          "compactness": 1,
+          "dayDistribution": 1,
+          "undesirableSlots": 1,
+          "preferredDays": 1,
+          "fairness": 2
+        },
+        "seedRuns": [
+          {
+            "seed": 0,
+            "status": "OPTIMAL",
+            "assignmentCount": 40,
+            "hardConflictCount": 0,
+            "runtimeMs": 11054.821,
+            "objectiveValue": 304000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 80,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 112,
+              "weightedTotal": 304000
+            }
+          },
+          {
+            "seed": 1,
+            "status": "OPTIMAL",
+            "assignmentCount": 40,
+            "hardConflictCount": 0,
+            "runtimeMs": 10489.546,
+            "objectiveValue": 304000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 80,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 112,
+              "weightedTotal": 304000
+            }
+          },
+          {
+            "seed": 7,
+            "status": "OPTIMAL",
+            "assignmentCount": 40,
+            "hardConflictCount": 0,
+            "runtimeMs": 15207.401,
+            "objectiveValue": 304000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 80,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 112,
+              "weightedTotal": 304000
+            }
+          }
+        ]
+      },
+      {
+        "profileId": "candidate-teacher-fairness-v1",
+        "dataset": "infeasible-teacher-conflict",
+        "expectedStatus": "INFEASIBLE",
+        "expectedAssignmentCount": 0,
+        "rationale": "Sensitivity candidate: prioritize teacher gaps and fairness; requires school workload feedback before approval.",
+        "contractVersion": "1.0",
+        "objectiveContractVersion": "SOLVER-OBJECTIVE-1.0.0",
+        "weights": {
+          "teacherGap": 3,
+          "compactness": 1,
+          "dayDistribution": 1,
+          "undesirableSlots": 1,
+          "preferredDays": 1,
+          "fairness": 2
+        },
+        "seedRuns": [
+          {
+            "seed": 0,
+            "status": "INFEASIBLE",
+            "assignmentCount": 0,
+            "hardConflictCount": 2,
+            "runtimeMs": 0.231,
+            "objectiveValue": null,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 0,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 0,
+              "weightedTotal": 0
+            }
+          },
+          {
+            "seed": 1,
+            "status": "INFEASIBLE",
+            "assignmentCount": 0,
+            "hardConflictCount": 2,
+            "runtimeMs": 0.145,
+            "objectiveValue": null,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 0,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 0,
+              "weightedTotal": 0
+            }
+          },
+          {
+            "seed": 7,
+            "status": "INFEASIBLE",
+            "assignmentCount": 0,
+            "hardConflictCount": 2,
+            "runtimeMs": 0.154,
+            "objectiveValue": null,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 0,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 0,
+              "weightedTotal": 0
+            }
+          }
+        ]
+      }
+    ],
+    "candidate-compactness-v1": [
+      {
+        "profileId": "candidate-compactness-v1",
+        "dataset": "small-feasible",
+        "expectedStatus": "OPTIMAL",
+        "expectedAssignmentCount": 5,
+        "rationale": "Sensitivity candidate: prioritize compact weekly distribution; requires timetable-coordinator feedback before approval.",
+        "contractVersion": "1.0",
+        "objectiveContractVersion": "SOLVER-OBJECTIVE-1.0.0",
+        "weights": {
+          "teacherGap": 1,
+          "compactness": 3,
+          "dayDistribution": 2,
+          "undesirableSlots": 1,
+          "preferredDays": 1,
+          "fairness": 1
+        },
+        "seedRuns": [
+          {
+            "seed": 0,
+            "status": "OPTIMAL",
+            "assignmentCount": 5,
+            "hardConflictCount": 0,
+            "runtimeMs": 14.006,
+            "objectiveValue": 6000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 2,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 2,
+              "weightedTotal": 6000
+            }
+          },
+          {
+            "seed": 1,
+            "status": "OPTIMAL",
+            "assignmentCount": 5,
+            "hardConflictCount": 0,
+            "runtimeMs": 14.223,
+            "objectiveValue": 6000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 2,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 2,
+              "weightedTotal": 6000
+            }
+          },
+          {
+            "seed": 7,
+            "status": "OPTIMAL",
+            "assignmentCount": 5,
+            "hardConflictCount": 0,
+            "runtimeMs": 16.539,
+            "objectiveValue": 6000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 2,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 2,
+              "weightedTotal": 6000
+            }
+          }
+        ]
+      },
+      {
+        "profileId": "candidate-compactness-v1",
+        "dataset": "medium-near-realistic",
+        "expectedStatus": "OPTIMAL",
+        "expectedAssignmentCount": 40,
+        "rationale": "Sensitivity candidate: prioritize compact weekly distribution; requires timetable-coordinator feedback before approval.",
+        "contractVersion": "1.0",
+        "objectiveContractVersion": "SOLVER-OBJECTIVE-1.0.0",
+        "weights": {
+          "teacherGap": 1,
+          "compactness": 3,
+          "dayDistribution": 2,
+          "undesirableSlots": 1,
+          "preferredDays": 1,
+          "fairness": 1
+        },
+        "seedRuns": [
+          {
+            "seed": 0,
+            "status": "OPTIMAL",
+            "assignmentCount": 40,
+            "hardConflictCount": 0,
+            "runtimeMs": 11615.696,
+            "objectiveValue": 272000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 80,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 112,
+              "weightedTotal": 272000
+            }
+          },
+          {
+            "seed": 1,
+            "status": "OPTIMAL",
+            "assignmentCount": 40,
+            "hardConflictCount": 0,
+            "runtimeMs": 10711.71,
+            "objectiveValue": 272000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 80,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 112,
+              "weightedTotal": 272000
+            }
+          },
+          {
+            "seed": 7,
+            "status": "OPTIMAL",
+            "assignmentCount": 40,
+            "hardConflictCount": 0,
+            "runtimeMs": 11621.247,
+            "objectiveValue": 272000.0,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 80,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 112,
+              "weightedTotal": 272000
+            }
+          }
+        ]
+      },
+      {
+        "profileId": "candidate-compactness-v1",
+        "dataset": "infeasible-teacher-conflict",
+        "expectedStatus": "INFEASIBLE",
+        "expectedAssignmentCount": 0,
+        "rationale": "Sensitivity candidate: prioritize compact weekly distribution; requires timetable-coordinator feedback before approval.",
+        "contractVersion": "1.0",
+        "objectiveContractVersion": "SOLVER-OBJECTIVE-1.0.0",
+        "weights": {
+          "teacherGap": 1,
+          "compactness": 3,
+          "dayDistribution": 2,
+          "undesirableSlots": 1,
+          "preferredDays": 1,
+          "fairness": 1
+        },
+        "seedRuns": [
+          {
+            "seed": 0,
+            "status": "INFEASIBLE",
+            "assignmentCount": 0,
+            "hardConflictCount": 2,
+            "runtimeMs": 0.25,
+            "objectiveValue": null,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 0,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 0,
+              "weightedTotal": 0
+            }
+          },
+          {
+            "seed": 1,
+            "status": "INFEASIBLE",
+            "assignmentCount": 0,
+            "hardConflictCount": 2,
+            "runtimeMs": 0.26,
+            "objectiveValue": null,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 0,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 0,
+              "weightedTotal": 0
+            }
+          },
+          {
+            "seed": 7,
+            "status": "INFEASIBLE",
+            "assignmentCount": 0,
+            "hardConflictCount": 2,
+            "runtimeMs": 0.146,
+            "objectiveValue": null,
+            "objectiveBreakdown": {
+              "teacherGap": 0,
+              "compactness": 0,
+              "dayDistribution": 0,
+              "undesirableSlots": 0,
+              "preferredDays": 0,
+              "fairness": 0,
+              "weightedTotal": 0
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "comparisons": [
+    {
+      "profileId": "candidate-teacher-fairness-v1",
+      "datasetResults": [
+        {
+          "dataset": "small-feasible",
+          "hardConstraintsUnchanged": true,
+          "runtimeMedianRatio": 1.006,
+          "performanceWithinTwoTimesBaseline": true,
+          "scoreDeltas": [
+            {
+              "seed": 0,
+              "weightedTotalDelta": 2000,
+              "beforeWeightedTotal": 4000,
+              "afterWeightedTotal": 6000,
+              "runtimeRatio": 0.592
+            },
+            {
+              "seed": 1,
+              "weightedTotalDelta": 2000,
+              "beforeWeightedTotal": 4000,
+              "afterWeightedTotal": 6000,
+              "runtimeRatio": 1.109
+            },
+            {
+              "seed": 7,
+              "weightedTotalDelta": 2000,
+              "beforeWeightedTotal": 4000,
+              "afterWeightedTotal": 6000,
+              "runtimeRatio": 1.006
+            }
+          ]
+        },
+        {
+          "dataset": "medium-near-realistic",
+          "hardConstraintsUnchanged": true,
+          "runtimeMedianRatio": 1.07,
+          "performanceWithinTwoTimesBaseline": true,
+          "scoreDeltas": [
+            {
+              "seed": 0,
+              "weightedTotalDelta": 112000,
+              "beforeWeightedTotal": 192000,
+              "afterWeightedTotal": 304000,
+              "runtimeRatio": 1.07
+            },
+            {
+              "seed": 1,
+              "weightedTotalDelta": 112000,
+              "beforeWeightedTotal": 192000,
+              "afterWeightedTotal": 304000,
+              "runtimeRatio": 0.935
+            },
+            {
+              "seed": 7,
+              "weightedTotalDelta": 112000,
+              "beforeWeightedTotal": 192000,
+              "afterWeightedTotal": 304000,
+              "runtimeRatio": 1.281
+            }
+          ]
+        },
+        {
+          "dataset": "infeasible-teacher-conflict",
+          "hardConstraintsUnchanged": true,
+          "runtimeMedianRatio": 0.767,
+          "performanceWithinTwoTimesBaseline": true,
+          "scoreDeltas": [
+            {
+              "seed": 0,
+              "weightedTotalDelta": 0,
+              "beforeWeightedTotal": 0,
+              "afterWeightedTotal": 0,
+              "runtimeRatio": 0.733
+            },
+            {
+              "seed": 1,
+              "weightedTotalDelta": 0,
+              "beforeWeightedTotal": 0,
+              "afterWeightedTotal": 0,
+              "runtimeRatio": 0.767
+            },
+            {
+              "seed": 7,
+              "weightedTotalDelta": 0,
+              "beforeWeightedTotal": 0,
+              "afterWeightedTotal": 0,
+              "runtimeRatio": 0.786
+            }
+          ]
+        }
+      ],
+      "hardConstraintsUnchanged": true,
+      "performanceWithinTwoTimesBaseline": true,
+      "candidateAcceptedForStakeholderReview": true
+    },
+    {
+      "profileId": "candidate-compactness-v1",
+      "datasetResults": [
+        {
+          "dataset": "small-feasible",
+          "hardConstraintsUnchanged": true,
+          "runtimeMedianRatio": 0.992,
+          "performanceWithinTwoTimesBaseline": true,
+          "scoreDeltas": [
+            {
+              "seed": 0,
+              "weightedTotalDelta": 2000,
+              "beforeWeightedTotal": 4000,
+              "afterWeightedTotal": 6000,
+              "runtimeRatio": 0.688
+            },
+            {
+              "seed": 1,
+              "weightedTotalDelta": 2000,
+              "beforeWeightedTotal": 4000,
+              "afterWeightedTotal": 6000,
+              "runtimeRatio": 0.992
+            },
+            {
+              "seed": 7,
+              "weightedTotalDelta": 2000,
+              "beforeWeightedTotal": 4000,
+              "afterWeightedTotal": 6000,
+              "runtimeRatio": 1.077
+            }
+          ]
+        },
+        {
+          "dataset": "medium-near-realistic",
+          "hardConstraintsUnchanged": true,
+          "runtimeMedianRatio": 0.979,
+          "performanceWithinTwoTimesBaseline": true,
+          "scoreDeltas": [
+            {
+              "seed": 0,
+              "weightedTotalDelta": 80000,
+              "beforeWeightedTotal": 192000,
+              "afterWeightedTotal": 272000,
+              "runtimeRatio": 1.124
+            },
+            {
+              "seed": 1,
+              "weightedTotalDelta": 80000,
+              "beforeWeightedTotal": 192000,
+              "afterWeightedTotal": 272000,
+              "runtimeRatio": 0.955
+            },
+            {
+              "seed": 7,
+              "weightedTotalDelta": 80000,
+              "beforeWeightedTotal": 192000,
+              "afterWeightedTotal": 272000,
+              "runtimeRatio": 0.979
+            }
+          ]
+        },
+        {
+          "dataset": "infeasible-teacher-conflict",
+          "hardConstraintsUnchanged": true,
+          "runtimeMedianRatio": 0.794,
+          "performanceWithinTwoTimesBaseline": true,
+          "scoreDeltas": [
+            {
+              "seed": 0,
+              "weightedTotalDelta": 0,
+              "beforeWeightedTotal": 0,
+              "afterWeightedTotal": 0,
+              "runtimeRatio": 0.794
+            },
+            {
+              "seed": 1,
+              "weightedTotalDelta": 0,
+              "beforeWeightedTotal": 0,
+              "afterWeightedTotal": 0,
+              "runtimeRatio": 1.376
+            },
+            {
+              "seed": 7,
+              "weightedTotalDelta": 0,
+              "beforeWeightedTotal": 0,
+              "afterWeightedTotal": 0,
+              "runtimeRatio": 0.745
+            }
+          ]
+        }
+      ],
+      "hardConstraintsUnchanged": true,
+      "performanceWithinTwoTimesBaseline": true,
+      "candidateAcceptedForStakeholderReview": true
+    }
+  ],
+  "pilotGate": {
+    "pilotWeightsApproved": false,
+    "productionApproved": false,
+    "reason": "P3.1-T02 solveAllowed=false and school/stakeholder feedback is not attached."
+  }
+}
