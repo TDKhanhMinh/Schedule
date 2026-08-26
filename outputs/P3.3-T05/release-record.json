@@ -1,38 +1,37 @@
 {
   "task": "P3.3-T05",
   "recordVersion": "RELEASE-CHECKLIST-1.0.0",
-  "generatedAt": "2026-08-26T03:04:52.505Z",
+  "generatedAt": "2026-08-26T04:02:05.156Z",
   "applicationVersion": "0.1.0",
   "decision": "NO-GO_PENDING_GATES",
   "productionApproved": false,
   "pilotApproved": false,
   "source": {
-    "commit": "57397128c8cc4add151ab9b650f8c0fc477ff780",
+    "commit": "9c9368f5aadcbda1ceed47c2929248912c9e00f2",
     "branch": "main",
     "workingTreeHasUnrelatedChanges": true,
     "unrelatedChangesPreserved": [
       "?? outputs/P1.3-T01/school-timetable-mvp-0.1.0-template-v1.0.xlsx.inspect.ndjson",
       "?? outputs/P2.4-T05/",
-      "?? outputs/P3.3-T05/",
       "?? tmp/"
     ],
     "images": [
       {
-        "id": "sha256:d214cb7acb71a54865ef4de8637a718f00857c467752bcc20d646920b19b70de",
+        "id": "sha256:ca298d11a4d86407b56d1cf98fe2de964047be028c45ad14693f5608abe2c7aa",
         "repoDigests": [
-          "schedule-api@sha256:d214cb7acb71a54865ef4de8637a718f00857c467752bcc20d646920b19b70de"
+          "schedule-api@sha256:ca298d11a4d86407b56d1cf98fe2de964047be028c45ad14693f5608abe2c7aa"
         ],
-        "created": "2026-08-26T02:36:01.882327479Z"
+        "created": "2026-08-26T03:55:10.710238224Z"
       },
       {
-        "id": "sha256:c4dd1ea14b5579261756bea02619b24aa81c0d4e8aba6517f9bfa761d943bc6c",
+        "id": "sha256:168e27c519b1618662f0ec209d6d1618d8c9d475b6e29227bf77d7dd97cb597d",
         "repoDigests": [
-          "schedule-worker@sha256:c4dd1ea14b5579261756bea02619b24aa81c0d4e8aba6517f9bfa761d943bc6c"
+          "schedule-worker@sha256:168e27c519b1618662f0ec209d6d1618d8c9d475b6e29227bf77d7dd97cb597d"
         ],
-        "created": "2026-08-26T02:36:37.003430904Z"
+        "created": "2026-08-26T03:55:52.135011776Z"
       }
     ],
-    "migrationCount": 12
+    "migrationCount": 14
   },
   "evidence": {
     "uat": {
@@ -53,13 +52,18 @@
     "recovery": {
       "path": "outputs/P3.3-T04/disaster-recovery-report.json",
       "rehearsalPass": true,
-      "rtoSeconds": 1.563,
-      "rpoSeconds": 2.306
+      "rtoSeconds": 1.933,
+      "rpoSeconds": 2.712
     },
     "observability": {
       "path": "outputs/P3.3-T01/observability-report.json",
       "devTestComplete": true,
       "runtime": "PASS"
+    },
+    "tenant": {
+      "path": "outputs/P4.1-T05/cross-tenant-gate-report.json",
+      "migrationApplied": true,
+      "applicationTenantContextConfigured": false
     }
   },
   "runtime": {
@@ -80,6 +84,8 @@
     "officialWorkbookAndStakeholder": false,
     "securityLocalEvidence": true,
     "securityP1ClosedOrAccepted": false,
+    "tenantMigrationApplied": true,
+    "applicationTenantContextConfigured": false,
     "performanceLocalEvidence": true,
     "recoveryLocalEvidence": true,
     "observabilityLocalEvidence": true,
@@ -91,6 +97,7 @@
   "openGates": [
     "officialWorkbookAndStakeholder",
     "securityP1ClosedOrAccepted",
+    "applicationTenantContextConfigured",
     "productionCollectorAndPaging",
     "productionSecretsAndEnvironment",
     "namedReleaseApprover",
