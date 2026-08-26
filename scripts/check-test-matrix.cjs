@@ -17,6 +17,7 @@ const requiredFiles = [
   "scripts/run-load-soak-benchmark.mjs",
   "scripts/run-disaster-recovery-evidence.mjs",
   "scripts/generate-release-record.mjs",
+  "scripts/validate-multi-tenant-design.mjs",
   "backend/src/timetable/public-schedule.service.spec.ts",
   "backend/src/jobs/optimization-queue.service.spec.ts",
   "backend/src/worker/optimization-worker.spec.ts",
@@ -48,6 +49,7 @@ for (const id of [
   "IT-06",
   "IT-07",
   "IT-08",
+  "IT-09",
   "E2E-02",
 ]) {
   if (!matrix.includes(id)) {

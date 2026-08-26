@@ -1,0 +1,26 @@
+{
+  "task": "P4.1-T01",
+  "designVersion": "TENANT-MIGRATION-1.0.0",
+  "generatedAt": "2026-08-26T03:07:25.033Z",
+  "decision": "DESIGN_ONLY_NOT_APPLIED",
+  "artifacts": [
+    "docs/architecture-decision-records/ADR-004-multi-tenant-isolation.md",
+    "docs/multi-tenant-migration-plan.md"
+  ],
+  "checks": {
+    "adrSections": true,
+    "migrationSections": true,
+    "currentSchemaInventory": true,
+    "noMigrationApplied": true
+  },
+  "currentCommit": "271aa85b52f64f06764821efa71a255e9a5c2214",
+  "gates": {
+    "devTestComplete": true,
+    "pilotApproved": false,
+    "productionApproved": false
+  },
+  "limitations": [
+    "No tenant_id migration, RLS activation, tenant creation or queue cutover was applied.",
+    "Large-table lock/RTO and security-owner approval require a separate V2.0 change window."
+  ]
+}
