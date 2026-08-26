@@ -1,7 +1,7 @@
 # UAT và sign-off pilot — P3.1-T05
 
-**Phiên bản script:** `P3.1-T05-UAT-1.0`  
-**Ngày ghi nhận:** 2026-08-26  
+**Phiên bản script:** `P3.1-T05-UAT-1.0`
+**Ngày ghi nhận:** 2026-08-26
 **Phạm vi:** V1.0 Web MVP, luồng Upload → Validate → Confirm → Solve → Review/Edit → Approve → Lock → Publish → Export.
 
 ## 1. Quy tắc ghi nhận
