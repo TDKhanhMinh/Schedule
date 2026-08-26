@@ -65,6 +65,7 @@ const migrationCount = Number(
     "SELECT count(*) FROM schema_migrations",
   ]) ?? 0,
 );
+const tenantMigrationApplied = migrationCount >= 14;
 const composeServices =
   run("docker", ["compose", "ps", "--status", "running", "--services"])?.split(/\r?\n/).filter(Boolean) ?? [];
 
@@ -75,6 +76,8 @@ const gates = {
   officialWorkbookAndStakeholder: false,
   securityLocalEvidence: security?.gates?.devTestComplete === true,
   securityP1ClosedOrAccepted: security?.gates?.p1FindingsOpen === false,
+  tenantMigrationApplied,
+  applicationTenantContextConfigured: false,
   performanceLocalEvidence: performance?.gate?.benchmarkPass === true,
   recoveryLocalEvidence: recovery?.gate?.rehearsalPass === true,
   observabilityLocalEvidence: observability?.gates?.devTestComplete === true,
@@ -127,6 +130,11 @@ const releaseRecord = {
       path: "outputs/P3.3-T01/observability-report.json",
       devTestComplete: observability?.gates?.devTestComplete ?? false,
       runtime: observability?.runtimeEvidence?.status ?? "UNKNOWN",
+    },
+    tenant: {
+      path: "outputs/P4.1-T05/cross-tenant-gate-report.json",
+      migrationApplied: tenantMigrationApplied,
+      applicationTenantContextConfigured: false,
     },
   },
   runtime: {
