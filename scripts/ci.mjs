@@ -24,6 +24,7 @@ const steps = [
   ["migrations", process.execPath, [resolve(root, "scripts", "check-migrations.cjs")]],
   ["template", process.execPath, [resolve(root, "scripts", "check-template.cjs")]],
   ["python-tests", pythonCommand, ["-m", "unittest", "discover", "-s", "backend/solver/tests", "-v"]],
+  ["test-matrix", process.execPath, [resolve(root, "scripts", "check-test-matrix.cjs")]],
   ["build", npmCommand, ["run", "build"]],
 ];
 
