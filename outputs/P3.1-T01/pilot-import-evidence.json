@@ -1,0 +1,325 @@
+{
+  "task": "P3.1-T01",
+  "generatedAt": "2026-08-26T01:47:44.068Z",
+  "source": {
+    "path": "outputs/P1.3-T01/school-timetable-mvp-0.1.0-template-v1.0.xlsx",
+    "bytes": 65773,
+    "sha256": "b57bd0198c8a2e1196182e80978f7fb093dc3e2a0f370e93f65d083039986049",
+    "templateVersion": "MVP-0.1.0",
+    "contractVersion": "1.0",
+    "sourceStatus": "workspace template/fixture; school-issued workbook ownership is not evidenced here"
+  },
+  "scope": {
+    "schoolId": "00000000-0000-0000-0000-000000000001",
+    "actorId": "p3-1-t01-workbook-evidence",
+    "environment": "local Docker/dev",
+    "productionApproved": false
+  },
+  "workbook": {
+    "sheets": [
+      {
+        "name": "LessonRequirements",
+        "classification": "IMPORTED",
+        "rowCount": 204,
+        "reason": "data sheet"
+      },
+      {
+        "name": "TemplateGuide",
+        "classification": "WARNING",
+        "rowCount": 12,
+        "reason": "guidance sheet preserved but ignored by v1 importer"
+      },
+      {
+        "name": "ErrorCatalog",
+        "classification": "WARNING",
+        "rowCount": 12,
+        "reason": "guidance sheet preserved but ignored by v1 importer"
+      },
+      {
+        "name": "Mapping",
+        "classification": "WARNING",
+        "rowCount": 7,
+        "reason": "guidance sheet preserved but ignored by v1 importer"
+      },
+      {
+        "name": "CodeLists",
+        "classification": "WARNING",
+        "rowCount": 16,
+        "reason": "guidance sheet preserved but ignored by v1 importer"
+      },
+      {
+        "name": "Changelog",
+        "classification": "WARNING",
+        "rowCount": 3,
+        "reason": "guidance sheet preserved but ignored by v1 importer"
+      }
+    ],
+    "dataRows": 3,
+    "allDataRowsClassified": true,
+    "headers": [
+      "Mã lớp",
+      "Mã môn",
+      "Mã giáo viên",
+      "Số tiết",
+      "Mã phòng"
+    ],
+    "mapping": [
+      {
+        "column": "A",
+        "header": "Mã lớp",
+        "field": "classId",
+        "originalValuesPreserved": true
+      },
+      {
+        "column": "B",
+        "header": "Mã môn",
+        "field": "subjectId",
+        "originalValuesPreserved": true
+      },
+      {
+        "column": "C",
+        "header": "Mã giáo viên",
+        "field": "teacherId",
+        "originalValuesPreserved": true
+      },
+      {
+        "column": "D",
+        "header": "Số tiết",
+        "field": "requiredSessions",
+        "originalValuesPreserved": true
+      },
+      {
+        "column": "E",
+        "header": "Mã phòng",
+        "field": "roomId",
+        "originalValuesPreserved": true
+      }
+    ],
+    "originalValuesPreserved": true
+  },
+  "anomalyLog": [
+    {
+      "scope": "sheet",
+      "sheet": "TemplateGuide",
+      "classification": "WARNING",
+      "code": "GUIDANCE_SHEET_IGNORED",
+      "decision": "Preserve source sheet; do not import guidance rows as domain data."
+    },
+    {
+      "scope": "sheet",
+      "sheet": "ErrorCatalog",
+      "classification": "WARNING",
+      "code": "GUIDANCE_SHEET_IGNORED",
+      "decision": "Preserve source sheet; do not import guidance rows as domain data."
+    },
+    {
+      "scope": "sheet",
+      "sheet": "Mapping",
+      "classification": "WARNING",
+      "code": "GUIDANCE_SHEET_IGNORED",
+      "decision": "Preserve source sheet; do not import guidance rows as domain data."
+    },
+    {
+      "scope": "sheet",
+      "sheet": "CodeLists",
+      "classification": "WARNING",
+      "code": "GUIDANCE_SHEET_IGNORED",
+      "decision": "Preserve source sheet; do not import guidance rows as domain data."
+    },
+    {
+      "scope": "sheet",
+      "sheet": "Changelog",
+      "classification": "WARNING",
+      "code": "GUIDANCE_SHEET_IGNORED",
+      "decision": "Preserve source sheet; do not import guidance rows as domain data."
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Use LessonRequirements as the only imported sheet",
+      "rationale": "v1 importer contract requires it as the first data sheet"
+    },
+    {
+      "decision": "Keep source labels and preserve original cell values",
+      "rationale": "server resolves approved school master-data labels without silent edits"
+    },
+    {
+      "decision": "Ignore TemplateGuide/ErrorCatalog/Mapping/CodeLists/Changelog as domain rows",
+      "rationale": "guidance sheets are traceability metadata, not lesson requirements"
+    },
+    {
+      "decision": "Do not infer academicPeriodId",
+      "rationale": "v1 workbook/API contract marks it as a follow-up gate"
+    }
+  ],
+  "serverEvidence": {
+    "preview": {
+      "httpStatus": 201,
+      "batchId": "8fee33ed-a7bb-470b-8ac0-e2a124383153",
+      "status": "PREVIEWED",
+      "rowCount": 3,
+      "validRowCount": 3,
+      "errorCount": 0,
+      "warningCount": 0,
+      "fileChecksum": "b57bd0198c8a2e1196182e80978f7fb093dc3e2a0f370e93f65d083039986049",
+      "templateVersion": "1.0",
+      "columnMappings": [
+        {
+          "column": "A",
+          "header": "Mã lớp",
+          "field": "classCode",
+          "required": true
+        },
+        {
+          "column": "B",
+          "header": "Mã môn",
+          "field": "subjectCode",
+          "required": true
+        },
+        {
+          "column": "C",
+          "header": "Mã giáo viên",
+          "field": "teacherCode",
+          "required": true
+        },
+        {
+          "column": "D",
+          "header": "Số tiết",
+          "field": "requiredSessions",
+          "required": true
+        },
+        {
+          "column": "E",
+          "header": "Mã phòng",
+          "field": "roomCode",
+          "required": false
+        }
+      ],
+      "sheetSummaries": [
+        {
+          "sheet": "LessonRequirements",
+          "index": 1,
+          "status": "IMPORTED",
+          "rowCount": 3,
+          "columnCount": 5,
+          "validRowCount": 3,
+          "warningCount": 0,
+          "errorCount": 0
+        },
+        {
+          "sheet": "TemplateGuide",
+          "index": 2,
+          "status": "IGNORED",
+          "rowCount": 11,
+          "columnCount": 4,
+          "validRowCount": 0,
+          "warningCount": 0,
+          "errorCount": 0
+        },
+        {
+          "sheet": "ErrorCatalog",
+          "index": 3,
+          "status": "IGNORED",
+          "rowCount": 11,
+          "columnCount": 4,
+          "validRowCount": 0,
+          "warningCount": 0,
+          "errorCount": 0
+        },
+        {
+          "sheet": "Mapping",
+          "index": 4,
+          "status": "IGNORED",
+          "rowCount": 6,
+          "columnCount": 8,
+          "validRowCount": 0,
+          "warningCount": 0,
+          "errorCount": 0
+        },
+        {
+          "sheet": "CodeLists",
+          "index": 5,
+          "status": "IGNORED",
+          "rowCount": 15,
+          "columnCount": 5,
+          "validRowCount": 0,
+          "warningCount": 0,
+          "errorCount": 0
+        },
+        {
+          "sheet": "Changelog",
+          "index": 6,
+          "status": "IGNORED",
+          "rowCount": 2,
+          "columnCount": 4,
+          "validRowCount": 0,
+          "warningCount": 0,
+          "errorCount": 0
+        }
+      ]
+    },
+    "confirm": {
+      "httpStatus": 201,
+      "status": "CONFIRMED",
+      "result": {
+        "importBatchId": "8fee33ed-a7bb-470b-8ac0-e2a124383153",
+        "status": "CONFIRMED",
+        "filename": "school-timetable-mvp-0.1.0-template-v1.0.xlsx",
+        "templateVersion": "1.0",
+        "fileChecksum": "b57bd0198c8a2e1196182e80978f7fb093dc3e2a0f370e93f65d083039986049",
+        "importToken": "2bd1860c-5b35-45f9-b25c-76b94dbb511d",
+        "message": "Import thành công.",
+        "rowCount": 3,
+        "validRowCount": 3,
+        "confirmedBy": "p3-1-t01-workbook-evidence",
+        "confirmedAt": "2026-08-26T01:47:44.056Z",
+        "auditLog": {
+          "id": "9cc7c95f-ff37-4124-ba7a-dd7a6b8cca36",
+          "action": "IMPORT_CONFIRMED",
+          "actorId": "p3-1-t01-workbook-evidence",
+          "message": "User p3-1-t01-workbook-evidence đã import danh sách lịch học lúc 2026-08-26T01:47:44.049Z",
+          "metadata": {
+            "filename": "school-timetable-mvp-0.1.0-template-v1.0.xlsx",
+            "rowCount": 3,
+            "errorCount": 0,
+            "fileChecksum": "b57bd0198c8a2e1196182e80978f7fb093dc3e2a0f370e93f65d083039986049",
+            "validRowCount": 3,
+            "templateVersion": "1.0"
+          },
+          "createdAt": "2026-08-26T01:47:44.049Z"
+        }
+      }
+    },
+    "audit": {
+      "httpStatus": 200,
+      "entries": {
+        "importBatchId": "8fee33ed-a7bb-470b-8ac0-e2a124383153",
+        "auditLog": {
+          "id": "9cc7c95f-ff37-4124-ba7a-dd7a6b8cca36",
+          "action": "IMPORT_CONFIRMED",
+          "actorId": "p3-1-t01-workbook-evidence",
+          "message": "User p3-1-t01-workbook-evidence đã import danh sách lịch học lúc 2026-08-26T01:47:44.049Z",
+          "metadata": {
+            "filename": "school-timetable-mvp-0.1.0-template-v1.0.xlsx",
+            "rowCount": 3,
+            "errorCount": 0,
+            "fileChecksum": "b57bd0198c8a2e1196182e80978f7fb093dc3e2a0f370e93f65d083039986049",
+            "validRowCount": 3,
+            "templateVersion": "1.0"
+          },
+          "createdAt": "2026-08-26T01:47:44.049Z"
+        }
+      }
+    }
+  },
+  "gate": {
+    "devTestComplete": true,
+    "pilotApproved": false,
+    "productionApproved": false,
+    "openGates": [
+      "official school workbook owner/source confirmation",
+      "stakeholder mapping decision",
+      "staging/UAT/security/restore evidence"
+    ]
+  }
+}

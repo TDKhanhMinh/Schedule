@@ -23,6 +23,7 @@
     "check:release-gate": "node scripts/check-release-gate.cjs",
     "db:migrate": "node backend/database/migrate.mjs",
     "check:template": "node scripts/check-template.cjs",
+    "evidence:pilot-workbook": "node scripts/run-pilot-workbook-evidence.mjs",
     "ci:local": "node scripts/ci.mjs",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"
