@@ -109,14 +109,6 @@ function SchoolOverviewView({
   homerooms: HomeroomAssignment[];
 }) {
   const days = SCHOOL_DAYS;
-  const rows = SCHOOL_SHIFTS.flatMap((shift) =>
-    SCHOOL_PERIODS.map((period) => ({
-      key: `${shift.code}-${period}`,
-      label: `${shift.label} ${period}`,
-      shiftCode: shift.code,
-      period,
-    })),
-  );
   const cells = new Map<string, TimetableAssignment[]>();
   for (const assignment of assignments) {
     if (assignment.day === null || assignment.period === null) continue;
@@ -139,6 +131,7 @@ function SchoolOverviewView({
           <thead>
             <tr>
               <th>Thứ</th>
+              <th>Buổi</th>
               <th>Tiết</th>
               {classLabels.map((classLabel) => (
                 <th key={classLabel}>{shortLabel(classLabel)}</th>
@@ -147,36 +140,47 @@ function SchoolOverviewView({
           </thead>
           <tbody>
             {days.map((day) =>
-              rows.map((row, rowIndex) => (
-                <tr key={`${day}-${row.key}`}>
-                  {rowIndex === 0 ? (
-                    <th className="school-day-cell" rowSpan={rows.length} scope="rowgroup">
-                      {dayLabel(day)}
+              SCHOOL_SHIFTS.map((shift, shiftIndex) =>
+                SCHOOL_PERIODS.map((period, periodIndex) => (
+                  <tr key={`${day}-${shift.code}-${period}`}>
+                    {shiftIndex === 0 && periodIndex === 0 ? (
+                      <th
+                        className="school-day-cell"
+                        rowSpan={SCHOOL_SHIFTS.length * SCHOOL_PERIODS.length}
+                        scope="rowgroup"
+                      >
+                        {dayLabel(day)}
+                      </th>
+                    ) : null}
+                    {periodIndex === 0 ? (
+                      <th className="school-shift-cell" rowSpan={SCHOOL_PERIODS.length} scope="rowgroup">
+                        {shift.label}
+                      </th>
+                    ) : null}
+                    <th className="school-period-cell" scope="row">
+                      {period}
                     </th>
-                  ) : null}
-                  <th className="school-period-cell" scope="row">
-                    {row.label}
-                  </th>
-                  {classLabels.map((classLabel) => {
-                    const cellAssignments = cells.get(`${classLabel}:${day}:${row.shiftCode}:${row.period}`) ?? [];
-                    return (
-                      <td className="school-subject-cell" key={classLabel}>
-                        {cellAssignments
-                          .map(
-                            (assignment) =>
-                              `${shortLabel(assignment.subjectLabel)} - ${shortLabel(assignment.teacherLabel)}`,
-                          )
-                          .join(" / ")}
-                      </td>
-                    );
-                  })}
-                </tr>
-              )),
+                    {classLabels.map((classLabel) => {
+                      const cellAssignments = cells.get(`${classLabel}:${day}:${shift.code}:${period}`) ?? [];
+                      return (
+                        <td className="school-subject-cell" key={classLabel}>
+                          {cellAssignments
+                            .map(
+                              (assignment) =>
+                                `${shortLabel(assignment.subjectLabel)} - ${shortLabel(assignment.teacherLabel)}`,
+                            )
+                            .join(" / ")}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                )),
+              ),
             )}
           </tbody>
           <tfoot>
             <tr className="school-homeroom-row">
-              <th colSpan={2} scope="row">
+              <th colSpan={3} scope="row">
                 GVCN
               </th>
               {classLabels.map((classLabel) => (
@@ -209,21 +213,16 @@ function ClassBoardsView({ assignments, classLabels }: { assignments: TimetableA
               <caption className="sr-only">Thời khóa biểu lớp {classLabel}</caption>
               <thead>
                 <tr>
-                  <th>{SCHOOL_SHIFTS[0].label}</th>
+                  <th>Buổi</th>
+                  <th>Tiết</th>
                   {days.map((day) => (
                     <th key={day}>{dayLabel(day)}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {SCHOOL_SHIFTS.map((shift, shiftIndex) => (
-                  <ClassShiftRows
-                    key={shift.code}
-                    assignments={classAssignments}
-                    days={days}
-                    showShiftLabel={shiftIndex > 0}
-                    shift={shift}
-                  />
+                {SCHOOL_SHIFTS.map((shift) => (
+                  <ClassShiftRows key={shift.code} assignments={classAssignments} days={days} shift={shift} />
                 ))}
               </tbody>
             </table>
@@ -237,12 +236,10 @@ function ClassBoardsView({ assignments, classLabels }: { assignments: TimetableA
 function ClassShiftRows({
   assignments,
   days,
-  showShiftLabel,
   shift,
 }: {
   assignments: TimetableAssignment[];
   days: number[];
-  showShiftLabel: boolean;
   shift: { code: string; label: string };
 }) {
   const cells = new Map<string, TimetableAssignment[]>();
@@ -254,16 +251,13 @@ function ClassShiftRows({
 
   return (
     <>
-      {showShiftLabel ? (
-        <tr className="school-shift-divider">
-          <th scope="row">{shift.label}</th>
-          {days.map((day) => (
-            <td key={day} />
-          ))}
-        </tr>
-      ) : null}
       {SCHOOL_PERIODS.map((period) => (
         <tr key={`${shift.code}-${period}`}>
+          {period === SCHOOL_PERIODS[0] ? (
+            <th className="school-shift-cell" rowSpan={SCHOOL_PERIODS.length} scope="rowgroup">
+              {shift.label}
+            </th>
+          ) : null}
           <th className="school-period-cell" scope="row">
             {period}
           </th>
