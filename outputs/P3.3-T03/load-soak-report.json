@@ -1,0 +1,174 @@
+{
+  "task": "P3.3-T03",
+  "benchmarkVersion": "LOAD-SOAK-1.0.0",
+  "generatedAt": "2026-08-26T02:52:04.720Z",
+  "environment": "local Docker Compose; synthetic small-feasible dataset; no production SLO claim",
+  "config": {
+    "baseUrl": "http://localhost:3011/api/v1",
+    "schoolId": "00000000-0000-0000-0000-000000000001",
+    "healthRequests": 60,
+    "preflightRequests": 20,
+    "metricsRequests": 10,
+    "concurrentJobs": 3
+  },
+  "scenarios": {
+    "healthBefore": {
+      "label": "health-before",
+      "requests": 60,
+      "successes": 60,
+      "failures": 0,
+      "errorRate": 0,
+      "p50Ms": 6.264,
+      "p95Ms": 23.168,
+      "maxMs": 57.401,
+      "statuses": {
+        "200": 60
+      }
+    },
+    "preflight": {
+      "label": "preflight",
+      "requests": 20,
+      "successes": 20,
+      "failures": 0,
+      "errorRate": 0,
+      "p50Ms": 7.935,
+      "p95Ms": 23.78,
+      "maxMs": 24.879,
+      "statuses": {
+        "201": 20
+      }
+    },
+    "metrics": {
+      "label": "metrics",
+      "requests": 10,
+      "successes": 10,
+      "failures": 0,
+      "errorRate": 0,
+      "p50Ms": 2.569,
+      "p95Ms": 3.324,
+      "maxMs": 3.324,
+      "statuses": {
+        "200": 10
+      }
+    },
+    "healthDuringJobs": {
+      "label": "health-during-jobs",
+      "requests": 60,
+      "successes": 60,
+      "failures": 0,
+      "errorRate": 0,
+      "p50Ms": 4.378,
+      "p95Ms": 8.189,
+      "maxMs": 9.141,
+      "statuses": {
+        "200": 60
+      }
+    }
+  },
+  "jobs": {
+    "requested": 3,
+    "created": 3,
+    "terminal": 3,
+    "statusByJob": {
+      "p3-3-t03-load-1787712723078-0": "OPTIMAL",
+      "p3-3-t03-load-1787712723078-1": "OPTIMAL",
+      "p3-3-t03-load-1787712723078-2": "OPTIMAL"
+    },
+    "jobIds": [
+      "p3-3-t03-load-1787712723078-0",
+      "p3-3-t03-load-1787712723078-1",
+      "p3-3-t03-load-1787712723078-2"
+    ],
+    "traceIds": [
+      "p3-3-t03-load-1787712723078-trace-0",
+      "p3-3-t03-load-1787712723078-trace-1",
+      "p3-3-t03-load-1787712723078-trace-2"
+    ],
+    "responseTraceIds": [
+      "p3-3-t03-load-1787712723078-trace-0",
+      "p3-3-t03-load-1787712723078-trace-1",
+      "p3-3-t03-load-1787712723078-trace-2"
+    ],
+    "duplicateJobIds": 0,
+    "lostJobIds": [],
+    "integrityPass": true
+  },
+  "resources": [
+    {
+      "BlockIO": "0B / 0B",
+      "CPUPerc": "0.00%",
+      "Container": "schedule-api-1",
+      "ID": "fea69dac651c",
+      "MemPerc": "1.18%",
+      "MemUsage": "89.24MiB / 7.361GiB",
+      "Name": "schedule-api-1",
+      "NetIO": "941kB / 1.4MB",
+      "PIDs": "11"
+    },
+    {
+      "BlockIO": "0B / 0B",
+      "CPUPerc": "0.00%",
+      "Container": "schedule-worker-1",
+      "ID": "f3b34c2ee698",
+      "MemPerc": "1.41%",
+      "MemUsage": "106.2MiB / 7.361GiB",
+      "Name": "schedule-worker-1",
+      "NetIO": "164kB / 315kB",
+      "PIDs": "11"
+    },
+    {
+      "BlockIO": "0B / 0B",
+      "CPUPerc": "0.02%",
+      "Container": "schedule-postgres-1",
+      "ID": "0f175dacd16a",
+      "MemPerc": "0.91%",
+      "MemUsage": "68.86MiB / 7.361GiB",
+      "Name": "schedule-postgres-1",
+      "NetIO": "536kB / 658kB",
+      "PIDs": "12"
+    },
+    {
+      "BlockIO": "0B / 0B",
+      "CPUPerc": "0.39%",
+      "Container": "schedule-redis-1",
+      "ID": "77e78cf2e0a9",
+      "MemPerc": "0.19%",
+      "MemUsage": "14.14MiB / 7.361GiB",
+      "Name": "schedule-redis-1",
+      "NetIO": "1.46MB / 806kB",
+      "PIDs": "6"
+    }
+  ],
+  "thresholds": {
+    "healthP95Ms": 500,
+    "preflightP95Ms": 500,
+    "metricsP95Ms": 500,
+    "jobIntegrity": "created == terminal; duplicateJobIds == 0; lostJobIds == 0"
+  },
+  "gate": {
+    "benchmarkPass": true,
+    "benchmarkCriteria": {
+      "healthP95": true,
+      "preflightP95": true,
+      "metricsP95": true,
+      "healthDuringJobsP95": true,
+      "healthErrors": true,
+      "preflightErrors": true,
+      "metricsErrors": true,
+      "healthDuringJobsErrors": true,
+      "allJobsCreated": true,
+      "allJobsTerminal": true,
+      "noDuplicateJobs": true,
+      "noLostJobs": true
+    },
+    "devTestComplete": true,
+    "pilotApproved": false,
+    "productionApproved": false,
+    "capacityLimit": "3 concurrent synthetic solve jobs and bounded local request load only"
+  },
+  "limitations": [
+    "No production hardware, staging identity, autoscaling or long-duration soak was used.",
+    "Docker stats is a point-in-time snapshot, not a time-series resource profile.",
+    "Synthetic solver IDs are not school-sized data and do not establish real-school capacity."
+  ]
+}
