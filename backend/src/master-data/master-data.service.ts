@@ -237,7 +237,7 @@ export class MasterDataService {
     );
     const period = result.rows[0];
     if (!period) {
-      throw this.notFound("ACADEMIC_PERIOD_NOT_FOUND", "Academic period không tồn tại trong school scope.");
+      throw this.notFound("ACADEMIC_PERIOD_NOT_FOUND", "Khung năm học không tồn tại trong phạm vi trường.");
     }
     return this.toAcademicPeriod(period);
   }
@@ -263,7 +263,7 @@ export class MasterDataService {
       );
       return this.toAcademicPeriod(result.rows[0]);
     } catch (error) {
-      throw this.translateDatabaseError(error, "Academic period đã tồn tại trong school.");
+      throw this.translateDatabaseError(error, "Khung năm học đã tồn tại trong trường.");
     }
   }
 
@@ -300,7 +300,7 @@ export class MasterDataService {
       );
       return this.toAcademicPeriod(result.rows[0]);
     } catch (error) {
-      throw this.translateDatabaseError(error, "Academic period đã tồn tại trong school.");
+      throw this.translateDatabaseError(error, "Khung năm học đã tồn tại trong trường.");
     }
   }
 
@@ -315,7 +315,7 @@ export class MasterDataService {
     );
     const period = result.rows[0];
     if (!period) {
-      throw this.notFound("ACADEMIC_PERIOD_NOT_FOUND", "Academic period không tồn tại trong school scope.");
+      throw this.notFound("ACADEMIC_PERIOD_NOT_FOUND", "Khung năm học không tồn tại trong phạm vi trường.");
     }
     return this.toAcademicPeriod(period);
   }
@@ -338,7 +338,7 @@ export class MasterDataService {
     if (period.status === "ARCHIVED") {
       throw new ConflictException({
         code: "ACADEMIC_PERIOD_ARCHIVED",
-        message: "Không thể thêm slot vào period đã archive.",
+        message: "Không thể thêm khung tiết vào khung năm học đã lưu trữ.",
       });
     }
     this.validateClockRange(dto.startsAt, dto.endsAt);
@@ -353,7 +353,7 @@ export class MasterDataService {
       );
       return this.toTimeSlot(result.rows[0]);
     } catch (error) {
-      throw this.translateDatabaseError(error, "Time slot đã tồn tại trong academic period.");
+      throw this.translateDatabaseError(error, "Khung tiết đã tồn tại trong khung năm học.");
     }
   }
 
@@ -394,7 +394,7 @@ export class MasterDataService {
       );
       return this.toTimeSlot(result.rows[0]);
     } catch (error) {
-      throw this.translateDatabaseError(error, "Time slot đã tồn tại trong academic period.");
+      throw this.translateDatabaseError(error, "Khung tiết đã tồn tại trong khung năm học.");
     }
   }
 
@@ -408,7 +408,7 @@ export class MasterDataService {
     if (reference.rows[0]?.referenced) {
       throw new ConflictException({
         code: "RESOURCE_REFERENCED",
-        message: "Không thể xóa time slot đang được assignment tham chiếu.",
+        message: "Không thể xóa khung tiết đang được phân công tham chiếu.",
       });
     }
 
@@ -419,7 +419,7 @@ export class MasterDataService {
       [slotId, schoolId, periodId],
     );
     if (!result.rows[0]) {
-      throw this.notFound("TIME_SLOT_NOT_FOUND", "Time slot không tồn tại trong period scope.");
+      throw this.notFound("TIME_SLOT_NOT_FOUND", "Khung tiết không tồn tại trong phạm vi khung năm học.");
     }
     return { id: result.rows[0].id, deleted: true };
   }
@@ -785,7 +785,8 @@ export class MasterDataService {
       [schoolId, periodId, lessonId],
     );
     const lesson = result.rows[0];
-    if (!lesson) throw this.notFound("LESSON_REQUIREMENT_NOT_FOUND", "Phân công không tồn tại trong period scope.");
+    if (!lesson)
+      throw this.notFound("LESSON_REQUIREMENT_NOT_FOUND", "Phân công không tồn tại trong phạm vi khung năm học.");
     return this.toLessonRequirement(lesson);
   }
 
@@ -794,7 +795,7 @@ export class MasterDataService {
     if (period.status === "ARCHIVED") {
       throw new ConflictException({
         code: "ACADEMIC_PERIOD_ARCHIVED",
-        message: "Không thể thêm phân công vào period đã archive.",
+        message: "Không thể thêm phân công vào khung năm học đã lưu trữ.",
       });
     }
     const classId = this.requiredText(dto.classId, "classId");
@@ -833,7 +834,7 @@ export class MasterDataService {
       );
       return this.toLessonRequirement(result.rows[0]);
     } catch (error) {
-      throw this.translateDatabaseError(error, "Phân công lớp/môn/giáo viên đã tồn tại trong period.");
+      throw this.translateDatabaseError(error, "Phân công lớp/môn/giáo viên đã tồn tại trong khung năm học.");
     }
   }
 
@@ -842,7 +843,7 @@ export class MasterDataService {
     if (current.status === "ARCHIVED") {
       throw new ConflictException({
         code: "LESSON_REQUIREMENT_ARCHIVED",
-        message: "Không thể sửa phân công đã archive.",
+        message: "Không thể sửa phân công đã lưu trữ.",
       });
     }
     const classId = dto.classId === undefined ? current.class_id : this.requiredText(dto.classId, "classId");
@@ -896,7 +897,8 @@ export class MasterDataService {
         values,
       );
       const lesson = result.rows[0];
-      if (!lesson) throw this.notFound("LESSON_REQUIREMENT_NOT_FOUND", "Phân công không tồn tại trong period scope.");
+      if (!lesson)
+        throw this.notFound("LESSON_REQUIREMENT_NOT_FOUND", "Phân công không tồn tại trong phạm vi khung năm học.");
       return this.toLessonRequirement(lesson);
     } catch (error) {
       if (
@@ -906,7 +908,7 @@ export class MasterDataService {
       ) {
         throw error;
       }
-      throw this.translateDatabaseError(error, "Phân công lớp/môn/giáo viên đã tồn tại trong period.");
+      throw this.translateDatabaseError(error, "Phân công lớp/môn/giáo viên đã tồn tại trong khung năm học.");
     }
   }
 
@@ -921,7 +923,8 @@ export class MasterDataService {
       [lessonId, schoolId, periodId],
     );
     const lesson = result.rows[0];
-    if (!lesson) throw this.notFound("LESSON_REQUIREMENT_NOT_FOUND", "Phân công không tồn tại trong period scope.");
+    if (!lesson)
+      throw this.notFound("LESSON_REQUIREMENT_NOT_FOUND", "Phân công không tồn tại trong phạm vi khung năm học.");
     return this.toLessonRequirement(lesson);
   }
 
@@ -947,7 +950,7 @@ export class MasterDataService {
     );
     const period = result.rows[0];
     if (!period) {
-      throw this.notFound("ACADEMIC_PERIOD_NOT_FOUND", "Academic period không tồn tại trong school scope.");
+      throw this.notFound("ACADEMIC_PERIOD_NOT_FOUND", "Khung năm học không tồn tại trong phạm vi trường.");
     }
     return period;
   }
@@ -962,7 +965,7 @@ export class MasterDataService {
     );
     const slot = result.rows[0];
     if (!slot) {
-      throw this.notFound("TIME_SLOT_NOT_FOUND", "Time slot không tồn tại trong period scope.");
+      throw this.notFound("TIME_SLOT_NOT_FOUND", "Khung tiết không tồn tại trong phạm vi khung năm học.");
     }
     return slot;
   }
@@ -980,7 +983,8 @@ export class MasterDataService {
       [schoolId, periodId, lessonId],
     );
     const lesson = result.rows[0];
-    if (!lesson) throw this.notFound("LESSON_REQUIREMENT_NOT_FOUND", "Phân công không tồn tại trong period scope.");
+    if (!lesson)
+      throw this.notFound("LESSON_REQUIREMENT_NOT_FOUND", "Phân công không tồn tại trong phạm vi khung năm học.");
     return lesson;
   }
 
@@ -1001,7 +1005,7 @@ export class MasterDataService {
     if (reference.status === "ARCHIVED") {
       throw new ConflictException({
         code: archivedCode,
-        message: `Không thể tham chiếu ${label.toLowerCase()} đã archive.`,
+        message: `Không thể tham chiếu ${label.toLowerCase()} đã lưu trữ.`,
       });
     }
   }
@@ -1031,7 +1035,7 @@ export class MasterDataService {
     if (result.rows[0]) {
       throw new ConflictException({
         code: "DUPLICATE_LESSON_REQUIREMENT",
-        message: "Phân công lớp/môn/giáo viên đã tồn tại trong academic period.",
+        message: "Phân công lớp/môn/giáo viên đã tồn tại trong khung năm học.",
       });
     }
   }
@@ -1041,7 +1045,7 @@ export class MasterDataService {
     try {
       new Intl.DateTimeFormat("en-US", { timeZone: normalized }).format();
     } catch {
-      throw new BadRequestException({ code: "INVALID_TIMEZONE", message: "Timezone phải là IANA timezone hợp lệ." });
+      throw new BadRequestException({ code: "INVALID_TIMEZONE", message: "Múi giờ phải là múi giờ IANA hợp lệ." });
     }
     return normalized;
   }

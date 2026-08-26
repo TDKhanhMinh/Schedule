@@ -36,11 +36,11 @@ function resourceKey(kind: FreezeScopeResourceKind, id: string) {
 
 function validateSelector(selector: FreezeScopeSelector) {
   if (!RESOURCE_KINDS.includes(selector.kind)) {
-    throw new FreezeScopeValidationError("INVALID_SCOPE", `Resource kind không hợp lệ: ${selector.kind}.`);
+    throw new FreezeScopeValidationError("INVALID_SCOPE", `Loại tài nguyên không hợp lệ: ${selector.kind}.`);
   }
   requireText(selector.id, `${selector.kind}.id`);
   if (selector.kind === "DAY" && !/^[1-7]$/.test(selector.id)) {
-    throw new FreezeScopeValidationError("INVALID_SCOPE", 'DAY selector phải là một giá trị từ "1" đến "7".');
+    throw new FreezeScopeValidationError("INVALID_SCOPE", 'Bộ chọn ngày phải là một giá trị từ "1" đến "7".');
   }
 }
 
@@ -96,7 +96,10 @@ function changeNodes(event: FreezeChangeEvent) {
 
 function validateEvent(event: FreezeChangeEvent) {
   if (event.contractType !== "FREEZE_CHANGE_EVENT" || event.contractVersion !== FREEZE_SCOPE_CONTRACT_VERSION) {
-    throw new FreezeScopeValidationError("INVALID_CHANGE_EVENT", "Freeze change event không đúng contract version.");
+    throw new FreezeScopeValidationError(
+      "INVALID_CHANGE_EVENT",
+      "Sự kiện thay đổi phạm vi đóng băng không đúng phiên bản hợp đồng.",
+    );
   }
   for (const [field, value] of Object.entries({
     eventId: event.eventId,
@@ -108,16 +111,16 @@ function validateEvent(event: FreezeChangeEvent) {
   }
   validateBaselineHash(event.baselineSnapshotHash, "INVALID_CHANGE_EVENT");
   if (event.operation === "MOVE" && (!event.before || !event.after)) {
-    throw new FreezeScopeValidationError("INVALID_CHANGE_EVENT", "MOVE phải có cả before và after.");
+    throw new FreezeScopeValidationError("INVALID_CHANGE_EVENT", "MOVE phải có cả dữ liệu trước và sau.");
   }
   if (event.operation === "ADD" && (!event.after || event.before)) {
-    throw new FreezeScopeValidationError("INVALID_CHANGE_EVENT", "ADD chỉ được có after.");
+    throw new FreezeScopeValidationError("INVALID_CHANGE_EVENT", "ADD chỉ được có dữ liệu sau.");
   }
   if (event.operation === "REMOVE" && (!event.before || event.after)) {
-    throw new FreezeScopeValidationError("INVALID_CHANGE_EVENT", "REMOVE chỉ được có before.");
+    throw new FreezeScopeValidationError("INVALID_CHANGE_EVENT", "REMOVE chỉ được có dữ liệu trước.");
   }
   if (!event.before && !event.after) {
-    throw new FreezeScopeValidationError("INVALID_CHANGE_EVENT", "Change event phải có before hoặc after.");
+    throw new FreezeScopeValidationError("INVALID_CHANGE_EVENT", "Sự kiện thay đổi phải có dữ liệu trước hoặc sau.");
   }
   if (event.before) validateAssignment(event.before);
   if (event.after) validateAssignment(event.after);
@@ -134,7 +137,7 @@ function validateEvent(event: FreezeChangeEvent) {
 
 export function validateFreezeScope(scope: FreezeScope) {
   if (scope.contractType !== "FREEZE_SCOPE" || scope.contractVersion !== FREEZE_SCOPE_CONTRACT_VERSION) {
-    throw new FreezeScopeValidationError("INVALID_SCOPE", "Freeze scope không đúng contract version.");
+    throw new FreezeScopeValidationError("INVALID_SCOPE", "Phạm vi đóng băng không đúng phiên bản hợp đồng.");
   }
   for (const [field, value] of Object.entries({
     scopeId: scope.scopeId,
@@ -162,7 +165,7 @@ function validateBaseline(assignments: readonly FreezeAssignmentSnapshot[]) {
   for (const assignment of assignments) {
     validateAssignment(assignment);
     if (seen.has(assignment.assignmentId)) {
-      throw new FreezeScopeValidationError("DUPLICATE_ASSIGNMENT", `Assignment bị lặp: ${assignment.assignmentId}.`);
+      throw new FreezeScopeValidationError("DUPLICATE_ASSIGNMENT", `Phân công bị lặp: ${assignment.assignmentId}.`);
     }
     seen.add(assignment.assignmentId);
   }

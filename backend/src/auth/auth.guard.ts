@@ -24,7 +24,7 @@ export class AuthGuard implements CanActivate {
     if (this.config.get<string>("NODE_ENV", "development") === "production") {
       throw new ServiceUnavailableException({
         code: "AUTH_PROVIDER_REQUIRED",
-        message: "Production identity provider chưa được cấu hình; local identity headers đã bị vô hiệu hóa.",
+        message: "Nhà cung cấp danh tính production chưa được cấu hình; các header danh tính cục bộ đã bị vô hiệu hóa.",
       });
     }
     const request = context.switchToHttp().getRequest<RequestWithAuth>();
@@ -40,7 +40,7 @@ export class AuthGuard implements CanActivate {
       });
     }
     if (!isRole(roleValue)) {
-      throw new ForbiddenException({ code: "ROLE_INVALID", message: "Role không được hỗ trợ." });
+      throw new ForbiddenException({ code: "ROLE_INVALID", message: "Vai trò không được hỗ trợ." });
     }
 
     let tenantId: string | undefined;
@@ -64,7 +64,7 @@ export class AuthGuard implements CanActivate {
     if (requestedSchoolId && requestedSchoolId !== schoolId) {
       throw new ForbiddenException({
         code: "SCHOOL_SCOPE_FORBIDDEN",
-        message: "Không được truy cập school scope khác.",
+        message: "Không được truy cập phạm vi trường khác.",
       });
     }
 
@@ -75,7 +75,7 @@ export class AuthGuard implements CanActivate {
     if (!permissions.includes(permission)) {
       throw new ForbiddenException({
         code: "PERMISSION_DENIED",
-        message: `Role ${roleValue} không có quyền ${permission}.`,
+        message: `Vai trò ${roleValue} không có quyền ${permission}.`,
         permission,
       });
     }

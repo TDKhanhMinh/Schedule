@@ -52,7 +52,7 @@ def _candidate_slots(request: SolveJobRequest, lesson, slots_by_id, hard_rules):
                 code="UNKNOWN_ALLOWED_SLOT",
                 severity="ERROR",
                 lessonId=lesson.id,
-                message=f"Lesson {lesson.id} references unknown allowed slots.",
+                message=f"Yêu cầu tiết học {lesson.id} tham chiếu khung tiết cho phép không tồn tại.",
                 details={"slotIds": unknown},
             )
         )
@@ -64,7 +64,7 @@ def _candidate_slots(request: SolveJobRequest, lesson, slots_by_id, hard_rules):
                     code="UNKNOWN_FIXED_SLOT",
                     severity="ERROR",
                     lessonId=lesson.id,
-                    message=f"Lesson {lesson.id} references an unknown fixed slot.",
+                message=f"Yêu cầu tiết học {lesson.id} tham chiếu khung tiết cố định không tồn tại.",
                     details={"slotId": lesson.fixedSlotId},
                 )
             )
@@ -86,7 +86,7 @@ def _candidate_slots(request: SolveJobRequest, lesson, slots_by_id, hard_rules):
                     code="CLASS_AVAILABILITY_CONFLICT",
                     severity="ERROR",
                     lessonId=lesson.id,
-                    message=f"Lesson {lesson.id} has no slot after class unavailability rules.",
+                message=f"Yêu cầu tiết học {lesson.id} không còn khung tiết sau khi áp dụng quy tắc lớp không khả dụng.",
                     details={"classId": lesson.classId, "blockedSlotIds": sorted(class_blocked & allowed)},
                 )
             )
@@ -99,7 +99,7 @@ def _candidate_slots(request: SolveJobRequest, lesson, slots_by_id, hard_rules):
                     code="HARD_AVAILABILITY_CONFLICT",
                     severity="ERROR",
                     lessonId=lesson.id,
-                    message=f"Lesson {lesson.id} has no slot after hard teacher availability rules.",
+                message=f"Yêu cầu tiết học {lesson.id} không còn khung tiết sau khi áp dụng quy tắc sẵn sàng cứng của giáo viên.",
                     details={"teacherId": lesson.teacherId},
                 )
             )
@@ -119,7 +119,7 @@ def _add_resource_capacity_issues(issues, lessons, candidates, resource: str, co
                     code=code,
                     severity="ERROR",
                     resourceId=resource_id,
-                    message=f"{resource} {resource_id} needs {demand} sessions but has {capacity} candidate slots.",
+                message=f"{resource} {resource_id} cần {demand} buổi học nhưng chỉ có {capacity} khung tiết ứng viên.",
                     details={"demandSessions": demand, "availableSlots": capacity},
                 )
             )
@@ -141,7 +141,7 @@ def run_pre_solve_checks(request: SolveJobRequest) -> PreSolveReport:
                     code="LESSON_SLOT_CAPACITY_EXCEEDED",
                     severity="ERROR",
                     lessonId=lesson.id,
-                    message=f"Lesson {lesson.id} needs {lesson.requiredSessions} sessions but has {len(lesson_candidates)} candidate slots.",
+                message=f"Yêu cầu tiết học {lesson.id} cần {lesson.requiredSessions} buổi học nhưng chỉ có {len(lesson_candidates)} khung tiết ứng viên.",
                     details={"requiredSessions": lesson.requiredSessions, "availableSlots": len(lesson_candidates)},
                 )
             )
@@ -159,7 +159,7 @@ def run_pre_solve_checks(request: SolveJobRequest) -> PreSolveReport:
                         code="ROOM_CAPABILITY_UNSATISFIED",
                         severity="ERROR",
                         lessonId=lesson.id,
-                        message=f"Lesson {lesson.id} has no room matching required capabilities.",
+                        message=f"Yêu cầu tiết học {lesson.id} không có phòng đáp ứng năng lực yêu cầu.",
                         details={
                             "requiredRoomCapabilities": lesson.requiredRoomCapabilities or [],
                             "allowedRoomIds": lesson.allowedRoomIds or [],
@@ -176,7 +176,7 @@ def run_pre_solve_checks(request: SolveJobRequest) -> PreSolveReport:
                         code="ROOM_AVAILABILITY_CONFLICT",
                         severity="ERROR",
                         lessonId=lesson.id,
-                        message=f"Lesson {lesson.id} has no room available in its candidate slots.",
+                        message=f"Yêu cầu tiết học {lesson.id} không có phòng khả dụng trong các khung tiết ứng viên.",
                         details={"roomIds": [room.id for room in eligible]},
                     )
                 )
@@ -190,7 +190,7 @@ def run_pre_solve_checks(request: SolveJobRequest) -> PreSolveReport:
             PreSolveIssue(
                 code="TOTAL_SLOT_CAPACITY_EXCEEDED",
                 severity="ERROR",
-                message=f"Total demand {demand} exceeds class-slot capacity {slot_capacity}.",
+                message=f"Tổng nhu cầu {demand} vượt sức chứa khung tiết theo lớp {slot_capacity}.",
                 details={"totalDemandSessions": demand, "slotCapacity": slot_capacity},
             )
         )
@@ -212,7 +212,7 @@ def run_pre_solve_checks(request: SolveJobRequest) -> PreSolveReport:
                         severity="ERROR",
                         lessonId=lesson.id,
                         resourceId=getattr(lesson, resource),
-                        message=f"{resource} {getattr(lesson, resource)} has a fixed-slot conflict.",
+                        message=f"{resource} {getattr(lesson, resource)} bị xung đột tại khung tiết cố định.",
                         details={"previousLessonId": previous, "slotId": lesson.fixedSlotId},
                     )
                 )

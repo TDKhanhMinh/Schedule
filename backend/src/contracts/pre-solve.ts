@@ -67,7 +67,7 @@ function candidateSlots(request: SolveJobRequest, lesson: LessonRequirement, slo
       code: "UNKNOWN_ALLOWED_SLOT",
       severity: "ERROR",
       lessonId: lesson.id,
-      message: `Lesson ${lesson.id} tham chiếu slot không tồn tại.`,
+      message: `Yêu cầu tiết học ${lesson.id} tham chiếu khung tiết không tồn tại.`,
       details: { slotIds: unknownAllowed },
     });
     unknownAllowed.forEach((slotId) => allowed.delete(slotId));
@@ -78,7 +78,7 @@ function candidateSlots(request: SolveJobRequest, lesson: LessonRequirement, slo
         code: "UNKNOWN_FIXED_SLOT",
         severity: "ERROR",
         lessonId: lesson.id,
-        message: `Lesson ${lesson.id} tham chiếu fixed slot không tồn tại.`,
+        message: `Yêu cầu tiết học ${lesson.id} tham chiếu khung tiết cố định không tồn tại.`,
         details: { slotId: lesson.fixedSlotId },
       });
       allowed.clear();
@@ -101,7 +101,7 @@ function candidateSlots(request: SolveJobRequest, lesson: LessonRequirement, slo
         code: "CLASS_AVAILABILITY_CONFLICT",
         severity: "ERROR",
         lessonId: lesson.id,
-        message: `Lesson ${lesson.id} không còn slot sau khi áp dụng lịch unavailable của lớp.`,
+        message: `Yêu cầu tiết học ${lesson.id} không còn khung tiết sau khi áp dụng lịch lớp không khả dụng.`,
         details: { classId: lesson.classId, blockedSlotIds: blockedByClass },
       });
     }
@@ -114,7 +114,7 @@ function candidateSlots(request: SolveJobRequest, lesson: LessonRequirement, slo
         code: "HARD_AVAILABILITY_CONFLICT",
         severity: "ERROR",
         lessonId: lesson.id,
-        message: `Lesson ${lesson.id} không còn slot sau khi áp dụng availability cứng của giáo viên.`,
+        message: `Yêu cầu tiết học ${lesson.id} không còn khung tiết sau khi áp dụng thời gian không khả dụng cố định của giáo viên.`,
         details: { teacherId: lesson.teacherId },
       });
     }
@@ -139,7 +139,7 @@ function addResourceCapacityIssues(
         code,
         severity: "ERROR",
         resourceId,
-        message: `${resource} ${resourceId} cần ${demand} session nhưng chỉ có ${capacity} slot khả dụng.`,
+        message: `${resource} ${resourceId} cần ${demand} buổi học nhưng chỉ có ${capacity} khung tiết khả dụng.`,
         details: { demandSessions: demand, availableSlots: capacity },
       });
     }
@@ -160,7 +160,7 @@ export function runPreSolveChecks(request: SolveJobRequest): PreSolveReport {
         code: "LESSON_SLOT_CAPACITY_EXCEEDED",
         severity: "ERROR",
         lessonId: lesson.id,
-        message: `Lesson ${lesson.id} cần ${lesson.requiredSessions} session nhưng chỉ còn ${result.slots.length} slot.`,
+        message: `Yêu cầu tiết học ${lesson.id} cần ${lesson.requiredSessions} buổi học nhưng chỉ còn ${result.slots.length} khung tiết.`,
         details: { requiredSessions: lesson.requiredSessions, availableSlots: result.slots.length },
       });
     }
@@ -177,7 +177,7 @@ export function runPreSolveChecks(request: SolveJobRequest): PreSolveReport {
           code: "ROOM_CAPABILITY_UNSATISFIED",
           severity: "ERROR",
           lessonId: lesson.id,
-          message: `Lesson ${lesson.id} không có phòng đáp ứng capability yêu cầu.`,
+          message: `Yêu cầu tiết học ${lesson.id} không có phòng đáp ứng năng lực yêu cầu.`,
           details: {
             requiredRoomCapabilities: lesson.requiredRoomCapabilities ?? [],
             allowedRoomIds: lesson.allowedRoomIds ?? [],
@@ -190,7 +190,7 @@ export function runPreSolveChecks(request: SolveJobRequest): PreSolveReport {
           code: "ROOM_AVAILABILITY_CONFLICT",
           severity: "ERROR",
           lessonId: lesson.id,
-          message: `Lesson ${lesson.id} không có phòng khả dụng trong các slot ứng viên.`,
+          message: `Yêu cầu tiết học ${lesson.id} không có phòng khả dụng trong các khung tiết ứng viên.`,
           details: { roomIds: eligibleRooms.map((room) => room.id) },
         });
       }
@@ -208,7 +208,7 @@ export function runPreSolveChecks(request: SolveJobRequest): PreSolveReport {
     issues.push({
       code: "TOTAL_SLOT_CAPACITY_EXCEEDED",
       severity: "ERROR",
-      message: `Tổng nhu cầu ${totalDemandSessions} session vượt sức chứa class-slot ${slotCapacity}.`,
+      message: `Tổng nhu cầu ${totalDemandSessions} buổi học vượt sức chứa khung tiết theo lớp ${slotCapacity}.`,
       details: { totalDemandSessions, slotCapacity },
     });
   }
@@ -228,7 +228,7 @@ export function runPreSolveChecks(request: SolveJobRequest): PreSolveReport {
           severity: "ERROR",
           lessonId: lesson.id,
           resourceId: lesson[resource],
-          message: `${resource} ${lesson[resource]} bị fixed trùng tại slot ${lesson.fixedSlotId}.`,
+          message: `${resource} ${lesson[resource]} bị cố định trùng tại khung tiết ${lesson.fixedSlotId}.`,
           details: { previousLessonId, slotId: lesson.fixedSlotId },
         });
       } else {

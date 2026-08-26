@@ -29,7 +29,7 @@ function getSolverRuntime() {
   const python = process.env.SOLVER_PYTHON ?? defaultPython;
 
   if (!existsSync(python)) {
-    throw new Error(`Python solver runtime was not found at ${python}`);
+    throw new Error(`Không tìm thấy môi trường chạy bộ tối ưu Python tại ${python}`);
   }
 
   return { python, solverRoot };
@@ -51,7 +51,9 @@ function invalidResult(
     objectiveValue: null,
     diagnostics: {
       warnings: [],
-      conflicts: [`${error.code ?? "INVALID_SOLVE_REQUEST"}: ${error.message ?? "Invalid solver input."}`],
+      conflicts: [
+        `${error.code ?? "INVALID_SOLVE_REQUEST"}: ${error.message ?? "Dữ liệu đầu vào bộ tối ưu không hợp lệ."}`,
+      ],
       catalogVersion: "CONFLICT-CATALOG-1.0.0",
       conflictDetails: [],
       hardConstraintViolations: [],
@@ -81,7 +83,7 @@ export function runPythonSolver(
   options: RunPythonSolverOptions = {},
 ): Promise<SolveJobResult> {
   if (options.signal?.aborted) {
-    return Promise.reject(new SolverProcessError("SOLVER_CANCELLED", "Solver process cancelled safely."));
+    return Promise.reject(new SolverProcessError("SOLVER_CANCELLED", "Tiến trình bộ tối ưu đã được hủy an toàn."));
   }
   const { python, solverRoot } = getSolverRuntime();
 
@@ -108,7 +110,7 @@ export function runPythonSolver(
       if (settled) return;
       child.kill();
       settled = true;
-      reject(new SolverProcessError("SOLVER_CANCELLED", "Solver process cancelled safely."));
+      reject(new SolverProcessError("SOLVER_CANCELLED", "Tiến trình bộ tối ưu đã được hủy an toàn."));
     };
     options.signal?.addEventListener("abort", abortHandler, { once: true });
 
@@ -152,7 +154,7 @@ export function runPythonSolver(
         reject(
           new SolverProcessError(
             "SOLVER_SYSTEM_ERROR",
-            `Python solver returned invalid JSON: ${String(error)}; stdout=${stdout}`,
+            `Bộ tối ưu Python trả về JSON không hợp lệ: ${String(error)}; stdout=${stdout}`,
           ),
         );
       }

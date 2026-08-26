@@ -1,58 +1,56 @@
-# Excel Workbook Contract — MVP-0.1.0
+# Hợp đồng sổ làm việc Excel — MVP-0.1.0
 
-**Contract version:** `1.0`  
-**Template version:** `MVP-0.1.0`  
+**Phiên bản hợp đồng:** `1.0`
+**Phiên bản mẫu:** `MVP-0.1.0`
 **Artifact:** `outputs/P1.3-T01/school-timetable-mvp-0.1.0-template-v1.0.xlsx`
-**Status:** Published P1.3-T01 workbook for implementation review; pilot master-data approval remains open
+**Trạng thái:** Sổ làm việc P1.3-T01 đã công bố để review triển khai; phê duyệt dữ liệu danh mục thí điểm còn mở
 
-## 1. Purpose and compatibility boundary
+## 1. Mục đích và ranh giới tương thích
 
-The workbook is the user-facing input contract for lesson requirements. The
-current NestJS endpoint remains the source of import behavior:
+Sổ làm việc là hợp đồng đầu vào dành cho người dùng đối với yêu cầu tiết học.
+Endpoint NestJS hiện tại vẫn là nguồn hành vi nhập dữ liệu:
 
 ```text
 POST /api/v1/imports/preview?schoolId=<school-id>
 POST /api/v1/imports/<import-batch-id>/confirm
 ```
 
-`schoolId` is supplied by the API request, not inferred from workbook data.
-Preview returns an opaque `importToken` and the workbook `fileChecksum`. Confirm
-must send the same token in the standard `Idempotency-Key` header (the local
-adapter also accepts `X-Import-Token`). The token is scoped to the selected
-school and remains stable for retries of that previewed batch.
-The current contract version does not include `academicPeriodId`, shifts,
-teacher availability, preferences or room assignment in the solver payload.
-Those fields are explicit follow-ups and must not be silently added to a v1
-workbook.
+`schoolId` được cung cấp bởi request API, không suy ra từ dữ liệu sổ làm việc.
+Xem trước trả `importToken` không diễn giải và `fileChecksum` của sổ làm việc.
+Xác nhận phải gửi cùng token trong header `Idempotency-Key` chuẩn (bộ điều hợp
+cục bộ cũng nhận `X-Import-Token`). Token thuộc phạm vi trường đã chọn và giữ
+ổn định khi thử lại lô đã xem trước. Phiên bản hợp đồng hiện tại không gồm
+`academicPeriodId`, buổi, lịch sẵn sàng giáo viên, ưu tiên hoặc phân phòng trong
+payload bộ tối ưu. Các trường đó là công việc tiếp theo rõ ràng và không được âm
+thầm thêm vào sổ làm việc v1.
 
-## 2. Workbook structure
+## 2. Cấu trúc sổ làm việc
 
-The template contains six sheets. `LessonRequirements` must remain the first
-sheet because the current importer reads the first worksheet as the data sheet.
-The other sheets are human-readable contract guidance and are not imported as
-domain rows.
+Mẫu gồm sáu trang tính. `LessonRequirements` phải vẫn là trang đầu vì bộ nhập
+hiện tại đọc trang tính đầu làm trang dữ liệu. Các trang còn lại là hướng dẫn hợp
+đồng dành cho người đọc và không được nhập thành dòng nghiệp vụ.
 
-| Sheet                | Required                        | Purpose                                                       |
-| -------------------- | ------------------------------- | ------------------------------------------------------------- |
-| `LessonRequirements` | Yes; first sheet                | One row per lesson requirement                                |
-| `TemplateGuide`      | Recommended                     | Version, usage rules and compatibility policy                 |
-| `ErrorCatalog`       | Recommended                     | Validation codes, locations and remediation                   |
-| `Mapping`            | Recommended                     | Excel → NestJS → PostgreSQL → Python traceability             |
-| `CodeLists`          | Recommended                     | Illustrative THCS/THPT code examples and master-data guidance |
-| `Changelog`          | Required for published versions | Version history and compatibility notes                       |
+| Trang tính           | Bắt buộc                          | Mục đích                                             |
+| -------------------- | --------------------------------- | ---------------------------------------------------- |
+| `LessonRequirements` | Có; trang đầu                     | Mỗi dòng là một yêu cầu tiết học                     |
+| `TemplateGuide`      | Khuyến nghị                       | Phiên bản, quy tắc sử dụng và chính sách tương thích |
+| `ErrorCatalog`       | Khuyến nghị                       | Mã kiểm tra, vị trí và hướng xử lý                   |
+| `Mapping`            | Khuyến nghị                       | Truy xuất Excel → NestJS → PostgreSQL → Python       |
+| `CodeLists`          | Khuyến nghị                       | Ví dụ mã THCS/THPT và hướng dẫn dữ liệu danh mục     |
+| `Changelog`          | Bắt buộc với phiên bản đã công bố | Lịch sử phiên bản và ghi chú tương thích             |
 
-## 3. `LessonRequirements` columns
+## 3. Các cột `LessonRequirements`
 
-| Column         | Canonical field    | Type             | Required | Rule                                                               |
-| -------------- | ------------------ | ---------------- | -------- | ------------------------------------------------------------------ |
-| `Mã lớp`       | `classId`          | Text             | Yes      | Must resolve in the selected school's class master data            |
-| `Mã môn`       | `subjectId`        | Text             | Yes      | Must resolve in the selected school's subject master data          |
-| `Mã giáo viên` | `teacherId`        | Text             | Yes      | Must resolve in the selected school's teacher master data          |
-| `Số tiết`      | `requiredSessions` | Positive integer | Yes      | Integer greater than zero                                          |
-| `Mã phòng`     | `roomId`           | Text             | No       | If present, must resolve in the selected school's room master data |
+| Cột            | Trường chuẩn       | Kiểu            | Bắt buộc | Quy tắc                                                                |
+| -------------- | ------------------ | --------------- | -------- | ---------------------------------------------------------------------- |
+| `Mã lớp`       | `classId`          | Văn bản         | Có       | Phải phân giải trong dữ liệu danh mục lớp của trường đã chọn           |
+| `Mã môn`       | `subjectId`        | Văn bản         | Có       | Phải phân giải trong dữ liệu danh mục môn của trường đã chọn           |
+| `Mã giáo viên` | `teacherId`        | Văn bản         | Có       | Phải phân giải trong dữ liệu danh mục giáo viên của trường đã chọn     |
+| `Số tiết`      | `requiredSessions` | Số nguyên dương | Có       | Số nguyên lớn hơn không                                                |
+| `Mã phòng`     | `roomId`           | Văn bản         | Không    | Nếu có, phải phân giải trong dữ liệu danh mục phòng của trường đã chọn |
 
-Headers are matched case-insensitively with diacritics and repeated whitespace
-normalized. Current aliases include:
+Tiêu đề được đối chiếu không phân biệt hoa thường, có chuẩn hóa dấu và khoảng
+trắng lặp. Bí danh hiện tại gồm:
 
 - `Mã lớp`: `ma lop`, `class code`
 - `Mã môn`: `ma mon`, `subject code`
@@ -60,114 +58,109 @@ normalized. Current aliases include:
 - `Số tiết`: `so tiet`, `required sessions`
 - `Mã phòng`: `ma phong`, `room code`
 
-## 4. Canonical mapping
+## 4. Ánh xạ chuẩn
 
-| Workbook       | NestJS normalized payload | PostgreSQL                              | Python solver                        |
-| -------------- | ------------------------- | --------------------------------------- | ------------------------------------ |
-| `Mã lớp`       | `classId`                 | `classes.id`                            | `LessonRequirement.classId`          |
-| `Mã môn`       | `subjectId`               | `subjects.id`                           | `LessonRequirement.subjectId`        |
-| `Mã giáo viên` | `teacherId`               | `teachers.id`                           | `LessonRequirement.teacherId`        |
-| `Số tiết`      | `requiredSessions`        | `lesson_requirements.required_sessions` | `LessonRequirement.requiredSessions` |
-| `Mã phòng`     | `roomId`                  | `rooms.id` during validation            | Not present in solver v1 assignment  |
+| Sổ làm việc    | Payload chuẩn hóa NestJS | PostgreSQL                              | Bộ tối ưu Python                     |
+| -------------- | ------------------------ | --------------------------------------- | ------------------------------------ |
+| `Mã lớp`       | `classId`                | `classes.id`                            | `LessonRequirement.classId`          |
+| `Mã môn`       | `subjectId`              | `subjects.id`                           | `LessonRequirement.subjectId`        |
+| `Mã giáo viên` | `teacherId`              | `teachers.id`                           | `LessonRequirement.teacherId`        |
+| `Số tiết`      | `requiredSessions`       | `lesson_requirements.required_sessions` | `LessonRequirement.requiredSessions` |
+| `Mã phòng`     | `roomId`                 | `rooms.id` during validation            | Not present in solver v1 assignment  |
 
-Stable school-level source codes are preferred. Until dedicated code columns
-exist in master data, the current importer can resolve an ID or normalized
-master display name. A pilot must choose one stable convention before a
-production template is published; display names are not a durable join key.
+Ưu tiên mã nguồn ổn định cấp trường. Cho đến khi dữ liệu danh mục có cột mã riêng,
+bộ nhập hiện tại có thể phân giải ID hoặc tên hiển thị danh mục đã chuẩn hóa. Thí
+điểm phải chọn một quy ước ổn định trước khi công bố mẫu production; tên hiển thị
+không phải khóa nối bền vững.
 
-## 5. Validation and error location
+## 5. Kiểm tra và vị trí lỗi
 
-The error catalog is part of the workbook and mirrors current API error codes:
+Danh mục lỗi là một phần của sổ làm việc và phản ánh các mã lỗi API hiện tại:
 
-| Code                       | Scope    | Current location data                                              |
-| -------------------------- | -------- | ------------------------------------------------------------------ |
-| `INVALID_FILE_TYPE`        | Request  | Filename/extension                                                 |
-| `INVALID_FILE_SIGNATURE`   | Request  | File bytes are not a ZIP/OOXML workbook                            |
-| `FILE_TOO_LARGE`           | Request  | Multipart file exceeds the 5 MiB limit                             |
-| `WORKBOOK_TOO_LARGE`       | Workbook | Compressed workbook exceeds the 5 MiB limit                        |
-| `WORKBOOK_UNSAFE_CONTENT`  | Workbook | Macro, formula, hyperlink, external relationship or expansion risk |
-| `WORKBOOK_LIMIT_EXCEEDED`  | Workbook | Sheet, row or column limit                                         |
-| `WORKBOOK_PARSE_TIMEOUT`   | Workbook | Parse exceeds the five-second limit                                |
-| `INVALID_TEMPLATE`         | Header   | First sheet, header row, missing column labels                     |
-| `REQUIRED`                 | Data row | `sheet`, `row`, `column`, `cell` and canonical `field`             |
-| `INVALID_NUMBER`           | Data row | `sheet`, `row`, `column`, `cell` and `Số tiết`                     |
-| `UNKNOWN_REFERENCE`        | Data row | `sheet`, `row`, `column`, `cell` and master-data field             |
-| `DUPLICATE`                | Data row | `sheet`, `row`, column range and duplicate natural-key field       |
-| `IMPORT_HAS_ERRORS`        | Confirm  | Import batch                                                       |
-| `IDEMPOTENCY_KEY_REQUIRED` | Confirm  | `Idempotency-Key`/import token header                              |
-| `IDEMPOTENCY_KEY_MISMATCH` | Confirm  | Import batch already bound to another token                        |
-| `IDEMPOTENCY_KEY_REUSED`   | Confirm  | School-scoped token already belongs to another batch               |
+| Mã                         | Phạm vi      | Dữ liệu vị trí hiện tại                                          |
+| -------------------------- | ------------ | ---------------------------------------------------------------- |
+| `INVALID_FILE_TYPE`        | Request      | Tên/phần mở rộng tệp                                             |
+| `INVALID_FILE_SIGNATURE`   | Request      | Byte tệp không phải sổ làm việc ZIP/OOXML                        |
+| `FILE_TOO_LARGE`           | Request      | Tệp multipart vượt giới hạn 5 MiB                                |
+| `WORKBOOK_TOO_LARGE`       | Sổ làm việc  | Sổ làm việc nén vượt giới hạn 5 MiB                              |
+| `WORKBOOK_UNSAFE_CONTENT`  | Sổ làm việc  | Rủi ro macro, công thức, hyperlink, liên kết ngoài hoặc giải nén |
+| `WORKBOOK_LIMIT_EXCEEDED`  | Sổ làm việc  | Vượt giới hạn trang tính, dòng hoặc cột                          |
+| `WORKBOOK_PARSE_TIMEOUT`   | Sổ làm việc  | Đọc vượt giới hạn năm giây                                       |
+| `INVALID_TEMPLATE`         | Tiêu đề      | Trang đầu, dòng tiêu đề, nhãn cột thiếu                          |
+| `REQUIRED`                 | Dòng dữ liệu | `sheet`, `row`, `column`, `cell` và `field` chuẩn                |
+| `INVALID_NUMBER`           | Dòng dữ liệu | `sheet`, `row`, `column`, `cell` và `Số tiết`                    |
+| `UNKNOWN_REFERENCE`        | Dòng dữ liệu | `sheet`, `row`, `column`, `cell` và trường danh mục              |
+| `DUPLICATE`                | Dòng dữ liệu | `sheet`, `row`, phạm vi cột và trường khóa tự nhiên trùng        |
+| `IMPORT_HAS_ERRORS`        | Xác nhận     | Lô nhập                                                          |
+| `IDEMPOTENCY_KEY_REQUIRED` | Xác nhận     | Header `Idempotency-Key`/mã lô nhập                              |
+| `IDEMPOTENCY_KEY_MISMATCH` | Xác nhận     | Lô nhập đã gắn với token khác                                    |
+| `IDEMPOTENCY_KEY_REUSED`   | Xác nhận     | Token theo phạm vi trường đã thuộc lô khác                       |
 
-For v1, the first sheet is fixed to `LessonRequirements`, while the preview
-summarizes every sheet and marks later guidance sheets as `IGNORED`. Each issue
-has `severity` (`ERROR` or `WARNING`), a machine-readable `code`,
-`catalogVersion: CONFLICT-CATALOG-1.0.0`, a Vietnamese `remediationHint`, a
-bounded `entityReferences` map, a canonical field, the source sheet, Excel
-column letter and cell reference. The preview
-also returns `status` (`VALID`, `WARNING` or `INVALID`) and `normalized` values
-for every row. The current five-column contract has no enum-valued field; an
-`INVALID_ENUM` rule must be added only with an approved versioned contract
-extension.
+Ở v1, trang đầu cố định là `LessonRequirements`; xem trước tóm tắt mọi trang
+và đánh dấu các trang hướng dẫn phía sau là `IGNORED`. Mỗi vấn đề có `severity`
+(`ERROR` hoặc `WARNING`), `code` máy đọc được, `catalogVersion: CONFLICT-CATALOG-1.0.0`,
+`remediationHint` tiếng Việt, map `entityReferences` có giới hạn, trường chuẩn,
+trang nguồn, chữ cái cột Excel và tham chiếu ô. Xem trước cũng trả `status`
+(`VALID`, `WARNING` hoặc `INVALID`) và giá trị `normalized` cho mỗi dòng. Hợp
+đồng năm cột hiện tại không có trường enum; chỉ thêm quy tắc `INVALID_ENUM` khi
+có mở rộng hợp đồng có phiên bản đã phê duyệt.
 
-### 5.1 Preview response additions
+### 5.1 Bổ sung trong phản hồi xem trước
 
-`POST /api/v1/imports/preview` keeps the existing `errors`, `rows` and summary
-fields and additionally returns:
+`POST /api/v1/imports/preview` giữ các trường `errors`, `rows` và tóm tắt hiện
+có, đồng thời trả thêm:
 
-- `columnMappings[]`: source Excel column, header, canonical field and requiredness.
-- `sheetSummaries[]`: sheet name/index, import status, row/column counts and validation counts.
-- `warningCount` and `warnings[]`: non-blocking issues; warnings do not disable Confirm.
-- `rows[].status`, `rows[].normalized` and `rows[].warnings` alongside raw `values` and `errors`.
-- `importToken` and `fileChecksum` for the confirm/idempotency and traceability boundary.
+- `columnMappings[]`: cột Excel nguồn, tiêu đề, trường chuẩn và tính bắt buộc.
+- `sheetSummaries[]`: tên/chỉ số trang tính, trạng thái nhập, số dòng/cột và số lượng kiểm tra.
+- `warningCount` và `warnings[]`: vấn đề không chặn; cảnh báo không vô hiệu hóa xác nhận.
+- `rows[].status`, `rows[].normalized` và `rows[].warnings` cùng `values` và `errors` thô.
+- `importToken` và `fileChecksum` cho ranh giới xác nhận/idempotency và truy xuất.
 
-Preview persists only staging rows. `normalized` is the canonical NestJS shape
-(`classId`, `subjectId`, `teacherId`, `requiredSessions`, optional `roomId`) and
-does not change the Python solver contract.
+Xem trước chỉ lưu các dòng tạm. `normalized` là hình dạng chuẩn NestJS
+(`classId`, `subjectId`, `teacherId`, `requiredSessions`, tùy chọn `roomId`) và
+không thay đổi hợp đồng bộ tối ưu Python.
 
-### 5.2 Downloadable error report
+### 5.2 Báo cáo lỗi có thể tải xuống
 
-For a staged batch, `GET /api/v1/imports/:batchId/error-report` returns an
-`.xlsx` workbook scoped to that batch and school. The `ImportErrors` sheet has
-the columns `Sheet`, `Row`, `Column`, `Cell`, `Field`, `Code`, `Severity`,
-`Message` and `Original Value`. It is generated from the persisted validation
-issues only, so it does not copy unrelated master data or workbook sheets.
-The frontend exposes the same contract as `Tải báo cáo lỗi Excel` when the
-preview contains errors. Empty reports are still valid workbooks with the
-header row, allowing a caller to use one deterministic download flow.
+Với một lô tạm, `GET /api/v1/imports/:batchId/error-report` trả sổ làm việc
+`.xlsx` theo phạm vi lô và trường đó. Trang `ImportErrors` có các cột `Sheet`,
+`Row`, `Column`, `Cell`, `Field`, `Code`, `Severity`, `Message` và `Original Value`.
+Báo cáo chỉ được tạo từ vấn đề kiểm tra đã lưu, không sao chép dữ liệu danh mục
+hoặc trang tính không liên quan. Giao diện cung cấp cùng hợp đồng qua nút
+`Tải báo cáo lỗi Excel` khi xem trước có lỗi. Báo cáo rỗng vẫn là sổ làm việc hợp
+lệ có dòng tiêu đề, cho phép bên gọi dùng một luồng tải xác định.
 
-## 6. Natural key and duplicate policy
+## 6. Khóa tự nhiên và chính sách trùng
 
-Within one workbook, the current duplicate check uses:
+Trong một sổ làm việc, kiểm tra trùng hiện tại dùng:
 
 ```text
 schoolId + classId + subjectId + teacherId
 ```
 
-Confirm is atomic and idempotent by the school-scoped `Idempotency-Key`: the
-batch is locked, all normalized requirements, batch status, confirmation result
-and `IMPORT_CONFIRMED` audit record are committed in one PostgreSQL transaction.
-A retry with the same key returns the persisted result and does not insert a
-second set of domain rows. A different key for the same batch, or reusing a key
-for another batch, is rejected. A re-import with a new preview token remains a
-new reviewable batch and must not be assumed to update existing lesson
-requirements automatically.
+Xác nhận là nguyên tử và idempotent theo `Idempotency-Key` phạm vi trường: lô
+được khóa, mọi yêu cầu đã chuẩn hóa, trạng thái lô, kết quả xác nhận và bản ghi
+nhật ký `IMPORT_CONFIRMED` được commit trong một transaction PostgreSQL. Thử lại
+với cùng khóa trả kết quả đã lưu và không chèn bộ dòng nghiệp vụ thứ hai. Khóa
+khác cho cùng lô hoặc dùng lại khóa cho lô khác sẽ bị từ chối. Nhập lại với token
+xem trước mới vẫn là lô mới cần review và không được mặc định là tự cập nhật yêu
+cầu tiết học hiện có.
 
-The import log stores the actor, template version, file checksum, row counts
+Nhật ký nhập lưu người thực hiện, phiên bản mẫu, mã băm tệp, số lượng dòng
 and batch identifier. The staged rows retain their normalized payload and
 validation errors so the file and any rejected rows can be traced without
 copying the workbook bytes into audit metadata.
 
-## 7. Version compatibility
+## 7. Tương thích phiên bản
 
-- Non-breaking wording, example or formatting changes keep `contractVersion: 1.0`.
-- Adding an optional sheet that the current importer ignores is documentation
-  only and must not be treated as a new API capability.
-- Adding/removing/renaming required columns, changing field meaning, changing
-  master-data join rules or changing row semantics requires a new contract
-  version and synchronized NestJS/Python/schema/test changes.
-- Unsupported breaking versions must be rejected; adapters must not silently
-  coerce an unknown workbook contract.
-- The filename should follow:
+- Thay đổi không phá vỡ về câu chữ, ví dụ hoặc định dạng giữ `contractVersion: 1.0`.
+- Thêm trang tùy chọn mà bộ nhập hiện tại bỏ qua chỉ là tài liệu và không được coi
+  là năng lực API mới.
+- Thêm/xóa/đổi tên cột bắt buộc, đổi ý nghĩa trường, đổi quy tắc nối dữ liệu danh
+  mục hoặc đổi ngữ nghĩa dòng yêu cầu phiên bản hợp đồng mới cùng thay đổi NestJS/Python/schema/test đồng bộ.
+- Phiên bản phá vỡ không hỗ trợ phải bị từ chối; bộ điều hợp không được âm thầm
+  ép kiểu hợp đồng sổ làm việc không xác định.
+- Tên tệp nên theo dạng:
   `school-timetable-mvp-<product-version>-template-v<contract-version>.xlsx`.
 
 ### P1.3-T01 publication
@@ -176,23 +169,23 @@ copying the workbook bytes into audit metadata.
 `LessonRequirements` import contract unchanged. The published workbook adds
 the `CodeLists` and `Changelog` sheets, a whole-number validation rule for
 `Số tiết` in rows 2–200, and illustrative examples for both THCS and THPT.
-The examples are not official school master data and must not be used as a
+Các ví dụ không phải dữ liệu danh mục chính thức của trường và không được dùng làm
 pilot workbook until the school confirms its stable codes and names.
 
-Every later published workbook must append a row to `Changelog`. A breaking
+Mỗi sổ làm việc công bố sau này phải thêm một dòng vào `Changelog`. Thay đổi phá vỡ
 change to the first-sheet columns, field meaning or join rules requires a new
 contract version and synchronized NestJS/Python/schema/test changes.
 
 ## 8. Verification evidence
 
-The P1.3-T01 generated template was inspected and rendered for all six sheets,
+Mẫu được tạo ở P1.3-T01 đã được kiểm tra và render cho cả sáu trang tính,
 then re-imported after export. The first sheet contains the five-column
 lesson-requirement header and three valid example rows. The `Số tiết` column
 has whole-number validation from 1 to 50 for rows 2–200; `CodeLists` contains
 illustrative THCS/THPT examples; `Changelog` records `v1.0`; and the error scan
 found no formula errors. The read-only template contract check verifies sheet
 order, headers, examples, validation metadata, version metadata and changelog.
-The current NestJS importer also accepted this artifact in a local runtime
+Bộ nhập NestJS hiện tại cũng đã nhận artifact này trong thời gian chạy cục bộ
 preview with three valid rows and then confirmed it, producing the import audit
 event `IMPORT_CONFIRMED`. Existing QC fixtures continue to cover valid
 preview/confirm, invalid file/template, missing value, invalid number and

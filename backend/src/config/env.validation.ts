@@ -40,15 +40,15 @@ export function validateEnvironment(config: Record<string, unknown>) {
     const missingOrInvalid = errors
       .flatMap((error) => Object.keys(error.constraints ?? {}).map(() => error.property))
       .join(", ");
-    throw new Error(`Invalid environment configuration: ${missingOrInvalid}`);
+    throw new Error(`Cấu hình môi trường không hợp lệ: ${missingOrInvalid}`);
   }
 
   if (variables.NODE_ENV === "production" && !variables.CORS_ORIGIN?.trim()) {
-    throw new Error("Invalid environment configuration: CORS_ORIGIN is required in production");
+    throw new Error("Cấu hình môi trường không hợp lệ: production yêu cầu CORS_ORIGIN");
   }
 
   if (variables.NODE_ENV === "production" && variables.TENANT_DB_ENFORCEMENT !== "true") {
-    throw new Error("Invalid environment configuration: TENANT_DB_ENFORCEMENT=true is required in production");
+    throw new Error("Cấu hình môi trường không hợp lệ: production yêu cầu TENANT_DB_ENFORCEMENT=true");
   }
 
   return {

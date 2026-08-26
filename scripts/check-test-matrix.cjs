@@ -33,10 +33,10 @@ const requiredFiles = [
 
 for (const relativePath of requiredFiles) {
   if (!fs.existsSync(path.join(root, relativePath))) {
-    throw new Error(`Test matrix source is missing: ${relativePath}`);
+    throw new Error(`Thiếu nguồn trong ma trận kiểm thử: ${relativePath}`);
   }
   if (!matrix.includes(relativePath)) {
-    throw new Error(`Test matrix does not reference: ${relativePath}`);
+    throw new Error(`Ma trận kiểm thử không tham chiếu: ${relativePath}`);
   }
 }
 
@@ -62,8 +62,8 @@ for (const id of [
   "E2E-02",
 ]) {
   if (!matrix.includes(id)) {
-    throw new Error(`Required matrix row is missing: ${id}`);
+    throw new Error(`Thiếu dòng bắt buộc trong ma trận: ${id}`);
   }
 }
 
-console.log(`Test matrix check passed: ${requiredFiles.length} sources and core workflow rows are present.`);
+console.log(`Kiểm tra ma trận kiểm thử đạt: có ${requiredFiles.length} nguồn và các dòng workflow cốt lõi.`);

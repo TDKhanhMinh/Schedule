@@ -1,9 +1,9 @@
-# Tenant-scoped runtime boundary — P4.1-T02
+# Ranh giới thời gian chạy theo tenant — P4.1-T02
 
 **Contract:** `TENANT-SCOPE-1.0.0`
 **Ngày:** 2026-08-26
 
-## Implemented now
+## Đã triển khai
 
 - `AuthGuard` accepts an optional trusted `x-tenant-id` only for the existing
   non-production test/dev identity path; production still fails closed until a
@@ -16,13 +16,13 @@
 - Tenant scope tests cover missing identity, mismatch, opaque ID validation and
   queue namespace propagation.
 
-## Explicitly not complete
+## Chưa hoàn tất một cách rõ ràng
 
-V1 database tables do not yet have `tenant_id`; repositories, exports, public links,
-Redis key stores and RLS therefore cannot claim full cross-tenant isolation. The
-implementation is a fail-closed boundary/scaffolding compatible with V1. P4.1-T03
-must add the forward migration and repository scope; P4.1-T05 must run cross-tenant
-integration/migration tests before production use.
+Các bảng database V1 chưa có `tenant_id`; vì vậy repository, xuất, liên kết công
+khai, kho khóa Redis và RLS chưa thể tuyên bố cô lập tenant đầy đủ. Triển khai hiện
+là ranh giới/khung nền fail-closed tương thích V1. P4.1-T03 phải thêm migration
+tiến tới và phạm vi repository; P4.1-T05 phải chạy kiểm thử tích hợp/migration
+chéo tenant trước khi dùng production.
 
-Evidence: `outputs/P4.1-T02/tenant-scope-report.json` and
+Bằng chứng: `outputs/P4.1-T02/tenant-scope-report.json` và
 `npm run tenant:evidence`.

@@ -90,8 +90,8 @@ erDiagram
 
 ## 4. Cross-school and duplicate protection
 
-The migration implementation should prefer these constraints rather than
-relying only on controller checks:
+Triển khai migration nên ưu tiên các ràng buộc này thay vì chỉ dựa vào kiểm tra
+của controller:
 
 - Add a unique `(school_id, id)` key to school-scoped parents where needed, then
   use composite foreign keys such as `(school_id, class_id)` and
@@ -130,7 +130,7 @@ relying only on controller checks:
 
 ## 6. Compatibility with the solver contract
 
-The proposal intentionally keeps the current `schemaVersion: "1.0"` boundary
+Đề xuất cố ý giữ ranh giới `schemaVersion: "1.0"` hiện tại
 and adds an independent `RuleSetSnapshot` contract version
 `RULE-SET-1.0.0`:
 
@@ -171,10 +171,10 @@ and adds an independent `RuleSetSnapshot` contract version
   P2.1-T01 now provides the persistence/contract foundation.
 - Room assignment and any expanded solver contract.
 
-The following remain explicit decisions for the pilot owner: exact academic year
-and term codes, school calendar/shift/time mapping, stable code format, room
-capacity semantics, import re-run policy, and audit/retention period. This
-proposal does not claim those stakeholder or production gates are closed.
+Các nội dung sau vẫn là quyết định rõ ràng dành cho owner thí điểm: năm học và
+mã học kỳ cụ thể, ánh xạ lịch trường/buổi/thời gian, định dạng mã ổn định, ngữ
+nghĩa sức chứa phòng, chính sách chạy lại nhập và thời hạn nhật ký/lưu giữ. Đề
+xuất này không tuyên bố các cổng bên liên quan hoặc production đã đóng.
 
 ## 8. Traceability
 

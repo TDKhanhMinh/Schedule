@@ -33,13 +33,15 @@ export function PublicScheduleScreen() {
       .then(async (response) => {
         const payload = (await response.json()) as PublicScheduleViewResult | { message?: string };
         if (!response.ok)
-          throw new Error("message" in payload && payload.message ? payload.message : "Public link không khả dụng.");
+          throw new Error(
+            "message" in payload && payload.message ? payload.message : "Liên kết công khai không khả dụng.",
+          );
         setSnapshot(payload as PublicScheduleViewResult);
         setState("ready");
       })
       .catch((reason: unknown) => {
         if (reason instanceof DOMException && reason.name === "AbortError") return;
-        setError(reason instanceof Error ? reason.message : "Không thể tải public timetable.");
+        setError(reason instanceof Error ? reason.message : "Không thể tải thời khóa biểu công khai.");
         setState("error");
       });
     return () => controller.abort();
@@ -62,14 +64,14 @@ export function PublicScheduleScreen() {
   const pdfUrl = `${frontendConfig.apiBaseUrl}/public/schedules/${encodeURIComponent(token)}.pdf?${pdfParams.toString()}`;
 
   if (state === "loading") {
-    return <main className="public-view-shell public-view-state">Đang tải timetable public...</main>;
+    return <main className="public-view-shell public-view-state">Đang tải thời khóa biểu công khai...</main>;
   }
   if (state === "error" || !snapshot) {
     return (
       <main className="public-view-shell public-view-state" role="alert">
-        <span className="public-watermark">PUBLIC READ ONLY</span>
-        <h1>Không thể mở timetable</h1>
-        <p>{error || "Public link không khả dụng."}</p>
+        <span className="public-watermark">CHỈ ĐỌC CÔNG KHAI</span>
+        <h1>Không thể mở thời khóa biểu</h1>
+        <p>{error || "Liên kết công khai không khả dụng."}</p>
       </main>
     );
   }
@@ -81,11 +83,11 @@ export function PublicScheduleScreen() {
           <p className="eyebrow">{snapshot.watermark} · không có quyền chỉnh sửa</p>
           <h1>{snapshot.school.name}</h1>
           <p className="lead">
-            {snapshot.academicPeriod.name} · Version {snapshot.scheduleVersion.number} · PUBLISHED · Revision{" "}
+            {snapshot.academicPeriod.name} · Phiên bản {snapshot.scheduleVersion.number} · ĐÃ CÔNG BỐ · Lần sửa đổi{" "}
             {snapshot.scheduleVersion.revision}
           </p>
           <p className="public-view-meta">
-            Link hết hạn: {snapshot.linkExpiresAt} · Contract {snapshot.contractVersion}
+            Liên kết hết hạn: {snapshot.linkExpiresAt} · Hợp đồng {snapshot.contractVersion}
           </p>
         </div>
         <div className="public-view-actions">
@@ -101,13 +103,13 @@ export function PublicScheduleScreen() {
       <section className="public-view-panel" aria-labelledby="public-view-title">
         <div className="public-view-toolbar">
           <div>
-            <p className="eyebrow">Read-only distribution</p>
+            <p className="eyebrow">Phân phối chỉ đọc</p>
             <h2 id="public-view-title">{viewLabel(view)}</h2>
           </div>
-          <span className="public-version-badge">PUBLIC READ ONLY</span>
+          <span className="public-version-badge">CHỈ ĐỌC CÔNG KHAI</span>
         </div>
-        <div className="public-view-filters" aria-label="Bộ lọc timetable public">
-          <div className="view-switcher" role="tablist" aria-label="Góc nhìn public">
+        <div className="public-view-filters" aria-label="Bộ lọc thời khóa biểu công khai">
+          <div className="view-switcher" role="tablist" aria-label="Góc nhìn công khai">
             {(["all", "class", "teacher", "room"] as const).map((option) => (
               <button
                 type="button"
@@ -123,7 +125,7 @@ export function PublicScheduleScreen() {
           </div>
           {view !== "all" ? (
             <label className="public-resource-picker">
-              <span>Lọc resource</span>
+              <span>Lọc tài nguyên</span>
               <select value={resource} onChange={(event) => setResource(event.target.value)}>
                 <option value="">Tất cả</option>
                 {resourceOptions.map((option) => (
@@ -137,12 +139,13 @@ export function PublicScheduleScreen() {
         </div>
 
         <div className="public-read-only-notice" role="status">
-          Snapshot đã publish và immutable. Không có thao tác move, lock, approve hoặc publish trên public view.
+          Bản chụp đã công bố và không thể thay đổi. Không có thao tác chuyển, khóa, phê duyệt hoặc công bố trên chế độ
+          xem công khai.
         </div>
 
         <div className="public-table-wrap">
           <table className="public-schedule-table">
-            <caption className="sr-only">Timetable public {viewLabel(view)}</caption>
+            <caption className="sr-only">Thời khóa biểu công khai {viewLabel(view)}</caption>
             <thead>
               <tr>
                 <th scope="col">Lớp</th>
@@ -177,7 +180,7 @@ export function PublicScheduleScreen() {
               ) : (
                 <tr>
                   <td colSpan={7} className="public-empty-row">
-                    Snapshot không có assignment phù hợp bộ lọc.
+                    Bản chụp không có phân công phù hợp bộ lọc.
                   </td>
                 </tr>
               )}

@@ -43,11 +43,11 @@ class SolverAdapterPayload(BaseModel):
     def validate_checksum(self) -> "SolverAdapterPayload":
         expected = compute_solver_adapter_checksum(self)
         if self.inputChecksum != expected:
-            raise ValueError("inputChecksum does not match the canonical adapter payload")
+            raise ValueError("inputChecksum không khớp với dữ liệu chuẩn của bộ điều hợp")
         if self.source.schoolId != self.input.schoolId:
-            raise ValueError("adapter source schoolId must match input schoolId")
+            raise ValueError("schoolId nguồn của bộ điều hợp phải khớp với schoolId đầu vào")
         if self.source.schemaVersion != self.input.schemaVersion:
-            raise ValueError("adapter source schemaVersion must match input schemaVersion")
+            raise ValueError("schemaVersion nguồn của bộ điều hợp phải khớp với schemaVersion đầu vào")
         return self
 
 

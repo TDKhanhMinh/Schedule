@@ -1,34 +1,34 @@
-# Soft-weight calibration record — P3.1-T04
+# Biên bản hiệu chỉnh trọng số mềm — P3.1-T04
 
-Soft weights change preference ordering only. They must never relax a hard
-constraint, change the input snapshot, or be presented as approved school policy
-without a dated decision record.
+Trọng số mềm chỉ thay đổi thứ tự ưu tiên. Chúng không bao giờ được nới lỏng
+ràng buộc cứng, thay đổi bản chụp đầu vào hoặc được trình bày như chính sách
+trường đã phê duyệt nếu thiếu biên bản quyết định có ngày.
 
-## Reproducible sensitivity run
+## Lần chạy độ nhạy có thể tái lập
 
-From the repository root:
+Từ thư mục gốc của kho mã:
 
 ```powershell
 & .\backend\solver\.venv\Scripts\python.exe .\backend\solver\scripts\run_weight_sensitivity.py `
   --output .\outputs\P3.1-T04\weight-sensitivity-report.json
 ```
 
-The run keeps contract `SOLVER-OBJECTIVE-1.0.0`, benchmark inputs, time limits and
-seeds `0/1/7` fixed. It compares the existing `baseline-v1` weights with two
-candidate profiles:
+Lần chạy giữ cố định hợp đồng `SOLVER-OBJECTIVE-1.0.0`, đầu vào benchmark, giới
+hạn thời gian và seed `0/1/7`. Lần chạy so sánh trọng số `baseline-v1` hiện có với
+hai hồ sơ ứng viên:
 
 - `candidate-teacher-fairness-v1`: teacher gap `3`, fairness `2`, other groups `1`;
 - `candidate-compactness-v1`: compactness `3`, day distribution `2`, other groups `1`.
 
-These numbers are sensitivity candidates, not a school decision. The report stores
+Các số này là ứng viên độ nhạy, không phải quyết định của trường. Báo cáo lưu
 before/after weighted totals and runtime ratios per dataset/seed. Weighted totals
 from different profiles are not treated as directly comparable quality claims;
 the rationale and component breakdown must be reviewed with the timetable team.
 
-## Acceptance gate
+## Cổng nghiệm thu
 
-A candidate is eligible for stakeholder review only if status/assignment count and
-hard-conflict behavior remain unchanged and median runtime stays within 2× of the
-baseline. The run does not approve the profile or persist it into the production
-rule set. `pilotWeightsApproved=false` and `productionApproved=false` remain true
-until P3.1-T02 is reconciled and a school/stakeholder decision is recorded.
+Ứng viên chỉ đủ điều kiện để bên liên quan review khi trạng thái/số phân công và
+hành vi xung đột cứng không đổi, đồng thời thời gian chạy trung vị trong phạm vi
+2× đường cơ sở. Lần chạy không phê duyệt hồ sơ hoặc lưu vào bộ quy tắc production.
+`pilotWeightsApproved=false` và `productionApproved=false` vẫn giữ nguyên cho đến
+khi đối soát P3.1-T02 và ghi nhận quyết định của trường/bên liên quan.

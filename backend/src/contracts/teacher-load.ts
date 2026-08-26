@@ -74,7 +74,7 @@ export interface TeacherLoadReport {
 
 export function getTeacherLoadRuleSource(snapshot: RuleSetSnapshot, code: string): TeacherLoadRuleSource {
   const rule = snapshot.rules.find((candidate) => candidate.code === code);
-  if (!rule) throw new Error(`Rule ${code} is not present in the snapshot`);
+  if (!rule) throw new Error(`Quy tắc ${code} không có trong bản chụp`);
   return {
     code: rule.code,
     sourceUrl: rule.sourceUrl,

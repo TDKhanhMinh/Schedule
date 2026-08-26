@@ -1,9 +1,9 @@
-# Multi-tenant migration path — P4.1-T01
+# Lộ trình migration nhiều tenant — P4.1-T01
 
 **Plan version:** `TENANT-MIGRATION-1.0.0`
 **Scope:** V2.0 design only; migration chưa được apply vào V1 database.
 
-## Forward-compatible phases
+## Các giai đoạn tương thích tiến tới
 
 ### Phase A — Introduce and backfill
 
@@ -30,7 +30,7 @@
 - Chỉ drop legacy fallback sau sign-off; forward-only migration không xóa migration
   history và không rollback bằng cách sửa SQL đã chạy.
 
-## Rollback và large-table risk
+## Khôi phục và rủi ro bảng lớn
 
 - Rollback application về dual-write reader; giữ `tenant_id`/indexes và không drop
   dữ liệu đã backfill.
@@ -41,7 +41,7 @@
 - Backup/restore phải kiểm tra counts theo tenant/school/period; queue drain và
   retry keys phải được snapshot trước cutover.
 
-## Tenant-aware interfaces
+## Giao diện nhận biết tenant
 
 | Surface      | V2.0 key/namespace                             | Boundary                                    |
 | ------------ | ---------------------------------------------- | ------------------------------------------- |
@@ -52,7 +52,7 @@
 | Metrics/logs | bounded tenant class, hashed job IDs           | no workbook/raw PII/secret                  |
 | Admin        | platform vs tenant vs school role              | cross-tenant access audited and explicit    |
 
-## Exit gates
+## Cổng kết thúc
 
 - ADR and schema inventory approved by architecture/security owner.
 - Migration dry-run on copy of largest expected school dataset with lock/RTO report.
@@ -61,5 +61,5 @@
 - Tenant admin/platform admin decision, rollout owner, rollback owner and post-cutover
   monitoring window named.
 
-Current result is a design artifact only. No production migration, RLS activation,
-tenant creation or queue namespace cutover is claimed.
+Kết quả hiện tại chỉ là artifact thiết kế. Không tuyên bố đã migration production,
+kích hoạt RLS, tạo tenant hoặc chuyển namespace hàng đợi.

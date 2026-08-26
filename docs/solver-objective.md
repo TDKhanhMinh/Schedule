@@ -1,6 +1,6 @@
-# Weighted solver objective
+# Mục tiêu bộ tối ưu có trọng số
 
-Optional request field `objective` uses contract `SOLVER-OBJECTIVE-1.0.0`:
+Trường request tùy chọn `objective` dùng hợp đồng `SOLVER-OBJECTIVE-1.0.0`:
 
 ```json
 {
@@ -16,23 +16,21 @@ Optional request field `objective` uses contract `SOLVER-OBJECTIVE-1.0.0`:
 }
 ```
 
-All weights are non-negative. CP-SAT minimizes the weighted sum only after
-hard feasibility has been encoded. A missing objective keeps compatibility with
-existing requests and preserves the current weighted teacher-preference
-behavior. An explicit all-zero objective disables soft ranking without
-changing hard constraints.
+Mọi trọng số không âm. CP-SAT chỉ tối thiểu hóa tổng có trọng số sau khi mã hóa
+tính khả thi cứng. Bỏ qua objective giữ tương thích với request hiện có và giữ
+hành vi ưu tiên giáo viên có trọng số hiện tại. Objective toàn số 0 rõ ràng sẽ
+tắt xếp hạng mềm mà không thay đổi ràng buộc cứng.
 
-The objective groups are:
+Các nhóm mục tiêu là:
 
-- `teacherGap`: empty periods between assignments for the same teacher/day;
-- `compactness`: empty periods between assignments for the same class/day;
-- `dayDistribution`: deviation from an even class load across available days;
-- `undesirableSlots`: approved soft teacher availability rules that match a
-  slot;
-- `preferredDays`: approved soft rules whose code expresses a preferred day;
-- `fairness`: deviation from an even teacher load across available days.
+- `teacherGap`: tiết trống giữa các phân công của cùng giáo viên/ngày;
+- `compactness`: tiết trống giữa các phân công của cùng lớp/ngày;
+- `dayDistribution`: độ lệch khỏi tải lớp đều trên các ngày khả dụng;
+- `undesirableSlots`: quy tắc sẵn sàng mềm của giáo viên đã phê duyệt khớp khung tiết;
+- `preferredDays`: quy tắc mềm đã phê duyệt có mã thể hiện ngày ưu tiên;
+- `fairness`: độ lệch khỏi tải giáo viên đều trên các ngày khả dụng.
 
-`diagnostics.objectiveBreakdown` reports the unweighted group scores and the
-scaled `weightedTotal`. `metadata.objectiveContractVersion` identifies an
-explicit objective request. The breakdown is a quality signal only; the hard
-constraint audit and CP-SAT feasibility remain authoritative.
+`diagnostics.objectiveBreakdown` báo điểm nhóm chưa trọng số và `weightedTotal`
+đã co giãn. `metadata.objectiveContractVersion` xác định request objective rõ
+ràng. Phân rã chỉ là tín hiệu chất lượng; nhật ký ràng buộc cứng và tính khả thi
+CP-SAT vẫn có thẩm quyền.

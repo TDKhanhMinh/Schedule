@@ -97,10 +97,10 @@ const navigation: Array<{
   label: string;
   shortLabel: string;
 }> = [
-  { route: "dashboard", label: "Tổng quan", shortLabel: "Home" },
-  { route: "master-data", label: "Dữ liệu master", shortLabel: "Data" },
-  { route: "imports", label: "Nhập dữ liệu", shortLabel: "Import" },
-  { route: "timetable", label: "Thời khóa biểu", shortLabel: "Schedule" },
+  { route: "dashboard", label: "Tổng quan", shortLabel: "Trang chủ" },
+  { route: "master-data", label: "Dữ liệu danh mục", shortLabel: "Dữ liệu" },
+  { route: "imports", label: "Nhập dữ liệu", shortLabel: "Nhập" },
+  { route: "timetable", label: "Thời khóa biểu", shortLabel: "Lịch học" },
 ];
 
 function readApiMessage(payload: unknown) {
@@ -119,7 +119,7 @@ function useApiStatus() {
     const controller = new AbortController();
     fetch(frontendConfig.apiBaseUrl + "/health", { signal: controller.signal })
       .then((response) => {
-        if (!response.ok) throw new Error("API unavailable");
+        if (!response.ok) throw new Error("API không khả dụng");
         setApiStatus("online");
       })
       .catch((error: unknown) => {
@@ -148,21 +148,21 @@ function AppShell({ route, apiStatus, children }: { route: AppRoute; apiStatus: 
             ST
           </span>
           <span>
-            <strong>School Timetable</strong>
-            <small>Optimizer · MVP-0.1.0</small>
+            <strong>Thời khóa biểu trường học</strong>
+            <small>Bộ tối ưu · MVP-0.1.0</small>
           </span>
         </button>
         <div className="topbar-meta">
           <span className={"status status-" + apiStatus}>
             <span aria-hidden="true" /> API {apiStatusLabel(apiStatus)}
           </span>
-          <span className="user-chip">QC local</span>
+          <span className="user-chip">QC cục bộ</span>
         </div>
       </header>
 
       <div className="app-body">
         <aside className="sidebar" aria-label="Điều hướng chính">
-          <p className="sidebar-label">Workspace</p>
+          <p className="sidebar-label">Không gian làm việc</p>
           <nav>
             {navigation.map((item) => (
               <a
@@ -183,9 +183,9 @@ function AppShell({ route, apiStatus, children }: { route: AppRoute; apiStatus: 
             ))}
           </nav>
           <div className="sidebar-footer">
-            <span className="eyebrow">Scope</span>
+            <span className="eyebrow">Phạm vi</span>
             <strong>THCS / THPT</strong>
-            <small>Web-first · một trường pilot</small>
+            <small>Ưu tiên web · một trường thí điểm</small>
           </div>
         </aside>
 
@@ -232,6 +232,23 @@ interface DashboardSnapshot {
   metricsText: string;
   auditLogs: DashboardAuditEntry[];
   fetchedAt: string;
+}
+
+const AUDIT_ACTION_LABELS: Record<string, string> = {
+  IMPORT_CONFIRMED: "Đã xác nhận nhập dữ liệu",
+  IMPORT: "Nhập dữ liệu",
+  APPROVE: "Phê duyệt",
+  PUBLISH: "Công bố",
+  LOCK: "Khóa",
+  UNLOCK: "Mở khóa",
+};
+
+function auditActionLabel(action: string) {
+  return AUDIT_ACTION_LABELS[action] ?? action;
+}
+
+function auditEntityLabel(entityType: string) {
+  return entityType.replaceAll("_", " ").toLowerCase();
 }
 
 function metricValue(metricsText: string, metricName: string, label?: string) {
@@ -306,9 +323,9 @@ function DashboardScreen() {
   return (
     <>
       <PageHeader
-        eyebrow="Workspace overview"
-        title="Dashboard quản trị trường và vận hành."
-        description="Theo dõi scope, data freshness, import/solve, queue health và audit trong đúng school context hiện tại."
+        eyebrow="Tổng quan không gian làm việc"
+        title="Bảng điều khiển quản trị trường và vận hành."
+        description="Theo dõi phạm vi, độ mới dữ liệu, nhập/tối ưu, sức khỏe hàng đợi và nhật ký trong đúng phạm vi trường hiện tại."
         action={
           <button type="button" onClick={() => navigateTo("imports")}>
             + Nhập dữ liệu
@@ -316,57 +333,57 @@ function DashboardScreen() {
         }
       />
 
-      <section className="dashboard-grid" aria-label="Tổng quan workspace">
+      <section className="dashboard-grid" aria-label="Tổng quan không gian làm việc">
         <article className="stat-card featured-card">
-          <div className="card-kicker">Workspace scope</div>
-          <h2>{frontendConfig.tenantId ? `Tenant ${frontendConfig.tenantId}` : "V1 legacy school scope"}</h2>
-          <p>Đang hiển thị dữ liệu của school hiện tại: {frontendConfig.schoolId}.</p>
+          <div className="card-kicker">Phạm vi không gian làm việc</div>
+          <h2>{frontendConfig.tenantId ? `Tenant ${frontendConfig.tenantId}` : "Phạm vi trường kế thừa V1"}</h2>
+          <p>Đang hiển thị dữ liệu của trường hiện tại: {frontendConfig.schoolId}.</p>
           <button type="button" onClick={() => navigateTo("imports")}>
-            Upload & Preview <span aria-hidden="true">→</span>
+            Tải lên và xem trước <span aria-hidden="true">→</span>
           </button>
           <button
             className="button-secondary dashboard-secondary-action"
             type="button"
             onClick={() => navigateTo("master-data")}
           >
-            Nhập tay master data
+            Nhập tay dữ liệu danh mục
           </button>
         </article>
         <article className="stat-card">
           <div className="stat-icon blue" aria-hidden="true">
             01
           </div>
-          <span className="card-kicker">Import / audit</span>
-          <strong>{isLoading ? "Đang tải…" : `${importAudits} event`}</strong>
-          <small>Audit log trong cửa sổ hiện tại</small>
+          <span className="card-kicker">Nhập dữ liệu / nhật ký</span>
+          <strong>{isLoading ? "Đang tải…" : `${importAudits} sự kiện`}</strong>
+          <small>Nhật ký trong cửa sổ hiện tại</small>
         </article>
         <article className="stat-card">
           <div className="stat-icon amber" aria-hidden="true">
             02
           </div>
-          <span className="card-kicker">Latest solve</span>
-          <strong>{isLoading ? "Đang tải…" : `${solverRuns} run`}</strong>
-          <small>Metric solver process-local</small>
+          <span className="card-kicker">Lần tối ưu gần nhất</span>
+          <strong>{isLoading ? "Đang tải…" : `${solverRuns} lần chạy`}</strong>
+          <small>Chỉ số bộ tối ưu trong tiến trình cục bộ</small>
         </article>
         <article className="stat-card">
           <div className="stat-icon green" aria-hidden="true">
             03
           </div>
-          <span className="card-kicker">Queue health</span>
+          <span className="card-kicker">Sức khỏe hàng đợi</span>
           <strong>{isLoading ? "Đang tải…" : `${queueCompleted} hoàn tất`}</strong>
-          <small>{queueFailed} lỗi · refresh theo lần mở dashboard</small>
+          <small>{queueFailed} lỗi · làm mới khi mở bảng điều khiển</small>
         </article>
       </section>
 
-      <section className="content-grid" aria-label="Architecture và hoạt động gần đây">
+      <section className="content-grid" aria-label="Kiến trúc và hoạt động gần đây">
         <article className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Operations</p>
-              <h2>Sức khỏe và freshness</h2>
+              <p className="eyebrow">Vận hành</p>
+              <h2>Sức khỏe và độ mới dữ liệu</h2>
             </div>
             <span className={snapshot?.readiness.status === "ready" ? "health-chip healthy" : "health-chip"}>
-              {isLoading ? "Đang tải" : snapshot?.readiness.status === "ready" ? "Ready" : "Kiểm tra lại"}
+              {isLoading ? "Đang tải" : snapshot?.readiness.status === "ready" ? "Sẵn sàng" : "Kiểm tra lại"}
             </span>
           </div>
           {error ? (
@@ -384,11 +401,11 @@ function DashboardScreen() {
               <strong>{snapshot?.readiness.dependencies?.redis ?? "—"}</strong>
             </div>
             <div className="ops-card">
-              <span>Actor / role</span>
+              <span>Người thực hiện / vai trò</span>
               <strong>{frontendConfig.actorRole}</strong>
             </div>
             <div className="ops-card">
-              <span>Freshness</span>
+              <span>Độ mới dữ liệu</span>
               <strong>{snapshot ? new Date(snapshot.fetchedAt).toLocaleTimeString("vi-VN") : "—"}</strong>
             </div>
           </div>
@@ -396,28 +413,28 @@ function DashboardScreen() {
         <article className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Scoped audit</p>
-              <h2>Audit gần đây</h2>
+              <p className="eyebrow">Nhật ký theo phạm vi</p>
+              <h2>Nhật ký gần đây</h2>
             </div>
             <label className="audit-search">
-              <span className="sr-only">Tìm audit</span>
+              <span className="sr-only">Tìm nhật ký</span>
               <input
                 value={auditQuery}
                 onChange={(event) => setAuditQuery(event.target.value)}
-                placeholder="Tìm action / actor"
+                placeholder="Tìm hành động / người thực hiện"
               />
             </label>
           </div>
           <div className="audit-list">
             {filteredAuditLogs.length === 0 ? (
-              <p className="small-note">Chưa có audit phù hợp trong school scope.</p>
+              <p className="small-note">Chưa có nhật ký phù hợp trong phạm vi trường.</p>
             ) : (
               filteredAuditLogs.slice(0, 8).map((entry) => (
                 <div className="audit-row" key={entry.id}>
                   <div>
-                    <strong>{entry.action}</strong>
+                    <strong>{auditActionLabel(entry.action)}</strong>
                     <span>
-                      {entry.entityType} · {entry.actorId}
+                      {auditEntityLabel(entry.entityType)} · {entry.actorId}
                     </span>
                   </div>
                   <time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString("vi-VN")}</time>
@@ -428,18 +445,18 @@ function DashboardScreen() {
         </article>
       </section>
 
-      <section className="panel dark-panel" aria-label="Định nghĩa dashboard">
+      <section className="panel dark-panel" aria-label="Định nghĩa bảng điều khiển">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Definitions</p>
+            <p className="eyebrow">Định nghĩa</p>
             <h2>Phạm vi chỉ số</h2>
           </div>
-          <span className="quiet-badge">V1 local / scoped</span>
+          <span className="quiet-badge">V1 cục bộ / theo phạm vi</span>
         </div>
         <p className="small-note">
-          Metrics queue/solver là process-local và chỉ dùng quan sát vận hành ban đầu. Storage/usage chưa có metric
-          backend nên dashboard không hiển thị số giả. Audit chỉ được fetch theo school context của actor; tenant-wide
-          DB/RLS dashboard chờ P4.1-T03/T05.
+          Chỉ số hàng đợi/bộ tối ưu hiện là chỉ số cục bộ trong tiến trình và chỉ dùng cho quan sát vận hành ban đầu.
+          Mức sử dụng lưu trữ chưa có chỉ số backend nên bảng điều khiển không hiển thị số liệu giả. Nhật ký chỉ được
+          lấy theo phạm vi trường của người thực hiện; bảng điều khiển toàn tenant qua DB/RLS chờ P4.1-T03/T05.
         </p>
       </section>
     </>
@@ -479,7 +496,7 @@ function ImportScreen() {
       if (!response.ok) throw new Error(readApiMessage(payload));
       setPreview(payload as PreviewResponse);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Không thể preview file.");
+      setError(requestError instanceof Error ? requestError.message : "Không thể xem trước file.");
     } finally {
       setIsUploading(false);
     }
@@ -498,7 +515,7 @@ function ImportScreen() {
       if (!response.ok) throw new Error(readApiMessage(payload));
       setConfirmation(payload as ConfirmResponse);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Không thể Confirm Import.");
+      setError(requestError instanceof Error ? requestError.message : "Không thể xác nhận nhập dữ liệu.");
     } finally {
       setIsConfirming(false);
     }
@@ -535,36 +552,36 @@ function ImportScreen() {
   return (
     <>
       <PageHeader
-        eyebrow="Step 01 · Input"
-        title="Upload & Data Validation"
-        description="Preview trước, sửa lỗi theo dòng và chỉ Confirm khi dữ liệu đạt chuẩn contract MVP."
+        eyebrow="Bước 01 · Dữ liệu đầu vào"
+        title="Tải lên và kiểm tra dữ liệu"
+        description="Xem trước, sửa lỗi theo dòng và chỉ xác nhận khi dữ liệu đạt chuẩn hợp đồng MVP."
         action={<span className="contract-pill">TC-IMP · TC-VAL · TC-CFM</span>}
       />
       <div className="stepper" aria-label="Tiến trình workflow">
         <span className="step active">
-          <b>01</b> Input
+          <b>01</b> Nhập dữ liệu
         </span>
         <span className="step">
-          <b>02</b> Validate
+          <b>02</b> Kiểm tra
         </span>
         <span className="step">
-          <b>03</b> Confirm
+          <b>03</b> Xác nhận
         </span>
         <span className="step">
-          <b>04</b> Solve
+          <b>04</b> Tối ưu
         </span>
       </div>
 
       <section className="panel import-panel" aria-labelledby="import-form-title">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Template v1.0</p>
-            <h2 id="import-form-title">Chọn workbook để bắt đầu</h2>
+            <p className="eyebrow">Mẫu v1.0</p>
+            <h2 id="import-form-title">Chọn tệp Excel để bắt đầu</h2>
           </div>
-          <span className="quiet-badge">Staging trước khi ghi domain</span>
+          <span className="quiet-badge">Kiểm thử trước khi ghi dữ liệu nghiệp vụ</span>
         </div>
         <form className="upload-form" onSubmit={handlePreview}>
-          <label htmlFor="excel-file">File Excel theo template MVP</label>
+          <label htmlFor="excel-file">Tệp Excel theo mẫu MVP</label>
           <div className="upload-controls">
             <input
               id="excel-file"
@@ -578,7 +595,7 @@ function ImportScreen() {
               }}
             />
             <button type="submit" disabled={isUploading || !file}>
-              {isUploading ? "Đang đọc file..." : "Upload & Preview"}
+              {isUploading ? "Đang đọc file..." : "Tải lên và xem trước"}
             </button>
           </div>
           <p className="hint">Bắt buộc: Mã lớp, Mã môn, Mã giáo viên, Số tiết. Có thể thêm Mã phòng.</p>
@@ -607,7 +624,7 @@ function ImportScreen() {
             <span>{confirmation.validRowCount} dòng đã được ghi nhận.</span>
             {confirmation.auditLog ? <span>{confirmation.auditLog.message}</span> : null}
             <button className="button-secondary success-action" type="button" onClick={() => navigateTo("timetable")}>
-              Mở timetable skeleton →
+              Mở khung thời khóa biểu →
             </button>
           </div>
         ) : null}
@@ -633,14 +650,14 @@ function PreviewPanel({
     <section className="preview-panel" aria-live="polite">
       <div className="preview-summary">
         <div>
-          <p className="eyebrow">Preview</p>
+          <p className="eyebrow">Xem trước</p>
           <h2>{preview.filename}</h2>
           <p className="small-note">
-            Batch: <code>{preview.importBatchId}</code>
+            Lô nhập: <code>{preview.importBatchId}</code>
           </p>
         </div>
         <div className={preview.canConfirm ? "validation-badge valid" : "validation-badge invalid"}>
-          {preview.canConfirm ? "Sẵn sàng Confirm" : "Cần sửa lỗi"}
+          {preview.canConfirm ? "Sẵn sàng xác nhận" : "Cần sửa lỗi"}
         </div>
       </div>
       <div className="metrics">
@@ -660,23 +677,23 @@ function PreviewPanel({
 
       <div className="preview-meta-grid">
         <div className="preview-meta-card">
-          <h3>Sheet summary</h3>
+          <h3>Tóm tắt trang tính</h3>
           {preview.sheetSummaries.map((summary) => (
             <div className="sheet-summary" key={summary.sheet}>
               <div>
                 <strong>{summary.sheet}</strong>
                 <small>
-                  Sheet {summary.index} · {summary.columnCount} cột · {summary.rowCount} dòng
+                  Trang tính {summary.index} · {summary.columnCount} cột · {summary.rowCount} dòng
                 </small>
               </div>
               <span className={summary.status === "IMPORTED" ? "validation-status valid" : "validation-status ignored"}>
-                {summary.status === "IMPORTED" ? "Được import" : "Bỏ qua"}
+                {summary.status === "IMPORTED" ? "Đã nhập" : "Bỏ qua"}
               </span>
             </div>
           ))}
         </div>
         <div className="preview-meta-card">
-          <h3>Column mapping</h3>
+          <h3>Ánh xạ cột</h3>
           <div className="mapping-list">
             {preview.columnMappings.map((mapping) => (
               <span key={mapping.column}>
@@ -762,7 +779,7 @@ function PreviewPanel({
         disabled={!preview.canConfirm || isConfirming}
         onClick={onConfirm}
       >
-        {isConfirming ? "Đang import..." : "Confirm Import"}
+        {isConfirming ? "Đang nhập..." : "Xác nhận nhập dữ liệu"}
       </button>
       {preview.errorCount > 0 ? (
         <button

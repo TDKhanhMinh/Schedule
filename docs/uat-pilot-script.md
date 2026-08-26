@@ -50,7 +50,7 @@ Executed at: <ISO-8601>
 Actor/role: <...>
 Result: PASS | FAIL | BLOCKED
 Evidence: <screenshot/video/log/API response>
-Defect or gap: <none hoặc mã>
+Lỗi hoặc khoảng trống: <không có hoặc mã>
 Approver: <bắt buộc cho pilot sign-off/waiver>
 ```
 

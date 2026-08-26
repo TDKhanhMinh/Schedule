@@ -1,18 +1,18 @@
-# Teacher availability API
+# API lịch sẵn sàng của giáo viên
 
 **Contract:** `TEACHER-AVAILABILITY-1.0.0`
 
-Availability is read from an approved, immutable `RuleSetSnapshot`; the API
-does not treat the React UI as a correctness boundary.
+Lịch sẵn sàng được đọc từ `RuleSetSnapshot` đã phê duyệt, bất biến; API không coi
+giao diện React là ranh giới đúng đắn.
 
-## Read effective availability
+## Đọc lịch sẵn sàng có hiệu lực
 
 ```http
 GET /api/v1/schools/:schoolId/academic-periods/:periodId/teacher-availability?ruleSnapshotId=:snapshotId&teacherId=:teacherId
 ```
 
-The `teacherId` query is optional. Without it, the response contains all
-teacher-scoped availability rules in the snapshot.
+Tham số truy vấn `teacherId` là tùy chọn. Khi bỏ qua, phản hồi gồm mọi quy tắc
+sẵn sàng theo giáo viên trong bản chụp.
 
 ```json
 {
@@ -46,20 +46,19 @@ teacher-scoped availability rules in the snapshot.
 }
 ```
 
-Rule definitions inside the snapshot use the prefix
+Định nghĩa quy tắc trong bản chụp dùng tiền tố
 `RULE-TEACHER-AVAILABILITY-` and the following parameters:
 
-- Hard unavailable: `kind: HARD`, `constraintType: "UNAVAILABLE"`.
-- Strong preference: `kind: SOFT`, `preferenceLevel: "STRONG"`, non-negative
-  `weight`.
-- Soft wish: `kind: SOFT`, `preferenceLevel: "SOFT"`, non-negative `weight`.
-- Selector: `dayOfWeek` is required; `shiftCode`, `period` and `slotId` are
-  optional. Omitting `shiftCode` and `period` means the whole day.
-- `effectiveFrom`/`effectiveTo` and snapshot approval are checked before the
-  rule is returned. `blockedSlotIds` are resolved from the period's
-  PostgreSQL `time_slots` so the solver receives a deterministic projection.
+- Không sẵn sàng cứng: `kind: HARD`, `constraintType: "UNAVAILABLE"`.
+- Ưu tiên mạnh: `kind: SOFT`, `preferenceLevel: "STRONG"`, `weight` không âm.
+- Mong muốn mềm: `kind: SOFT`, `preferenceLevel: "SOFT"`, `weight` không âm.
+- Bộ chọn: bắt buộc `dayOfWeek`; `shiftCode`, `period` và `slotId` tùy chọn. Bỏ
+  `shiftCode` và `period` nghĩa là cả ngày.
+- `effectiveFrom`/`effectiveTo` và phê duyệt bản chụp được kiểm tra trước khi
+  trả quy tắc. `blockedSlotIds` được phân giải từ `time_slots` PostgreSQL của
+  khung năm học để bộ tối ưu nhận projection tất định.
 
-Python CP-SAT excludes hard-unavailable slots. Strong and soft preferences are
-penalized in the objective and a `PREFERENCE_VIOLATED:<ruleCode>` warning is
-returned when the chosen schedule must violate one. Production RBAC, official
-pilot sources and stakeholder approval remain separate gates.
+Python CP-SAT loại khung tiết không sẵn sàng cứng. Ưu tiên mạnh và mềm bị tính
+phạt trong objective; cảnh báo `PREFERENCE_VIOLATED:<ruleCode>` được trả khi
+lịch đã chọn buộc phải vi phạm. RBAC production, nguồn thí điểm chính thức và
+phê duyệt bên liên quan vẫn là các cổng riêng.

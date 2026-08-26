@@ -108,7 +108,7 @@ export class PublicScheduleService {
     if (!id)
       throw new ConflictException({
         code: "SCHEDULE_PUBLIC_LINK_CREATE_FAILED",
-        message: "Không tạo được public link.",
+        message: "Không tạo được liên kết công khai.",
       });
     return {
       contractVersion: SCHEDULE_PUBLIC_LINK_CONTRACT_VERSION,
@@ -131,7 +131,7 @@ export class PublicScheduleService {
     if (result.rows.length === 0) {
       throw new NotFoundException({
         code: "SCHEDULE_PUBLIC_LINK_NOT_FOUND",
-        message: "Public link không tồn tại trong school scope.",
+        message: "Liên kết công khai không tồn tại trong phạm vi trường.",
       });
     }
     return {
@@ -153,7 +153,10 @@ export class PublicScheduleService {
     );
     const tenantId = tenantResult.rows[0]?.tenant_id;
     if (!tenantId) {
-      throw new NotFoundException({ code: "SCHEDULE_PUBLIC_LINK_NOT_FOUND", message: "Public link không tồn tại." });
+      throw new NotFoundException({
+        code: "SCHEDULE_PUBLIC_LINK_NOT_FOUND",
+        message: "Liên kết công khai không tồn tại.",
+      });
     }
     const data = await tenantContext.run(tenantId, () => this.loadPublicSnapshot(token));
     const assignments = this.filterAssignments(data.assignments, view, resource);
@@ -181,12 +184,12 @@ export class PublicScheduleService {
     if (result.rows.length === 0)
       throw new NotFoundException({
         code: "SCHEDULE_VERSION_NOT_FOUND",
-        message: "Schedule version không tồn tại trong school scope.",
+        message: "Phiên bản thời khóa biểu không tồn tại trong phạm vi trường.",
       });
     if (result.rows[0].status !== "PUBLISHED") {
       throw new ConflictException({
         code: "SCHEDULE_PUBLIC_LINK_PUBLISHED_REQUIRED",
-        message: "Chỉ schedule version PUBLISHED mới được tạo public link.",
+        message: "Chỉ phiên bản thời khóa biểu PUBLISHED mới được tạo liên kết công khai.",
       });
     }
     return result.rows[0];
@@ -201,12 +204,15 @@ export class PublicScheduleService {
       [tokenHash],
     );
     if (link.rows.length === 0)
-      throw new NotFoundException({ code: "SCHEDULE_PUBLIC_LINK_NOT_FOUND", message: "Public link không tồn tại." });
+      throw new NotFoundException({
+        code: "SCHEDULE_PUBLIC_LINK_NOT_FOUND",
+        message: "Liên kết công khai không tồn tại.",
+      });
     const linkRow = link.rows[0];
     if (linkRow.revoked_at || new Date(linkRow.expires_at).getTime() <= Date.now()) {
       throw new GoneException({
         code: "SCHEDULE_PUBLIC_LINK_EXPIRED",
-        message: "Public link đã hết hạn hoặc bị thu hồi.",
+        message: "Liên kết công khai đã hết hạn hoặc bị thu hồi.",
       });
     }
 
@@ -237,7 +243,7 @@ export class PublicScheduleService {
     if (version.rows.length === 0 || version.rows[0].status !== "PUBLISHED") {
       throw new GoneException({
         code: "SCHEDULE_PUBLIC_LINK_UNAVAILABLE",
-        message: "Snapshot public không còn khả dụng.",
+        message: "Bản chụp công khai không còn khả dụng.",
       });
     }
 

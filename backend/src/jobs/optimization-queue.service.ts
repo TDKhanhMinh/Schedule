@@ -51,7 +51,7 @@ export class OptimizationQueueService implements OnModuleDestroy {
       this.observability?.recordQueue("PRECHECK_REJECTED", { traceId, jobId: request.jobId, state: "REJECTED" });
       throw new BadRequestException({
         code: "PRESOLVE_FAILED",
-        message: "Dữ liệu chắc chắn vô nghiệm; solver chưa được gọi.",
+        message: "Dữ liệu chắc chắn vô nghiệm; bộ tối ưu chưa được gọi.",
         details: report,
       });
     }
@@ -140,9 +140,9 @@ export class OptimizationQueueService implements OnModuleDestroy {
     const durableRun = job
       ? await this.runStore.findByRunId(job.data.runId)
       : await this.runStore.findByJobId(schoolId, jobId);
-    if (!job && !durableRun) throw new NotFoundException(`Optimization job ${jobId} was not found`);
+    if (!job && !durableRun) throw new NotFoundException(`Không tìm thấy tác vụ tối ưu ${jobId}`);
     if (durableRun && durableRun.schoolId !== schoolId) {
-      throw new NotFoundException(`Optimization job ${jobId} was not found`);
+      throw new NotFoundException(`Không tìm thấy tác vụ tối ưu ${jobId}`);
     }
 
     const state = durableRun?.status ?? (await job!.getState());
@@ -180,7 +180,7 @@ export class OptimizationQueueService implements OnModuleDestroy {
 
   async cancel(jobId: string, schoolId: string, reason?: string) {
     const run = await this.runStore.findByJobId(schoolId, jobId);
-    if (!run) throw new NotFoundException(`Optimization job ${jobId} was not found`);
+    if (!run) throw new NotFoundException(`Không tìm thấy tác vụ tối ưu ${jobId}`);
     if (!["QUEUED", "RUNNING"].includes(run.status)) return this.getStatus(jobId, schoolId);
 
     const updated = await this.runStore.requestCancel(run.id, reason);
@@ -199,23 +199,23 @@ export class OptimizationQueueService implements OnModuleDestroy {
 
   async retry(jobId: string, schoolId: string, idempotencyKey?: string, traceId = jobId, tenantId?: string) {
     const retryKey = idempotencyKey?.trim();
-    if (!retryKey) throw new BadRequestException("Idempotency-Key là bắt buộc khi retry optimization job.");
+    if (!retryKey) throw new BadRequestException("Idempotency-Key là bắt buộc khi thử lại tác vụ tối ưu.");
     if (retryKey.length > 200) throw new BadRequestException("Idempotency-Key không được vượt quá 200 ký tự.");
 
     const source = await this.runStore.findByJobId(schoolId, jobId);
-    if (!source) throw new NotFoundException(`Optimization job ${jobId} was not found`);
+    if (!source) throw new NotFoundException(`Không tìm thấy tác vụ tối ưu ${jobId}`);
     if (!["FAILED", "CANCELLED", "UNKNOWN"].includes(source.status)) {
       throw new ConflictException(
         `Chỉ được retry job ở trạng thái FAILED, CANCELLED hoặc UNKNOWN; hiện tại ${source.status}.`,
       );
     }
     if (!source.solverPayload) {
-      throw new ConflictException("Job cũ không còn solver payload để retry an toàn.");
+      throw new ConflictException("Tác vụ cũ không còn dữ liệu bộ tối ưu để thử lại an toàn.");
     }
     const existingRetry = await this.runStore.findByRetryKey(schoolId, retryKey);
     if (existingRetry) {
       if (existingRetry.retryOfRunId !== source.id) {
-        throw new ConflictException("Idempotency-Key đã được dùng cho một job retry khác trong school scope.");
+        throw new ConflictException("Idempotency-Key đã được dùng cho một tác vụ thử lại khác trong phạm vi trường.");
       }
       return this.statusFromRun(existingRetry);
     }
@@ -308,7 +308,7 @@ export class OptimizationQueueService implements OnModuleDestroy {
   private buildSolverPayload(request: SolveJobRequest, context: OptimizationJobContext) {
     if (request.ruleSnapshotId || request.ruleSetVersion || request.ruleSnapshotHash) {
       const periodId = context.academicPeriodId ?? request.teacherAvailability?.academicPeriodId;
-      if (!periodId) throw new BadRequestException("academicPeriodId là bắt buộc khi dùng rule snapshot.");
+      if (!periodId) throw new BadRequestException("academicPeriodId là bắt buộc khi dùng bản chụp quy tắc.");
       return buildSolverAdapterPayload(request, {
         academicPeriodId: periodId,
         templateVersion: context.templateVersion ?? this.config.get<string>("SOLVER_TEMPLATE_VERSION", "MVP-0.1.0"),

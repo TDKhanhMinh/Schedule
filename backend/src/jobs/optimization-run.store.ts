@@ -231,7 +231,7 @@ export class OptimizationRunStore {
       await client.query("BEGIN");
       const currentResult = await client.query<OptimizationRunRow>(`${this.selectByRunId()} FOR UPDATE`, [runId]);
       const current = currentResult.rows[0];
-      if (!current) throw new Error(`Optimization run ${runId} was not found.`);
+      if (!current) throw new Error(`Không tìm thấy lần chạy tối ưu ${runId}.`);
       if (current.completed_at && current.output_checksum === outputChecksum) {
         await client.query("COMMIT");
         return this.toSnapshot(current);
@@ -330,7 +330,10 @@ export class OptimizationRunStore {
       errorCode === "SOLVER_CANCELLED" || error.name === "AbortError" ? "SOLVER_CANCELLED" : "JOB_EXECUTION_FAILED";
     return {
       code,
-      message: code === "SOLVER_CANCELLED" ? "Solve đã được hủy." : "Solver worker failed; xem execution log nội bộ.",
+      message:
+        code === "SOLVER_CANCELLED"
+          ? "Tối ưu đã được hủy."
+          : "Tiến trình bộ tối ưu thất bại; xem nhật ký thực thi nội bộ.",
     };
   }
 

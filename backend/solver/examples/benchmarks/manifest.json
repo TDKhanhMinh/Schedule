@@ -51,7 +51,7 @@
       "expectedStatus": "INFEASIBLE",
       "expectedAssignmentCount": 0,
       "expectedConflictContains": [
-        "No feasible assignment satisfies all hard class and teacher constraints"
+        "Không có phân công khả thi nào thỏa mãn mọi ràng buộc cứng về lớp và giáo viên"
       ],
       "constraints": [
         "Two classes require the same teacher in the only available time slot.",

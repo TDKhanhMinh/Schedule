@@ -53,6 +53,6 @@ describe("solver adapter contract", () => {
         academicPeriodId: fixture.source.academicPeriodId,
         templateVersion: fixture.source.templateVersion,
       }),
-    ).toThrow("approved rule snapshot");
+    ).toThrow("bản chụp quy tắc đã phê duyệt");
   });
 });

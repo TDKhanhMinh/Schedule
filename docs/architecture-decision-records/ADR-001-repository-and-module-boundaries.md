@@ -84,7 +84,7 @@ React
   ← canonical response/error with safe message
 ```
 
-The current import flow is:
+Luồng nhập hiện tại là:
 
 ```text
 POST /api/v1/imports/preview
@@ -108,24 +108,24 @@ GET /api/v1/optimization-jobs/{jobId}
   ← state + result/diagnostics
 ```
 
-The API and worker must pass the same canonical payload. A breaking change
-requires a new `schemaVersion`, updates to JSON Schema, TypeScript adapter,
-Pydantic adapter and regression tests; no silent field coercion is allowed.
+API và worker phải truyền cùng payload chuẩn. Thay đổi phá vỡ yêu cầu
+`schemaVersion` mới, cập nhật JSON Schema, bộ điều hợp TypeScript, bộ điều hợp
+Pydantic và kiểm thử hồi quy; không cho phép âm thầm ép kiểu trường.
 
 ## Contract governance
 
-The v1 contract is `schemaVersion: "1.0"` and is represented in three layers:
+Hợp đồng v1 là `schemaVersion: "1.0"` và được thể hiện ở ba lớp:
 
 1. `backend/contracts/schemas/*.schema.json` — reviewable shape boundary.
 2. `backend/src/contracts/index.ts` and NestJS DTOs — TypeScript/API adapter.
 3. `backend/solver/src/timetable_solver/contracts.py` — Pydantic/Python adapter.
 
-The adapters may add transport/runtime validation, but they must not introduce
-different business meaning. Canonical names come from
+Các bộ điều hợp có thể thêm kiểm tra truyền tải/thời gian chạy nhưng không được
+tạo ý nghĩa nghiệp vụ khác. Tên chuẩn lấy từ
 [`docs/domain-glossary.md`](../domain-glossary.md); rule provenance comes from
 [`docs/legal-rule-register.md`](../legal-rule-register.md). A legal rule becomes
-a solver constraint only after it has a version, source, applicability and
-approval.
+chỉ trở thành ràng buộc bộ tối ưu sau khi có phiên bản, nguồn, phạm vi áp dụng và
+phê duyệt.
 
 ## Security boundaries
 

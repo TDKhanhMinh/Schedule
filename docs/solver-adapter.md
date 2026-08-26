@@ -1,10 +1,10 @@
-# Solver adapter contract
+# Hợp đồng bộ điều hợp tối ưu
 
 **Contract:** `SOLVER-ADAPTER-1.0.0`
 
-The adapter is the deterministic seam between NestJS snapshot data and the
-Python worker. It keeps the canonical `SolveJobRequest` inside a small
-versioned envelope instead of making Python query PostgreSQL.
+Bộ điều hợp là đường nối tất định giữa dữ liệu bản chụp NestJS và worker Python.
+Nó giữ `SolveJobRequest` chuẩn trong một phong bì nhỏ có phiên bản thay vì để
+Python truy vấn PostgreSQL.
 
 ```text
 SolverAdapterPayload
@@ -20,20 +20,20 @@ SolverAdapterPayload
 └── inputChecksum: SHA-256(canonical unsigned payload)
 ```
 
-The TypeScript builder is `buildSolverAdapterPayload` in
+Builder TypeScript là `buildSolverAdapterPayload` trong
 `backend/src/contracts/solver-adapter.ts`. Canonicalization sorts object keys,
 omits null/undefined object fields and preserves array order. The Python
 `SolverAdapterPayload` validates the same checksum before CP-SAT is called.
-Integral float values are normalized in the Python canonicalizer so JSON
-numbers such as `10` and `10.0` produce the same digest across runtimes.
+Giá trị số thực nguyên được chuẩn hóa trong bộ chuẩn hóa Python để các số JSON
+như `10` và `10.0` tạo cùng mã băm giữa các thời gian chạy.
 
-The published round-trip fixture is
+Fixture vòng khứ hồi đã công bố là
 `backend/contracts/examples/solver-adapter.json`; its JSON Schema is
 `backend/contracts/schemas/solver-adapter.schema.json`. Raw
 `SolveJobRequest` input remains accepted by the CLI during the compatibility
 window, while adapter input adds `adapterContractVersion`, template/period
 provenance, checksum and effective seed/time-limit metadata to the result.
 
-NestJS remains responsible for authorization, PostgreSQL snapshot selection,
-queue orchestration and audit. Python validates the canonical envelope and
-enforces hard constraints; the UI does not participate in correctness.
+NestJS vẫn phụ trách phân quyền, chọn bản chụp PostgreSQL, điều phối hàng đợi và
+nhật ký. Python kiểm tra phong bì chuẩn và thực thi ràng buộc cứng; giao diện
+không tham gia quyết định tính đúng.

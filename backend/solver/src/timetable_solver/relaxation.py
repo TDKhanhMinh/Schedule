@@ -70,7 +70,7 @@ def build_relaxation_proposals(request: SolveJobRequest, issue_codes: list[str])
                         affected_lessons=len(lessons),
                         affected_entities=[rule.teacherId, *[lesson.id for lesson in lessons]],
                         source=_rule_source(rule),
-                        impact=f"Có thể tăng số slot khả dụng cho {affected_sessions} session của giáo viên {rule.teacherId}; không thay đổi rule tự động.",
+                        impact=f"Có thể tăng số khung tiết khả dụng cho {affected_sessions} buổi học của giáo viên {rule.teacherId}; không tự động thay đổi quy tắc.",
                         hard_rule_protected=False,
                     )
                 )
@@ -84,7 +84,7 @@ def build_relaxation_proposals(request: SolveJobRequest, issue_codes: list[str])
                         affected_lessons=len(lessons),
                         affected_entities=[rule.teacherId, *[lesson.id for lesson in lessons]],
                         source=_rule_source(rule),
-                        impact=f"Rule hard unavailable đang ảnh hưởng {affected_sessions} session; chỉ stakeholder có thẩm quyền mới được sửa hoặc thay dữ liệu.",
+                        impact=f"Quy tắc không khả dụng cứng đang ảnh hưởng {affected_sessions} buổi học; chỉ bên liên quan có thẩm quyền mới được sửa hoặc thay dữ liệu.",
                         hard_rule_protected=True,
                     )
                 )
@@ -114,7 +114,7 @@ def build_relaxation_proposals(request: SolveJobRequest, issue_codes: list[str])
                     affected_lessons=len(lessons),
                     affected_entities=[entity_id, *[lesson.id for lesson in lessons]],
                     source={},
-                    impact=f"Cần stakeholder xem xét mở rộng slot hoặc điều chỉnh dữ liệu cho {entity_label} {entity_id}; không tự nới hard constraint.",
+                    impact=f"Cần bên liên quan xem xét mở rộng khung tiết hoặc điều chỉnh dữ liệu cho {entity_label} {entity_id}; không tự nới lỏng ràng buộc cứng.",
                     hard_rule_protected=True,
                 )
             )

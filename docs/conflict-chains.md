@@ -1,12 +1,12 @@
-# Conflict chains — P3.2-T03
+# Chuỗi xung đột — P3.2-T03
 
-`CONFLICT-CHAIN-1.0.0` extends the existing `CONFLICT-CATALOG-1.0.0` diagnostic
-without changing the stable reason code. Each chain is deterministic from the
-reason code and sorted entity references:
+`CONFLICT-CHAIN-1.0.0` mở rộng chẩn đoán `CONFLICT-CATALOG-1.0.0` hiện có mà
+không thay đổi mã lý do ổn định. Mỗi chuỗi được xác định tất định từ mã lý do và
+các tham chiếu thực thể đã sắp xếp:
 
 `entity references → constraint node → outcome node`
 
-The chain is emitted for pre-solve and full solver diagnostics, including fixed
-resource conflicts, class/teacher capacity shortages, hard availability and
-room capability/availability mismatches. References are bounded identifiers;
-stack traces, raw payloads and unauthorized data are not included.
+Chuỗi được phát ra cho chẩn đoán kiểm tra trước tối ưu và chẩn đoán đầy đủ của bộ
+tối ưu, gồm xung đột tài nguyên cố định, thiếu sức chứa lớp/giáo viên, sẵn sàng
+cứng và không khớp năng lực/sẵn sàng phòng. Tham chiếu chỉ là mã định danh có
+giới hạn; không bao gồm stack trace, payload thô hoặc dữ liệu chưa được cấp quyền.

@@ -12,7 +12,7 @@ import { tenantContext } from "../database/tenant-context";
 
 const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
 const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) throw new Error("DATABASE_URL is required for the solver worker.");
+if (!databaseUrl) throw new Error("Worker bộ tối ưu yêu cầu DATABASE_URL.");
 const pool = createTenantAwarePool(databaseUrl, {
   enforceTenantContext: process.env.TENANT_DB_ENFORCEMENT === "true",
 });

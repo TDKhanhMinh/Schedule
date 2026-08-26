@@ -5,6 +5,16 @@ import { navigateTo } from "./routing";
 type Status = "ACTIVE" | "ARCHIVED";
 type MasterDataEntity = "school" | "period" | "slot" | "teacher" | "class" | "subject" | "room" | "assignment";
 
+const STATUS_LABELS: Record<string, string> = {
+  ACTIVE: "Đang hoạt động",
+  ARCHIVED: "Đã lưu trữ",
+  DRAFT: "Bản nháp",
+};
+
+function statusLabel(status: string) {
+  return STATUS_LABELS[status] ?? status;
+}
+
 interface School {
   id: string;
   code: string;
@@ -105,7 +115,7 @@ async function request<T>(path: string, options: RequestInit = {}) {
   if (!response.ok) {
     throw new MasterDataApiError(
       typeof payload === "object" && payload !== null ? (payload as ApiErrorPayload) : {},
-      "Không thể cập nhật dữ liệu master.",
+      "Không thể cập nhật dữ liệu danh mục.",
     );
   }
   return payload as T;
@@ -319,7 +329,7 @@ export function MasterDataScreen() {
       setRooms(roomRows);
       setSelectedPeriodId((current) => current || periodRows[0]?.id || "");
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Không thể tải master data.");
+      setError(requestError instanceof Error ? requestError.message : "Không thể tải dữ liệu danh mục.");
     } finally {
       setLoading(false);
     }
@@ -341,7 +351,7 @@ export function MasterDataScreen() {
       setSlots(slotRows);
       setAssignments(assignmentRows);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Không thể tải dữ liệu theo academic period.");
+      setError(requestError instanceof Error ? requestError.message : "Không thể tải dữ liệu theo khung năm học.");
     }
   }, []);
 
@@ -470,7 +480,7 @@ export function MasterDataScreen() {
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canWrite) {
-      setError("Role hiện tại chỉ có quyền xem; cần ADMIN hoặc SCHEDULER để chỉnh sửa.");
+      setError("Vai trò hiện tại chỉ có quyền xem; cần ADMIN hoặc SCHEDULER để chỉnh sửa.");
       return;
     }
     const validationErrors = localValidate(activeEntity, form);
@@ -508,7 +518,7 @@ export function MasterDataScreen() {
       await loadPeriodData(selectedPeriodId);
       resetEditor();
       setNotice(
-        `${entityLabels[activeEntity]} đã được ${editingId ? "cập nhật" : "tạo mới"}; dữ liệu đọc lại từ API và sẵn sàng cho preview/solver input.`,
+        `${entityLabels[activeEntity]} đã được ${editingId ? "cập nhật" : "tạo mới"}; dữ liệu đã được đọc lại từ API và sẵn sàng cho xem trước hoặc đầu vào bộ tối ưu.`,
       );
     } catch (requestError) {
       if (requestError instanceof MasterDataApiError) {
@@ -532,7 +542,7 @@ export function MasterDataScreen() {
 
   async function removeRecord(record: MasterRecord) {
     if (!canWrite) {
-      setError("Role hiện tại chỉ có quyền xem; không thể xóa.");
+      setError("Vai trò hiện tại chỉ có quyền xem; không thể xóa.");
       return;
     }
     setSaving(true);
@@ -553,7 +563,7 @@ export function MasterDataScreen() {
       await loadBaseData();
       await loadPeriodData(selectedPeriodId);
       resetEditor();
-      setNotice(`${entityLabels[activeEntity]} đã được archive/xóa theo contract của API.`);
+      setNotice(`${entityLabels[activeEntity]} đã được lưu trữ/xóa theo hợp đồng của API.`);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Không thể xóa dữ liệu.");
     } finally {
@@ -674,7 +684,7 @@ export function MasterDataScreen() {
           <td>{value.name}</td>
           <td>{value.timezone}</td>
           <td>
-            <span className={`status-tag ${value.status.toLowerCase()}`}>{value.status}</span>
+            <span className={`status-tag ${value.status.toLowerCase()}`}>{statusLabel(value.status)}</span>
           </td>
         </>
       );
@@ -692,7 +702,7 @@ export function MasterDataScreen() {
             {value.startsOn.slice(0, 10)} → {value.endsOn.slice(0, 10)}
           </td>
           <td>
-            <span className={`status-tag ${value.status.toLowerCase()}`}>{value.status}</span>
+            <span className={`status-tag ${value.status.toLowerCase()}`}>{statusLabel(value.status)}</span>
           </td>
         </>
       );
@@ -719,7 +729,7 @@ export function MasterDataScreen() {
           </td>
           <td>{value.displayName}</td>
           <td>
-            <span className={`status-tag ${value.status.toLowerCase()}`}>{value.status}</span>
+            <span className={`status-tag ${value.status.toLowerCase()}`}>{statusLabel(value.status)}</span>
           </td>
         </>
       );
@@ -734,7 +744,7 @@ export function MasterDataScreen() {
           <td>{value.name}</td>
           <td>Khối {value.grade}</td>
           <td>
-            <span className={`status-tag ${value.status.toLowerCase()}`}>{value.status}</span>
+            <span className={`status-tag ${value.status.toLowerCase()}`}>{statusLabel(value.status)}</span>
           </td>
         </>
       );
@@ -748,7 +758,7 @@ export function MasterDataScreen() {
           </td>
           <td>{value.name}</td>
           <td>
-            <span className={`status-tag ${value.status.toLowerCase()}`}>{value.status}</span>
+            <span className={`status-tag ${value.status.toLowerCase()}`}>{statusLabel(value.status)}</span>
           </td>
         </>
       );
@@ -764,7 +774,7 @@ export function MasterDataScreen() {
           <td>{value.roomType ?? "—"}</td>
           <td>{value.capacity ?? "—"}</td>
           <td>
-            <span className={`status-tag ${value.status.toLowerCase()}`}>{value.status}</span>
+            <span className={`status-tag ${value.status.toLowerCase()}`}>{statusLabel(value.status)}</span>
           </td>
         </>
       );
@@ -778,7 +788,7 @@ export function MasterDataScreen() {
         <td>{value.roomId ? names.rooms[value.roomId] : "—"}</td>
         <td>{value.requiredSessions}</td>
         <td>
-          <span className={`status-tag ${value.status.toLowerCase()}`}>{value.status}</span>
+          <span className={`status-tag ${value.status.toLowerCase()}`}>{statusLabel(value.status)}</span>
         </td>
       </>
     );
@@ -799,11 +809,11 @@ export function MasterDataScreen() {
     <>
       <div className="master-header">
         <div>
-          <p className="eyebrow">Step 01 · Master data</p>
+          <p className="eyebrow">Bước 01 · Dữ liệu danh mục</p>
           <h1>Nhập tay & chỉnh sửa dữ liệu</h1>
           <p className="lead">
-            Quản lý dữ liệu nguồn trong cùng school scope. Mọi thay đổi được ghi qua NestJS API và đọc lại từ PostgreSQL
-            trước khi dùng cho preview hoặc solver.
+            Quản lý dữ liệu nguồn trong cùng phạm vi trường. Mọi thay đổi được ghi qua NestJS API và đọc lại từ
+            PostgreSQL trước khi dùng cho xem trước hoặc bộ tối ưu.
           </p>
         </div>
         <div className="master-header-actions">
@@ -811,13 +821,13 @@ export function MasterDataScreen() {
             {canWrite ? "Có quyền chỉnh sửa" : "Chỉ xem"} · {frontendConfig.actorRole}
           </span>
           <button className="button-secondary" type="button" onClick={() => navigateTo("imports")}>
-            Mở Import →
+            Mở nhập dữ liệu →
           </button>
         </div>
       </div>
 
       <section className="panel master-panel" aria-labelledby="master-data-title">
-        <div className="master-tabs" role="tablist" aria-label="Loại master data">
+        <div className="master-tabs" role="tablist" aria-label="Loại dữ liệu danh mục">
           {entityOrder.map((entity) => (
             <button
               className={activeEntity === entity ? "master-tab active" : "master-tab"}
@@ -834,7 +844,7 @@ export function MasterDataScreen() {
 
         {activeEntity === "slot" || activeEntity === "assignment" ? (
           <label className="period-picker">
-            <span>Academic period</span>
+            <span>Năm học/kỳ học</span>
             <select
               value={selectedPeriodId}
               onChange={(event) => {
@@ -842,7 +852,7 @@ export function MasterDataScreen() {
                 resetEditor();
               }}
             >
-              <option value="">Chọn academic period</option>
+              <option value="">Chọn năm học/kỳ học</option>
               {periods.map((period) => (
                 <option key={period.id} value={period.id}>
                   {period.name} · {period.academicYear}
@@ -856,7 +866,7 @@ export function MasterDataScreen() {
           <form className="master-form" onSubmit={save}>
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">{editingId ? "Edit" : "Create"}</p>
+                <p className="eyebrow">{editingId ? "Chỉnh sửa" : "Tạo mới"}</p>
                 <h2>
                   {editingId
                     ? `Sửa ${entityLabels[activeEntity].toLowerCase()}`
@@ -880,7 +890,7 @@ export function MasterDataScreen() {
             </button>
             {!canWrite ? (
               <p className="small-note">
-                Role {frontendConfig.actorRole} chỉ được đọc dữ liệu. API vẫn là nơi enforce quyền cuối cùng.
+                Vai trò {frontendConfig.actorRole} chỉ được đọc dữ liệu. API vẫn là nơi thực thi quyền cuối cùng.
               </p>
             ) : null}
           </form>
@@ -888,7 +898,7 @@ export function MasterDataScreen() {
           <div className="master-list">
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">List · Filter · Validate</p>
+                <p className="eyebrow">Danh sách · Lọc · Kiểm tra</p>
                 <h2>
                   {entityLabels[activeEntity]} ({filteredRecords.length}/{records.length})
                 </h2>

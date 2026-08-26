@@ -1,13 +1,13 @@
-# Data Inventory — P0.2-T01
+# Kiểm kê dữ liệu — P0.2-T01
 
 **Product:** School Timetable Optimizer  
 **Scope:** V0.1 — THCS/THPT MVP  
 **Inventory version:** `2026-08-24-draft-1`  
-**Status:** Draft based on synthetic local demo data and Excel QC fixtures; official pilot workbook is still required to close this task.
+**Trạng thái:** Bản nháp dựa trên dữ liệu demo tổng hợp cục bộ và fixture QC Excel; vẫn cần sổ làm việc thí điểm chính thức để đóng task.
 
-## 1. Evidence boundary
+## 1. Ranh giới bằng chứng
 
-This inventory is derived from:
+Kiểm kê này được xây dựng từ:
 
 - PostgreSQL migrations `backend/database/migrations/001_initial_contract.sql`,
   `002_import_workflow.sql`, `003_domain_persistence.sql` and
@@ -16,9 +16,12 @@ This inventory is derived from:
 - Generated Excel QC fixtures in `backend/solver/examples/import-fixtures/`.
 - The current import contract implemented by `backend/src/imports/imports.service.ts`.
 
-The fixture data is not a real school's workbook. It is safe for local testing and demonstrates the shape of the current contract, but it must not be used to infer the official school's calendar, code system, teaching load, preferences, privacy policy or approval decision.
+Dữ liệu fixture không phải sổ làm việc của trường thật. Dữ liệu an toàn cho kiểm
+thử cục bộ và minh họa hình dạng hợp đồng hiện tại, nhưng không được dùng để suy
+ra lịch, hệ mã, tải giảng dạy, ưu tiên, chính sách riêng tư hoặc quyết định phê
+duyệt của trường chính thức.
 
-## 2. Current sample profile
+## 2. Hồ sơ mẫu hiện tại
 
 | Source | Scope | Observed count | Quality result |
 | --- | --- | ---: | --- |
@@ -31,18 +34,22 @@ The fixture data is not a real school's workbook. It is safe for local testing a
 | Lesson requirements in seed | class–subject–teacher–room assignments | 8 | Positive session counts and period scope |
 | `valid.xlsx` QC fixture | 5 columns, 3 rows | 3 | 3/3 valid; confirm passed locally |
 
-Local PostgreSQL was checked on 2026-08-24 after migrations `003` and `004` and the
-repeatable seed: `2` schools, `2` academic periods, `4` classes, `4` teachers,
+PostgreSQL cục bộ được kiểm tra ngày 2026-08-24 sau migration `003`, `004` và seed
+lặp lại: `2` trường, `2` khung năm học, `4` lớp, `4` giáo viên,
 `6` subjects, `4` rooms, `8` time slots, `14` lesson requirements, `14` import
 batches and `2` audit records. The higher lesson/import counts include legacy
 confirmed and previewed QC artifacts; they are not representative-school
 counts and are not pilot evidence.
 
-The valid fixture intentionally contains only three rows and therefore is a workflow fixture, not a representative school sample. It does not cover all seeded lesson requirements and does not include preferences, teacher availability, shifts or a full school calendar.
+Fixture hợp lệ cố ý chỉ có ba dòng nên là fixture workflow, không phải mẫu đại diện
+cho trường. Fixture không bao phủ mọi yêu cầu tiết học seed và không gồm ưu tiên,
+lịch sẵn sàng giáo viên, buổi hoặc lịch trường đầy đủ.
 
-## 3. Excel import inventory
+## 3. Kiểm kê nhập Excel
 
-The current workbook contract accepts the first worksheet with the following columns. Header matching is case/diacritic/whitespace tolerant and supports the English aliases documented in the implementation.
+Hợp đồng sổ làm việc hiện tại nhận trang tính đầu với các cột sau. Đối chiếu tiêu
+đề không phân biệt hoa thường/dấu/khoảng trắng và hỗ trợ bí danh tiếng Anh ghi
+trong phần triển khai.
 
 | Workbook column | Canonical field | Type | Required | Join key / mapping | Validation currently implemented | Privacy classification |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -52,9 +59,11 @@ The current workbook contract accepts the first worksheet with the following col
 | `Số tiết` | `requiredSessions` | positive integer | Yes | Part of lesson-requirement payload | Required; integer and `> 0` | Non-personal workload data |
 | `Mã phòng` | `roomId` | text | No | `schoolId` + `rooms.id` or normalized `rooms.name` | Optional; if present, master-data lookup | Operational identifier |
 
-### 3.1 Join-key decisions required from the pilot
+### 3.1 Quyết định khóa nối cần thí điểm xác nhận
 
-The current seed uses UUIDs as IDs and the fixture uses those UUIDs as workbook values. A real school may use short codes such as `7A`, `GV001` or `P-A`. Before locking the official template, the pilot owner must confirm:
+Seed hiện tại dùng UUID làm ID và fixture dùng các UUID đó làm giá trị sổ làm việc.
+Trường thật có thể dùng mã ngắn như `7A`, `GV001` hoặc `P-A`. Trước khi khóa mẫu
+chính thức, owner thí điểm phải xác nhận:
 
 1. Whether each master entity has a stable source code distinct from its display name.
 2. Whether codes are unique only within a school or also across the tenant.
@@ -101,14 +110,16 @@ the pilot must still confirm official code format and mapping for each master en
 `academicPeriodId`; the API must scope it explicitly before production use.
 4. **Room mapping is persistence-ready but solver-limited:** the domain now has
 optional `room_id`; the current confirm path and solver v1 still need coordinated
-API/contract work before room constraints are claimed.
+Cần hoàn tất công việc API/hợp đồng trước khi kết luận đã có ràng buộc phòng.
 5. **Schedule dimensions are absent:** shifts, start/end times, weekday labels, teacher availability, preferences and teaching-load rules are not represented by the current five-column workbook.
 6. **Cross-import duplicate policy is unresolved:** migration 003 adds a diagnostic natural-key index, but duplicate detection is still within one workbook. The official re-import/upsert policy across batches remains open.
 7. **Privacy/retention must be confirmed:** official uploads should be anonymized, retain only required operational identifiers, avoid student/employee personal attributes, and define deletion/retention for staging rows and filenames.
 
-## 7. Official pilot workbook intake checklist
+## 7. Danh sách tiếp nhận sổ làm việc thí điểm chính thức
 
-Use this checklist when the pilot owner supplies the workbook. Do not paste personal data into task notes; attach only the approved anonymized file or record its filename, version and hash in the controlled evidence location.
+Dùng danh sách này khi owner thí điểm cung cấp sổ làm việc. Không dán dữ liệu cá
+nhân vào ghi chú task; chỉ đính kèm tệp đã ẩn danh được phê duyệt hoặc ghi tên tệp,
+phiên bản và mã băm tại nơi lưu bằng chứng được kiểm soát.
 
 - [ ] Workbook owner, school scope and academic period identified.
 - [ ] Anonymization/privacy review approved; no unnecessary student or staff personal data.
@@ -122,7 +133,7 @@ Use this checklist when the pilot owner supplies the workbook. Do not paste pers
 
 ## 8. Related implementation follow-ups
 
-The remaining contract changes must be handled together when scheduled: decide
+Các thay đổi hợp đồng còn lại phải được xử lý cùng nhau khi lên lịch: quyết định
 `academicPeriodId` scope, define room solver behavior, define re-import
 idempotency, and version any expanded workbook contract. These changes must
 update the glossary, JSON schemas, TypeScript/Python adapters, migrations and

@@ -1,9 +1,9 @@
-# Architecture Baseline
+# Đường cơ sở kiến trúc
 
-The repository/module ownership decision is recorded in
+Quyết định về quyền sở hữu kho/mô-đun được ghi trong
 [`ADR-001 — Repository và module boundaries`](architecture-decision-records/ADR-001-repository-and-module-boundaries.md).
 
-## Runtime topology
+## Tô-pô thời gian chạy
 
 ```mermaid
 flowchart LR
@@ -17,83 +17,87 @@ flowchart LR
   S --> P
 ```
 
-## Responsibilities
+## Trách nhiệm
 
-| Component | Owns | Does not own |
-| --- | --- | --- |
-| React web | User workflows, preview/edit, status polling | Authorization or solver rules |
-| NestJS API | Auth boundary, validation, domain orchestration, persistence, enqueueing | CP-SAT model internals |
-| PostgreSQL | Canonical school data, versions, audit and solver results | Transient job coordination |
-| Redis + BullMQ | Durable job state, retries and queue coordination | Canonical business data |
-| Python solver | Canonical payload validation, constraint model, diagnostics | User/session authorization |
-| OR-Tools CP-SAT | Feasibility and optimization search | Import, publishing or UI concerns |
+| Thành phần       | Phụ trách                                                            | Không phụ trách                                   |
+| ---------------- | -------------------------------------------------------------------- | ------------------------------------------------- |
+| React web        | Workflow người dùng, xem trước/chỉnh sửa, hỏi trạng thái             | Phân quyền hoặc quy tắc bộ tối ưu                 |
+| NestJS API       | Ranh giới xác thực, kiểm tra, điều phối nghiệp vụ, lưu trữ, xếp hàng | Nội bộ mô hình CP-SAT                             |
+| PostgreSQL       | Dữ liệu trường chuẩn, phiên bản, nhật ký và kết quả bộ tối ưu        | Điều phối tác vụ tạm thời                         |
+| Redis + BullMQ   | Trạng thái tác vụ bền vững, thử lại và điều phối hàng đợi            | Dữ liệu nghiệp vụ chuẩn                           |
+| Bộ tối ưu Python | Kiểm tra payload chuẩn, mô hình ràng buộc, chẩn đoán                 | Phân quyền người dùng/phiên                       |
+| OR-Tools CP-SAT  | Tìm kiếm tính khả thi và tối ưu                                      | Nhập dữ liệu, công bố hoặc mối quan tâm giao diện |
 
-## Repository boundaries
+## Ranh giới kho mã
 
-The two application folders are intentionally separate:
+Hai thư mục ứng dụng được tách riêng có chủ đích:
 
-- `frontend`: React + TypeScript + Vite presentation and API client boundary.
-- `backend`: NestJS API/core, PostgreSQL/Redis adapters, BullMQ bridge and
-  Python solver package.
-- `backend/contracts/schemas`: versioned JSON Schema shared by TypeScript and
-  Pydantic adapters.
+- `frontend`: lớp trình bày React + TypeScript + Vite và ranh giới client API.
+- `backend`: API/lõi NestJS, bộ điều hợp PostgreSQL/Redis, cầu nối BullMQ và
+  gói bộ tối ưu Python.
+- `backend/contracts/schemas`: JSON Schema có phiên bản dùng chung bởi bộ điều
+  hợp TypeScript và Pydantic.
 
-The detailed module tree, data ownership, security boundary and non-decisions
-are maintained in [ADR-001](architecture-decision-records/ADR-001-repository-and-module-boundaries.md).
+Cây mô-đun chi tiết, quyền sở hữu dữ liệu, ranh giới bảo mật và các quyết định
+không chọn được duy trì trong [ADR-001](architecture-decision-records/ADR-001-repository-and-module-boundaries.md).
 
-## Contract boundary
+## Ranh giới hợp đồng
 
-`schemaVersion` is mandatory on both request and result. The API and Python worker must reject unsupported breaking versions rather than silently coercing fields. `backend/contracts/schemas` is committed alongside adapters so contract changes are reviewable.
+`schemaVersion` bắt buộc có trong cả request và kết quả. API và worker Python
+phải từ chối phiên bản phá vỡ không được hỗ trợ thay vì âm thầm ép kiểu trường.
+`backend/contracts/schemas` được commit cùng bộ điều hợp để thay đổi hợp đồng có
+thể review.
 
-Canonical business terminology and cross-layer field mapping are maintained in
+Thuật ngữ nghiệp vụ chuẩn và ánh xạ trường giữa các lớp được duy trì trong
 [`docs/domain-glossary.md`](domain-glossary.md). In particular, the v1 wire
 field `lessons[]` maps to the single domain concept `LessonRequirement`, while
 `period`, `AcademicPeriod`, `OptimizationRun` and `ScheduleVersion` remain
 distinct concepts.
 
-Legal and operational rule provenance is maintained in
-[`docs/legal-rule-register.md`](legal-rule-register.md). Source-verified rules
-are not automatically solver constraints: the rule model must carry version,
-source, effective date, applicability and approval before NestJS and Python
-enforce it consistently.
+Nguồn gốc quy tắc pháp lý và vận hành được duy trì trong
+[`docs/legal-rule-register.md`](legal-rule-register.md). Các quy tắc đã kiểm chứng nguồn
+không tự động trở thành ràng buộc bộ tối ưu: mô hình quy tắc phải có phiên bản,
+nguồn, ngày hiệu lực, phạm vi áp dụng và phê duyệt trước khi NestJS và Python
+thực thi nhất quán.
 
-P2.1-T01 defines the independent `RuleSetSnapshot` contract
-(`RULE-SET-1.0.0`) and PostgreSQL `rule_set_snapshots` persistence. An
-optimization run records the snapshot id/version/hash used for reproducibility;
-the current solve wire contract remains `schemaVersion: "1.0"` until a later
-task adds rule evaluation to the solver.
+P2.1-T01 định nghĩa hợp đồng `RuleSetSnapshot` độc lập
+(`RULE-SET-1.0.0`) và lưu trữ PostgreSQL `rule_set_snapshots`. Mỗi lần tối ưu
+ghi nhận mã/phiên bản/mã băm bản chụp dùng cho khả năng tái lập; hợp đồng truyền
+hiện tại vẫn là `schemaVersion: "1.0"` cho đến khi task sau bổ sung đánh giá quy tắc.
 
-P2.1-T02 adds a server-owned teacher-load report. It resolves active weekly
-lesson demand from PostgreSQL, reads `RULE-TEACH-002`/`RULE-TEACH-003` and
-teacher-scoped `RULE-TEACH-REDUCTION-*` rules from an approved snapshot, then
-returns source/hash-backed weekly and annual metrics. The default result is an
-average target (`REPORT_ONLY`); a hard weekly cap is only reported/enforced
-when the snapshot explicitly configures one.
+P2.1-T02 bổ sung báo cáo tải giáo viên do máy chủ sở hữu. Báo cáo lấy nhu cầu
+tiết học tuần đang hoạt động từ PostgreSQL, đọc `RULE-TEACH-002`/`RULE-TEACH-003`
+và các quy tắc `RULE-TEACH-REDUCTION-*` theo giáo viên từ bản chụp đã phê duyệt,
+sau đó trả chỉ số tuần/năm có nguồn và mã băm. Kết quả mặc định là mục tiêu
+trung bình (`REPORT_ONLY`); giới hạn tuần cứng chỉ được báo cáo/thực thi khi bản
+chụp cấu hình rõ.
 
-P2.1-T03 adds the versioned `TEACHER-AVAILABILITY-1.0.0` projection. NestJS
-reads only approved, effective `RULE-TEACHER-AVAILABILITY-*` definitions from
-the immutable snapshot and resolves day/shift/period selectors to the
-period's `time_slots`. Python enforces `HARD_UNAVAILABLE` by removing matching
-choices and minimizes `STRONG_PREFERENCE`/`SOFT_WISH` violations with explicit
-diagnostic warnings. The UI is not an enforcement boundary.
+P2.1-T03 bổ sung projection có phiên bản `TEACHER-AVAILABILITY-1.0.0`. NestJS
+chỉ đọc các định nghĩa `RULE-TEACHER-AVAILABILITY-*` đã phê duyệt, còn hiệu lực
+từ bản chụp bất biến và ánh xạ bộ chọn ngày/buổi/tiết vào `time_slots` của khung
+năm học. Python thực thi `HARD_UNAVAILABLE` bằng cách loại bỏ lựa chọn tương ứng
+và giảm vi phạm `STRONG_PREFERENCE`/`SOFT_WISH` với cảnh báo chẩn đoán rõ ràng.
+Giao diện không phải ranh giới thực thi.
 
-P2.1-T04 adds the versioned `PRE-SOLVE-1.0.0` necessary-condition report.
-NestJS exposes it before BullMQ enqueue and rejects provably infeasible
-requests; Python repeats the check before constructing a CP-SAT model. The
-report covers demand/class-slot capacity, teacher candidate capacity, fixed
-slot conflicts, class hard availability and optional room capabilities.
+P2.1-T04 bổ sung báo cáo điều kiện cần có phiên bản `PRE-SOLVE-1.0.0`. NestJS
+cung cấp báo cáo trước khi xếp BullMQ và từ chối request được chứng minh là vô
+nghiệm; Python lặp lại kiểm tra trước khi dựng mô hình CP-SAT. Báo cáo bao phủ
+sức chứa nhu cầu/khung tiết theo lớp, sức chứa ứng viên giáo viên, xung đột khung
+tiết cố định, sẵn sàng cứng của lớp và năng lực phòng tùy chọn.
 
- Product requirements, user journeys and acceptance evidence are maintained in
- [`docs/prd-mvp.md`](prd-mvp.md). The PRD distinguishes local development evidence
- from pilot/stakeholder approval and production gates.
+Yêu cầu sản phẩm, hành trình người dùng và bằng chứng nghiệm thu được duy trì trong
+[`docs/prd-mvp.md`](prd-mvp.md). PRD phân biệt bằng chứng phát triển cục bộ với
+phê duyệt thí điểm/bên liên quan và các cổng production.
 
-## Job lifecycle
+## Vòng đời tác vụ
 
-1. API validates request shape and domain identifiers.
-2. API enqueues `optimization.solve` through BullMQ.
-3. NestJS worker bridge forwards the same canonical payload to the Python solver process.
-4. Python worker validates the payload, runs CP-SAT and returns status, score,
-   assignments, diagnostics and versioned solver metadata.
-5. BullMQ stores the completed result and the API exposes job status to the web client.
+1. API kiểm tra hình dạng request và mã định danh nghiệp vụ.
+2. API xếp `optimization.solve` qua BullMQ.
+3. Cầu nối worker NestJS chuyển cùng payload chuẩn sang tiến trình bộ tối ưu Python.
+4. Worker Python kiểm tra payload, chạy CP-SAT và trả trạng thái, điểm, phân công,
+   chẩn đoán cùng siêu dữ liệu bộ tối ưu có phiên bản.
+5. BullMQ lưu kết quả hoàn tất và API cung cấp trạng thái tác vụ cho client web.
 
-The local setup implements the API enqueue, BullMQ bridge and Python solver flow. Durable PostgreSQL persistence of the completed assignment set, authorization, retries/observability and production deployment remain follow-up work.
+Cấu hình cục bộ đã triển khai luồng xếp API, cầu nối BullMQ và bộ tối ưu Python.
+Lưu bền vững tập phân công hoàn tất vào PostgreSQL, phân quyền, thử lại/quan sát
+và triển khai production vẫn là công việc tiếp theo.

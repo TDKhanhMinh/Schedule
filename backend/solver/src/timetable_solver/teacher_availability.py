@@ -36,11 +36,11 @@ class TeacherAvailabilityRule(BaseModel):
     @model_validator(mode="after")
     def validate_strength(self) -> "TeacherAvailabilityRule":
         if self.strength == "HARD_UNAVAILABLE" and self.weight is not None:
-            raise ValueError("HARD_UNAVAILABLE rules must not carry a weight")
+                raise ValueError("Quy tắc HARD_UNAVAILABLE không được có trọng số")
         if self.strength != "HARD_UNAVAILABLE" and self.weight is None:
-            raise ValueError("preference rules require a weight")
+                raise ValueError("Quy tắc ưu tiên yêu cầu trọng số")
         if self.effectiveTo and self.effectiveTo < self.effectiveFrom:
-            raise ValueError("effectiveTo must not be earlier than effectiveFrom")
+                raise ValueError("effectiveTo không được sớm hơn effectiveFrom")
         return self
 
 
@@ -60,9 +60,9 @@ class TeacherAvailabilitySet(BaseModel):
     def validate_rule_provenance(self) -> "TeacherAvailabilitySet":
         for rule in self.rules:
             if rule.source.ruleSnapshotId != self.ruleSnapshotId:
-                raise ValueError("availability rule source snapshot does not match request snapshot")
+                raise ValueError("Bản chụp nguồn của quy tắc sẵn sàng không khớp với bản chụp yêu cầu")
             if rule.source.ruleSetVersion != self.ruleSetVersion:
-                raise ValueError("availability rule source version does not match request snapshot")
+                raise ValueError("Phiên bản nguồn của quy tắc sẵn sàng không khớp với bản chụp yêu cầu")
             if rule.source.ruleSnapshotHash != self.ruleSnapshotHash:
-                raise ValueError("availability rule source hash does not match request snapshot")
+                raise ValueError("Mã băm nguồn của quy tắc sẵn sàng không khớp với bản chụp yêu cầu")
         return self

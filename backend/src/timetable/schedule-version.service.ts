@@ -154,7 +154,7 @@ export class ScheduleVersionService {
     if (result.rows.length === 0) {
       throw new NotFoundException({
         code: "ACADEMIC_PERIOD_NOT_FOUND",
-        message: "Academic period không tồn tại trong school scope.",
+        message: "Khung năm học không tồn tại trong phạm vi trường.",
       });
     }
 
@@ -192,7 +192,7 @@ export class ScheduleVersionService {
     if (result.rows.length === 0) {
       throw new NotFoundException({
         code: "SCHEDULE_VERSION_NOT_FOUND",
-        message: "Schedule version không tồn tại trong school scope.",
+        message: "Phiên bản thời khóa biểu không tồn tại trong phạm vi trường.",
       });
     }
     return this.toScheduleVersion(result.rows[0]);
@@ -207,7 +207,7 @@ export class ScheduleVersionService {
     if (fromVersionId === toVersionId) {
       throw new BadRequestException({
         code: "SCHEDULE_VERSION_COMPARE_SAME_VERSION",
-        message: "Không thể compare một schedule version với chính nó.",
+        message: "Không thể so sánh một phiên bản thời khóa biểu với chính nó.",
       });
     }
 
@@ -215,7 +215,7 @@ export class ScheduleVersionService {
     if (from.academic_period_id !== to.academic_period_id) {
       throw new ConflictException({
         code: "SCHEDULE_VERSION_COMPARE_PERIOD_MISMATCH",
-        message: "Chỉ compare được các version trong cùng academic period.",
+        message: "Chỉ có thể so sánh các phiên bản trong cùng khung năm học.",
       });
     }
 
@@ -320,7 +320,7 @@ export class ScheduleVersionService {
     if (targetVersionId === dto.sourceVersionId) {
       throw new BadRequestException({
         code: "SCHEDULE_VERSION_ROLLBACK_SAME_VERSION",
-        message: "Rollback cần một source version khác target version.",
+        message: "Khôi phục cần phiên bản nguồn khác phiên bản đích.",
       });
     }
     await this.get(schoolId, targetVersionId);
@@ -471,7 +471,7 @@ export class ScheduleVersionService {
       if (!(current.status === "DRAFT" || current.status === "IN_REVIEW")) {
         throw new ConflictException({
           code: "SCHEDULE_VERSION_NOT_EDITABLE",
-          message: `Không thể chỉnh schedule version ở trạng thái ${current.status}.`,
+          message: `Không thể chỉnh phiên bản thời khóa biểu ở trạng thái ${current.status}.`,
           currentSnapshot,
         });
       }
@@ -493,7 +493,7 @@ export class ScheduleVersionService {
       if (targetResult.rows.length === 0) {
         throw new NotFoundException({
           code: "SCHEDULE_ASSIGNMENT_NOT_FOUND",
-          message: "Assignment không tồn tại trong schedule version.",
+          message: "Phân công không tồn tại trong phiên bản thời khóa biểu.",
         });
       }
       const target = targetResult.rows[0];
@@ -526,7 +526,7 @@ export class ScheduleVersionService {
       if (conflictResult.rows.length > 0) {
         throw new ConflictException({
           code: "SCHEDULE_ASSIGNMENT_HARD_CONFLICT",
-          message: "Thay đổi vi phạm hard constraint lớp, giáo viên hoặc phòng tại slot đích.",
+          message: "Thay đổi vi phạm ràng buộc cứng về lớp, giáo viên hoặc phòng tại khung tiết đích.",
           conflicts: conflictResult.rows.map((row) => ({
             assignmentId: row.id,
             lessonId: row.lesson_id,
@@ -604,13 +604,13 @@ export class ScheduleVersionService {
     if (!isScheduleVersionStatus(dto.toStatus)) {
       throw new BadRequestException({
         code: "SCHEDULE_VERSION_STATUS_INVALID",
-        message: "Trạng thái schedule version không hợp lệ.",
+        message: "Trạng thái phiên bản thời khóa biểu không hợp lệ.",
       });
     }
     if (!canTransitionScheduleVersion(current.status, dto.toStatus)) {
       throw new ConflictException({
         code: "SCHEDULE_VERSION_TRANSITION_INVALID",
-        message: `Không thể chuyển schedule version từ ${current.status} sang ${dto.toStatus}.`,
+        message: `Không thể chuyển phiên bản thời khóa biểu từ ${current.status} sang ${dto.toStatus}.`,
         fromStatus: current.status,
         toStatus: dto.toStatus,
       });
@@ -619,7 +619,7 @@ export class ScheduleVersionService {
     if (["APPROVED", "PUBLISHED"].includes(dto.toStatus) && !dto.reason?.trim()) {
       throw new BadRequestException({
         code: "SCHEDULE_VERSION_REASON_REQUIRED",
-        message: "Approval và publish phải có reason để audit.",
+        message: "Phê duyệt và công bố phải có lý do để ghi nhật ký.",
       });
     }
     if (dto.toStatus === "APPROVED" || dto.toStatus === "PUBLISHED") {
@@ -660,7 +660,7 @@ export class ScheduleVersionService {
     if (result.rows.length === 0) {
       throw new ConflictException({
         code: "SCHEDULE_VERSION_CONCURRENT_UPDATE",
-        message: "Schedule version đã thay đổi; hãy tải lại trước khi chuyển trạng thái.",
+        message: "Phiên bản thời khóa biểu đã thay đổi; hãy tải lại trước khi chuyển trạng thái.",
       });
     }
     return this.toScheduleVersion(result.rows[0]);
@@ -684,7 +684,7 @@ export class ScheduleVersionService {
       if (locked.status !== current.status || !canTransitionScheduleVersion(locked.status, dto.toStatus)) {
         throw new ConflictException({
           code: "SCHEDULE_VERSION_CONCURRENT_UPDATE",
-          message: "Schedule version đã thay đổi; hãy tải lại trước khi approval/publish.",
+          message: "Phiên bản thời khóa biểu đã thay đổi; hãy tải lại trước khi phê duyệt/công bố.",
         });
       }
 
@@ -722,7 +722,7 @@ export class ScheduleVersionService {
       if (result.rows.length === 0) {
         throw new ConflictException({
           code: "SCHEDULE_VERSION_CONCURRENT_UPDATE",
-          message: "Schedule version đã thay đổi; hãy tải lại trước khi approval/publish.",
+          message: "Phiên bản thời khóa biểu đã thay đổi; hãy tải lại trước khi phê duyệt/công bố.",
         });
       }
       if (this.auditLogs) {
@@ -763,7 +763,7 @@ export class ScheduleVersionService {
     if (["APPROVED", "PUBLISHED", "ARCHIVED"].includes(toStatus) && !["ADMIN", "REVIEWER"].includes(actorRole)) {
       throw new ForbiddenException({
         code: "SCHEDULE_VERSION_APPROVAL_ROLE_REQUIRED",
-        message: "Chỉ ADMIN hoặc REVIEWER được approval/publish/archive schedule version.",
+        message: "Chỉ ADMIN hoặc REVIEWER được phê duyệt/công bố/lưu trữ phiên bản thời khóa biểu.",
         requiredRoles: ["ADMIN", "REVIEWER"],
       });
     }
@@ -793,7 +793,7 @@ export class ScheduleVersionService {
       throw new ConflictException({
         code: "SCHEDULE_VERSION_PUBLISH_GATE_FAILED",
         gate: "COMPLETENESS",
-        message: "Không thể publish khi số assignment chưa đủ theo lesson requirement.",
+        message: "Không thể công bố khi số phân công chưa đủ theo yêu cầu tiết học.",
         expectedAssignments,
         actualAssignments,
       });
@@ -818,7 +818,7 @@ export class ScheduleVersionService {
       throw new ConflictException({
         code: "SCHEDULE_VERSION_PUBLISH_GATE_FAILED",
         gate: "SCOPE",
-        message: "Assignment hoặc resource nằm ngoài school/academic period scope.",
+        message: "Phân công hoặc tài nguyên nằm ngoài phạm vi trường/khung năm học.",
         invalidCount,
       });
     }
@@ -855,7 +855,7 @@ export class ScheduleVersionService {
       throw new ConflictException({
         code: "SCHEDULE_VERSION_PUBLISH_GATE_FAILED",
         gate: "HARD_CONSTRAINTS",
-        message: "Không thể publish khi còn xung đột lớp, giáo viên hoặc phòng.",
+        message: "Không thể công bố khi còn xung đột lớp, giáo viên hoặc phòng.",
         conflicts: conflicts.rows,
       });
     }
@@ -1005,7 +1005,7 @@ export class ScheduleVersionService {
     if (result.rows.length === 0) {
       throw new NotFoundException({
         code: "SCHEDULE_VERSION_NOT_FOUND",
-        message: "Schedule version không tồn tại trong school scope.",
+        message: "Phiên bản thời khóa biểu không tồn tại trong phạm vi trường.",
       });
     }
     return result.rows[0];
@@ -1027,7 +1027,7 @@ export class ScheduleVersionService {
     if (result.rows.length === 0) {
       throw new NotFoundException({
         code: "SCHEDULE_VERSION_NOT_FOUND",
-        message: "Schedule version không tồn tại trong school scope.",
+        message: "Phiên bản thời khóa biểu không tồn tại trong phạm vi trường.",
       });
     }
     return result.rows[0];
@@ -1088,7 +1088,7 @@ export class ScheduleVersionService {
     if (slot.rows.length === 0) {
       throw new ConflictException({
         code: "SCHEDULE_ASSIGNMENT_SLOT_OUT_OF_SCOPE",
-        message: "Slot đích không thuộc school và academic period của schedule version.",
+        message: "Khung tiết đích không thuộc trường và khung năm học của phiên bản thời khóa biểu.",
       });
     }
     if (roomId) {
@@ -1096,7 +1096,7 @@ export class ScheduleVersionService {
       if (room.rows.length === 0) {
         throw new ConflictException({
           code: "SCHEDULE_ASSIGNMENT_ROOM_OUT_OF_SCOPE",
-          message: "Phòng đích không thuộc school scope.",
+          message: "Phòng đích không thuộc phạm vi trường.",
         });
       }
     }
@@ -1107,7 +1107,7 @@ export class ScheduleVersionService {
       throw new HttpException(
         {
           code: "SCHEDULE_VERSION_ETAG_REQUIRED",
-          message: "Thao tác chỉnh lịch yêu cầu If-Match của snapshot hiện tại.",
+          message: "Thao tác chỉnh lịch yêu cầu If-Match của bản chụp hiện tại.",
         },
         HttpStatus.PRECONDITION_REQUIRED,
       );
@@ -1118,7 +1118,7 @@ export class ScheduleVersionService {
   private concurrentConflict(expectedEtag: string, currentSnapshot: ScheduleVersionSnapshot) {
     return new ConflictException({
       code: "SCHEDULE_VERSION_CONCURRENT_UPDATE",
-      message: "Schedule version đã thay đổi; hãy tải snapshot mới rồi reapply thay đổi.",
+      message: "Phiên bản thời khóa biểu đã thay đổi; hãy tải bản chụp mới rồi áp dụng lại thay đổi.",
       expectedEtag,
       currentSnapshot,
     });
@@ -1138,7 +1138,7 @@ export class ScheduleVersionService {
     if (values.some((value) => value !== undefined) && values.some((value) => value === undefined)) {
       throw new BadRequestException({
         code: "SCHEDULE_VERSION_RULE_SNAPSHOT_INCOMPLETE",
-        message: "ruleSnapshotId, ruleSetVersion và ruleSnapshotHash phải đi cùng nhau.",
+        message: "ruleSnapshotId, ruleSetVersion và ruleSnapshotHash phải được cung cấp cùng nhau.",
       });
     }
   }

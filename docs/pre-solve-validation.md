@@ -1,16 +1,15 @@
-# Pre-solve validation
+# Kiểm tra trước tối ưu
 
 **Contract:** `PRE-SOLVE-1.0.0`
 
-Every issue also carries `catalogVersion: CONFLICT-CATALOG-1.0.0`, a stable
-`entity`, a Vietnamese `remediationHint` and bounded `entityReferences`. See
+Mỗi vấn đề cũng có `catalogVersion: CONFLICT-CATALOG-1.0.0`, `entity` ổn định,
+`remediationHint` tiếng Việt và `entityReferences` có giới hạn. Xem
 [`conflict-catalog.md`](./conflict-catalog.md) for the import/API/solver
 mapping.
 
-Pre-solve validation is a necessary-condition gate owned by the API and
-repeated by the Python worker. It prevents a job with a provably impossible
-dataset from consuming CP-SAT time; CP-SAT remains the final authority for the
-complete hard-constraint model.
+Kiểm tra trước tối ưu là cổng điều kiện cần do API sở hữu và worker Python lặp
+lại. Nó ngăn tác vụ có tập dữ liệu được chứng minh bất khả thi tiêu tốn thời gian
+CP-SAT; CP-SAT vẫn là thẩm quyền cuối cho mô hình ràng buộc cứng đầy đủ.
 
 ## API
 
@@ -18,10 +17,10 @@ complete hard-constraint model.
 POST /api/v1/optimization-jobs/preflight
 ```
 
-The body is the same validated `SolveJobRequest` used by
+Body là `SolveJobRequest` đã kiểm tra, giống như dùng bởi
 `POST /api/v1/optimization-jobs`. A failed preflight returns a structured
-report with `canSolve: false`; the enqueue endpoint responds with
-`PRESOLVE_FAILED` and does not create a BullMQ job.
+báo cáo với `canSolve: false`; endpoint xếp hàng trả `PRESOLVE_FAILED` và không
+tạo tác vụ BullMQ.
 
 ## Checks
 
@@ -43,6 +42,6 @@ slots use the approved `TEACHER-AVAILABILITY-1.0.0` projection. Room checks are
 necessary-condition checks only; room assignment and full room CP-SAT
 constraints remain a later solver task.
 
-The result diagnostics include the pre-solve report. A failed Python preflight
-returns `INFEASIBLE`, no assignments, issue codes and the same report without
-constructing the CP-SAT model.
+Chẩn đoán kết quả gồm báo cáo kiểm tra trước tối ưu. Kiểm tra trước Python thất
+bại trả `INFEASIBLE`, không có phân công, mã vấn đề và cùng báo cáo mà không dựng
+mô hình CP-SAT.

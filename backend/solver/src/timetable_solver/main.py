@@ -10,12 +10,12 @@ from .solver_adapter import SolverAdapterPayload
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run the versioned timetable solver JSON contract")
+    parser = argparse.ArgumentParser(description="Chạy hợp đồng JSON phiên bản của bộ tối ưu thời khóa biểu")
     parser.add_argument(
         "--random-seed",
         type=int,
         default=None,
-        help="Deterministic solver seed; defaults to the adapter seed or 0 for a raw request.",
+        help="Hạt giống bộ tối ưu xác định; mặc định dùng hạt giống của bộ điều hợp hoặc 0 cho yêu cầu thô.",
     )
     return parser
 
@@ -24,7 +24,7 @@ def _print_error(code: str, message: str, details: object) -> int:
     print(
         json.dumps(
             {"error": {"code": code, "message": message, "details": details}},
-            ensure_ascii=False,
+            ensure_ascii=True,
         ),
         file=sys.stderr,
     )
@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
 
     random_seed = args.random_seed if args.random_seed is not None else (adapter_payload.reproducibility.randomSeed if adapter_payload else 0)
     result = solve(request, random_seed=random_seed, adapter_payload=adapter_payload)
-    print(result.model_dump_json())
+    print(json.dumps(result.model_dump(mode="json"), ensure_ascii=True, separators=(",", ":")))
     return 0
 
 

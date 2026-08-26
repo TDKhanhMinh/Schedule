@@ -1,26 +1,26 @@
-# CP-SAT lesson-slot-room model
+# Mô hình tiết học-khung tiết-phòng CP-SAT
 
-The solver builds one Boolean decision variable for each feasible tuple:
+Bộ tối ưu dựng một biến quyết định Boolean cho mỗi bộ khả thi:
 
 `(lessonId, sessionIndex, slotId, roomId)`
 
-When the request omits `rooms`, the model stays compatible with the original
-no-room contract and uses one virtual `null` room per slot. When `rooms` is
-provided, a lesson's room domain is filtered by `allowedRoomIds` and
-`requiredRoomCapabilities`, then by each room's `unavailableSlotIds`; every
-remaining room is represented in the variable index.
+Khi request bỏ qua `rooms`, mô hình vẫn tương thích hợp đồng không phòng ban đầu
+và dùng một phòng ảo `null` cho mỗi khung tiết. Khi có `rooms`, miền phòng của
+yêu cầu tiết học được lọc theo `allowedRoomIds` và `requiredRoomCapabilities`,
+sau đó theo `unavailableSlotIds` của từng phòng; mọi phòng còn lại được biểu
+diễn trong chỉ mục biến.
 
-Before creating a variable, the builder prunes unknown slots, class-unavailable
-slots, rooms that do not satisfy the lesson's room requirements,
-room-unavailable slot pairs, and slots blocked by a hard teacher-availability
-rule. It then applies these hard constraints:
+Trước khi tạo biến, builder loại khung tiết không xác định, khung tiết lớp không
+khả dụng, phòng không đáp ứng yêu cầu, cặp phòng-khung tiết không khả dụng và
+khung tiết bị quy tắc sẵn sàng cứng của giáo viên chặn. Sau đó áp dụng các ràng
+buộc cứng:
 
-- exactly one candidate per lesson session;
-- at most one lesson for a class in a slot;
-- at most one lesson for a teacher in a slot;
-- at most one lesson for a room in a slot when the room model is enabled.
+- đúng một ứng viên cho mỗi buổi của yêu cầu tiết học;
+- tối đa một yêu cầu tiết học cho một lớp trong một khung tiết;
+- tối đa một yêu cầu tiết học cho một giáo viên trong một khung tiết;
+- tối đa một yêu cầu tiết học cho một phòng trong một khung tiết khi bật mô hình phòng.
 
-The result diagnostics expose `modelMetrics`:
+Chẩn đoán kết quả cung cấp `modelMetrics`:
 
 - `variableCount`: number of CP-SAT Boolean variables created;
 - `candidatePairCount`: number of feasible lesson/session-slot-room pairs;
@@ -28,13 +28,12 @@ The result diagnostics expose `modelMetrics`:
   construction;
 - `roomDomainCount`: sum of eligible room entries across lesson domains.
 
-Assignments are decoded from the same tuple index, so a selected room is
-returned as `roomId`. The field is `null` in backwards-compatible no-room
-mode. These metrics and the reverse mapping are solver evidence; the UI is
-not a correctness boundary.
+Phân công được giải mã từ cùng chỉ mục bộ, nên phòng đã chọn trả về dưới dạng
+`roomId`. Trường là `null` ở chế độ không phòng tương thích ngược. Các chỉ số và
+ánh xạ ngược là bằng chứng bộ tối ưu; giao diện không phải ranh giới đúng đắn.
 
-After decoding, an independent hard-constraint audit verifies exact demand,
-unique lesson occurrences, and class/teacher/room no-overlap. Any violation is
-returned in `diagnostics.hardConstraintViolations` and the result is not
-reported as feasible. A successful result therefore carries an explicit empty
-audit list in addition to the CP-SAT constraints.
+Sau khi giải mã, nhật ký kiểm tra ràng buộc cứng độc lập xác minh nhu cầu chính
+xác, lần xuất hiện duy nhất và không chồng lấp lớp/giáo viên/phòng. Mọi vi phạm
+được trả trong `diagnostics.hardConstraintViolations` và kết quả không được báo
+là khả thi. Vì vậy kết quả thành công có danh sách kiểm tra rỗng rõ ràng ngoài
+các ràng buộc CP-SAT.

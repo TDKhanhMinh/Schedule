@@ -16,6 +16,45 @@ type TimetableView = "class" | "teacher" | "room";
 type TimetableState = "loading" | "ready" | "empty" | "error";
 type WorkflowStatus = "IN_REVIEW" | "APPROVED" | "LOCKED" | "PUBLISHED";
 
+const JOB_STATE_LABELS: Record<string, string> = {
+  QUEUED: "Đang xếp hàng",
+  RUNNING: "Đang chạy",
+  OPTIMAL: "Tối ưu",
+  FEASIBLE: "Khả thi",
+  INFEASIBLE: "Vô nghiệm",
+  UNKNOWN: "Chưa xác định",
+  INVALID: "Không hợp lệ",
+  FAILED: "Thất bại",
+  CANCELLED: "Đã hủy",
+};
+
+const WORKFLOW_STATUS_LABELS: Record<WorkflowStatus, string> = {
+  IN_REVIEW: "Đang rà soát",
+  APPROVED: "Đã phê duyệt",
+  LOCKED: "Đã khóa",
+  PUBLISHED: "Đã công bố",
+};
+
+const DIFF_OPERATION_LABELS: Record<string, string> = {
+  ADD: "Thêm",
+  REMOVE: "Xóa",
+  MOVE: "Chuyển",
+  CHANGE: "Thay đổi",
+};
+
+const MANUAL_HISTORY_LABELS: Record<string, string> = {
+  MOVE: "Chuyển",
+  LOCK: "Khóa",
+  UNLOCK: "Mở khóa",
+  UNDO: "Hoàn tác",
+  CLONE: "Nhân bản",
+  ROLLBACK: "Khôi phục",
+  APPROVE: "Phê duyệt",
+  PUBLISH: "Công bố",
+  REPAIR_PREVIEW: "Xem trước sửa lỗi",
+  REPAIR_CONFIRM: "Xác nhận sửa lỗi",
+};
+
 interface TimetableLesson {
   id: string;
   classId: string;
@@ -161,14 +200,14 @@ function OptimizationJobPanel() {
           OptimizationJobStatus | { message?: string } | null;
         if (!response.ok)
           throw new Error(
-            payload && "message" in payload ? payload.message : `Không đọc được job (HTTP ${response.status}).`,
+            payload && "message" in payload ? payload.message : `Không đọc được tác vụ (HTTP ${response.status}).`,
           );
         if (!disposed) {
           setStatus(payload as OptimizationJobStatus);
           setNotice("");
         }
       } catch (error) {
-        if (!disposed) setNotice(error instanceof Error ? error.message : "Không thể đọc trạng thái job.");
+        if (!disposed) setNotice(error instanceof Error ? error.message : "Không thể đọc trạng thái tác vụ.");
       }
     };
     void load();
@@ -182,11 +221,11 @@ function OptimizationJobPanel() {
   function trackJob() {
     const nextJobId = jobIdInput.trim();
     if (!nextJobId) {
-      setNotice("Nhập job ID để theo dõi trạng thái durable.");
+      setNotice("Nhập mã tác vụ để theo dõi trạng thái bền vững.");
       return;
     }
     setStatus(null);
-    setNotice("Đang tải trạng thái job...");
+    setNotice("Đang tải trạng thái tác vụ...");
     setTrackedJobId(nextJobId);
     window.history.replaceState(null, "", `${window.location.pathname}?jobId=${encodeURIComponent(nextJobId)}`);
   }
@@ -194,7 +233,7 @@ function OptimizationJobPanel() {
   async function mutateJob(action: "cancel" | "retry") {
     if (!status) return;
     setBusy(true);
-    setNotice(action === "cancel" ? "Đang gửi yêu cầu hủy..." : "Đang tạo retry job...");
+    setNotice(action === "cancel" ? "Đang gửi yêu cầu hủy..." : "Đang tạo tác vụ thử lại...");
     try {
       const headers: Record<string, string> = { ...authHeaders(), "Content-Type": "application/json" };
       if (action === "retry") headers["Idempotency-Key"] = `optimization-retry:${status.jobId}`;
@@ -214,7 +253,7 @@ function OptimizationJobPanel() {
       setNotice(
         action === "cancel"
           ? "Đã ghi nhận yêu cầu hủy; worker sẽ dừng an toàn."
-          : "Đã tạo retry job với idempotency key.",
+          : "Đã tạo tác vụ thử lại với khóa idempotency.",
       );
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Không thể thực hiện thao tác.");
@@ -227,19 +266,29 @@ function OptimizationJobPanel() {
     <section className="optimization-job-panel" aria-labelledby="optimization-job-title">
       <div className="optimization-job-heading">
         <div>
-          <p className="eyebrow">Durable solve control</p>
-          <h2 id="optimization-job-title">Theo dõi và điều khiển job</h2>
-          <p className="small-note">PostgreSQL là nguồn trạng thái; UI chỉ gọi API và không quyết định correctness.</p>
+          <p className="eyebrow">Điều khiển tác vụ bền vững</p>
+          <h2 id="optimization-job-title">Theo dõi và điều khiển tác vụ</h2>
+          <p className="small-note">
+            PostgreSQL là nguồn trạng thái; UI chỉ gọi API và không quyết định tính đúng đắn.
+          </p>
         </div>
-        {status ? <span className={`solve-status job-state-${status.state.toLowerCase()}`}>{status.state}</span> : null}
+        {status ? (
+          <span className={`solve-status job-state-${status.state.toLowerCase()}`}>
+            {JOB_STATE_LABELS[status.state] ?? status.state}
+          </span>
+        ) : null}
       </div>
       <div className="optimization-job-controls">
         <label>
-          <span>Optimization job ID</span>
-          <input value={jobIdInput} onChange={(event) => setJobIdInput(event.target.value)} placeholder="Nhập job ID" />
+          <span>Mã tác vụ tối ưu</span>
+          <input
+            value={jobIdInput}
+            onChange={(event) => setJobIdInput(event.target.value)}
+            placeholder="Nhập mã tác vụ"
+          />
         </label>
         <button type="button" onClick={trackJob}>
-          Theo dõi job
+          Theo dõi tác vụ
         </button>
         <button
           className="button-secondary"
@@ -255,20 +304,20 @@ function OptimizationJobPanel() {
         <>
           <div className="optimization-job-metrics">
             <span>
-              Stage <b>{status.progress.stage}</b>
+              Giai đoạn <b>{status.progress.stage}</b>
             </span>
             <span>
-              Attempt{" "}
+              Lần thử{" "}
               <b>
                 {status.attempts}/{status.maxAttempts}
               </b>
             </span>
             <span>
-              Heartbeat{" "}
+              Nhịp hoạt động{" "}
               <b>{status.progress.heartbeatAt ? new Date(status.progress.heartbeatAt).toLocaleString("vi-VN") : "—"}</b>
             </span>
             <span>
-              Contract <b>{status.statusContractVersion}</b>
+              Hợp đồng <b>{status.statusContractVersion}</b>
             </span>
           </div>
           <progress
@@ -279,7 +328,7 @@ function OptimizationJobPanel() {
           />
           {status.progress.isStalled ? (
             <p className="optimization-job-warning">
-              Phát hiện job stalled/zombie; cần kiểm tra worker và execution log.
+              Phát hiện tác vụ bị treo; cần kiểm tra tiến trình xử lý và nhật ký thực thi.
             </p>
           ) : null}
           {status.failedReason ? <p className="optimization-job-error">{status.failedReason}</p> : null}
@@ -292,7 +341,7 @@ function OptimizationJobPanel() {
           ) : null}
           <div className="optimization-job-actions">
             <button type="button" onClick={() => void mutateJob("cancel")} disabled={busy || !status.canCancel}>
-              Hủy solve
+              Hủy tối ưu
             </button>
             <button
               className="button-secondary"
@@ -300,7 +349,7 @@ function OptimizationJobPanel() {
               onClick={() => void mutateJob("retry")}
               disabled={busy || !status.canRetry}
             >
-              Retry job
+              Thử lại tác vụ
             </button>
           </div>
         </>
@@ -345,7 +394,7 @@ const SLOTS: TimetableSlot[] = [
   { id: "fri-p5", day: 5, dayLabel: "Thứ 6", period: 5, shiftLabel: "Sáng", timeLabel: "10:30–11:15" },
 ];
 
-// The fixture mirrors the shared assignment shape until the solve-result read API is wired.
+// Dữ liệu mẫu phản ánh cấu trúc phân công dùng chung cho đến khi nối API đọc kết quả tối ưu.
 const DEMO_LESSONS: TimetableLesson[] = [
   {
     id: "lesson-math-7a1",
@@ -442,7 +491,7 @@ const DEMO_LESSONS: TimetableLesson[] = [
     subjectLabel: "Sinh hoạt",
     slotId: "wed-p2",
     status: "CONFLICT",
-    conflictMessage: "GV An đang có hai lesson cùng Thứ 4 · Tiết 2.",
+    conflictMessage: "GV An đang có hai phân công cùng Thứ 4 · Tiết 2.",
   },
   {
     id: "lesson-conflict-7a2",
@@ -455,7 +504,7 @@ const DEMO_LESSONS: TimetableLesson[] = [
     subjectLabel: "Sinh hoạt",
     slotId: "wed-p2",
     status: "CONFLICT",
-    conflictMessage: "GV An đang có hai lesson cùng Thứ 4 · Tiết 2.",
+    conflictMessage: "GV An đang có hai phân công cùng Thứ 4 · Tiết 2.",
   },
 ];
 
@@ -485,7 +534,7 @@ const OBJECTIVE_GROUPS: ObjectiveGroup[] = [
   { key: "teacherGap", label: "Khoảng trống GV", description: "teacherGap" },
   { key: "compactness", label: "Liền mạch lớp", description: "compactness" },
   { key: "dayDistribution", label: "Phân bố ngày", description: "dayDistribution" },
-  { key: "undesirableSlots", label: "Slot không mong muốn", description: "undesirableSlots" },
+  { key: "undesirableSlots", label: "Khung tiết không mong muốn", description: "undesirableSlots" },
   { key: "preferredDays", label: "Ngày ưu tiên", description: "preferredDays" },
   { key: "fairness", label: "Cân bằng tải", description: "fairness" },
 ];
@@ -562,7 +611,7 @@ function createMovePreview(lessonId: string, targetSlotId: string, lessons: Time
       fromSlotId: lesson.slotId,
       targetSlotId,
       eligible: false,
-      reason: `Không hợp lệ: ${resource} đã có lesson tại ${targetSlot.dayLabel} · Tiết ${targetSlot.period}.`,
+      reason: `Không hợp lệ: ${resource} đã có phân công tại ${targetSlot.dayLabel} · Tiết ${targetSlot.period}.`,
       softPenaltyDelta,
     };
   }
@@ -572,7 +621,7 @@ function createMovePreview(lessonId: string, targetSlotId: string, lessons: Time
     fromSlotId: lesson.slotId,
     targetSlotId,
     eligible: true,
-    reason: `Target hợp lệ: ${targetSlot.dayLabel} · ${targetSlot.shiftLabel} · Tiết ${targetSlot.period}.`,
+    reason: `Đích hợp lệ: ${targetSlot.dayLabel} · ${targetSlot.shiftLabel} · Tiết ${targetSlot.period}.`,
     softPenaltyDelta,
   };
 }
@@ -774,8 +823,8 @@ function StatePanel({ state }: { state: TimetableState }) {
         <div className="state-icon loading-icon" aria-hidden="true">
           …
         </div>
-        <h3>Đang tải solution</h3>
-        <p>Đang đọc assignments và diagnostics từ solve job. Vui lòng chờ trong giây lát.</p>
+        <h3>Đang tải phương án</h3>
+        <p>Đang đọc phân công và chẩn đoán từ tác vụ tối ưu. Vui lòng chờ trong giây lát.</p>
       </div>
     );
   }
@@ -786,7 +835,7 @@ function StatePanel({ state }: { state: TimetableState }) {
           !
         </div>
         <h3>Không thể tải thời khóa biểu</h3>
-        <p>API chưa trả về solution. Kiểm tra trạng thái job hoặc thử tải lại sau.</p>
+        <p>API chưa trả về phương án. Kiểm tra trạng thái tác vụ hoặc thử tải lại sau.</p>
         <button className="button-secondary" type="button" onClick={() => window.location.reload()}>
           Thử lại
         </button>
@@ -798,10 +847,10 @@ function StatePanel({ state }: { state: TimetableState }) {
       <div className="state-icon empty-icon" aria-hidden="true">
         ▦
       </div>
-      <h3>Chưa có assignment để hiển thị</h3>
-      <p>Hãy Confirm dữ liệu và chạy solver trước khi mở các góc nhìn thời khóa biểu.</p>
+      <h3>Chưa có phân công để hiển thị</h3>
+      <p>Hãy xác nhận dữ liệu và chạy bộ tối ưu trước khi mở các góc nhìn thời khóa biểu.</p>
       <button type="button" onClick={() => navigateTo("imports")}>
-        Mở Import →
+        Mở nhập dữ liệu →
       </button>
     </div>
   );
@@ -848,7 +897,7 @@ function TimetableGrid({
   );
 
   return (
-    <div className="timetable-grid-scroll" role="region" aria-label={`${viewLabels[view]} timetable`} tabIndex={0}>
+    <div className="timetable-grid-scroll" role="region" aria-label={`${viewLabels[view]} thời khóa biểu`} tabIndex={0}>
       <div className="timetable-grid" role="grid" aria-label={`${viewLabels[view]} thời khóa biểu`}>
         <div className="timetable-corner" role="columnheader">
           <span>Ca / tiết</span>
@@ -882,7 +931,7 @@ function TimetableGrid({
                   <div
                     className={`timetable-cell heat-level-${heatLevel} ${dropState}`}
                     role="gridcell"
-                    aria-label={`${day.label} · Tiết ${firstSlot.period} · soft penalty ${slotPenalty}`}
+                    aria-label={`${day.label} · Tiết ${firstSlot.period} · mức phạt mềm ${slotPenalty}`}
                     onDragOver={(event) => {
                       if (!draggedLessonId || !slot) return;
                       event.preventDefault();
@@ -957,13 +1006,13 @@ function TimetableGrid({
                           ·
                         </span>
                       )}
-                      {heatmapEnabled ? <span className="heatmap-label">Soft {slotPenalty}</span> : null}
+                      {heatmapEnabled ? <span className="heatmap-label">Phạt mềm {slotPenalty}</span> : null}
                       {isDropTarget && preview ? (
                         <div className={`drop-preview ${preview.eligible ? "preview-valid" : "preview-invalid"}`}>
-                          <strong>{preview.eligible ? "Target hợp lệ" : "Target bị chặn"}</strong>
+                          <strong>{preview.eligible ? "Đích hợp lệ" : "Đích bị chặn"}</strong>
                           <small>{preview.reason}</small>
                           <span>
-                            Soft delta {preview.softPenaltyDelta > 0 ? "+" : ""}
+                            Chênh lệch phạt mềm {preview.softPenaltyDelta > 0 ? "+" : ""}
                             {preview.softPenaltyDelta}
                           </span>
                         </div>
@@ -1038,7 +1087,7 @@ const DEMO_RELAXATION_PROPOSALS: RelaxationProposal[] = [
       ruleSnapshotId: "snapshot-demo-1",
       ruleSetVersion: "RULE-SET-1.0.0",
     },
-    impact: "Có thể mở thêm slot cho 2 session; không tự thay đổi rule.",
+    impact: "Có thể mở thêm khung tiết cho 2 buổi học; không tự thay đổi quy tắc.",
     requiresApproval: true,
     autoApply: false,
     hardRuleProtected: false,
@@ -1056,7 +1105,7 @@ const DEMO_RELAXATION_PROPOSALS: RelaxationProposal[] = [
       ruleSnapshotId: "snapshot-demo-1",
       ruleSetVersion: "RULE-SET-1.0.0",
     },
-    impact: "Hard rule chỉ được stakeholder có thẩm quyền review; không được tự nới.",
+    impact: "Ràng buộc cứng chỉ được bên liên quan có thẩm quyền rà soát; không được tự nới lỏng.",
     requiresApproval: true,
     autoApply: false,
     hardRuleProtected: true,
@@ -1093,29 +1142,29 @@ function RepairExplanationPanel({
       <div className="repair-heading">
         <div>
           <p className="eyebrow">P3.2-T02 · T03 · T04</p>
-          <h3 id="repair-panel-title">Explain conflict và local repair</h3>
+          <h3 id="repair-panel-title">Giải thích xung đột và sửa cục bộ</h3>
           <p className="small-note">
-            Preview dùng baseline hash, vùng ảnh hưởng và frozen scope. UI không tự hạ hard rule, không tự publish và
-            không thay thế server/solver validation.
+            Bản xem trước dùng mã băm đường cơ sở, vùng ảnh hưởng và phạm vi đã đóng băng. Giao diện không tự hạ ràng
+            buộc cứng, không tự công bố và không thay thế việc kiểm tra của máy chủ/bộ tối ưu.
           </p>
         </div>
         <span className="contract-pill">LOCAL-REPAIR-1.0.0</span>
       </div>
-      <div className="repair-summary" aria-label="Local repair scope summary">
+      <div className="repair-summary" aria-label="Tóm tắt phạm vi sửa cục bộ">
         <span>
-          Đã chọn: <b>{selectedLessonCount}</b> lesson
+          Đã chọn: <b>{selectedLessonCount}</b> phân công
         </span>
         <span>
-          Frozen: <b>{lockedLessonCount}</b> lesson
+          Đã đóng băng: <b>{lockedLessonCount}</b> phân công
         </span>
         <span>
-          Reason: <b>{DEMO_REPAIR_REASON_CODE}</b>
+          Lý do: <b>{DEMO_REPAIR_REASON_CODE}</b>
         </span>
       </div>
       <div className="repair-grid">
         <div className="repair-chain-card">
-          <strong>Conflict chain kiểm chứng được</strong>
-          <ol className="repair-chain-list" aria-label="Conflict chain">
+          <strong>Chuỗi nguyên nhân có thể kiểm chứng</strong>
+          <ol className="repair-chain-list" aria-label="Chuỗi nguyên nhân">
             {DEMO_REPAIR_CHAIN.nodes.map((node) => (
               <li key={node.nodeId}>
                 <span className={`chain-node chain-node-${node.type.toLowerCase()}`}>{node.type}</span>
@@ -1128,8 +1177,8 @@ function RepairExplanationPanel({
           </small>
         </div>
         <div className="repair-proposals-card">
-          <strong>Relaxation proposals</strong>
-          <ul className="repair-proposal-list" aria-label="Ranked relaxation proposals">
+          <strong>Đề xuất nới lỏng</strong>
+          <ul className="repair-proposal-list" aria-label="Đề xuất nới lỏng theo thứ hạng">
             {DEMO_RELAXATION_PROPOSALS.map((proposal) => (
               <li key={proposal.proposalId}>
                 <div>
@@ -1138,7 +1187,9 @@ function RepairExplanationPanel({
                 </div>
                 <small>{proposal.impact}</small>
                 <span className={proposal.hardRuleProtected ? "proposal-protected" : "proposal-approval"}>
-                  {proposal.hardRuleProtected ? "Hard rule · approval bắt buộc" : "Soft rule · approval bắt buộc"}
+                  {proposal.hardRuleProtected
+                    ? "Ràng buộc cứng · bắt buộc phê duyệt"
+                    : "Ràng buộc mềm · bắt buộc phê duyệt"}
                 </span>
               </li>
             ))}
@@ -1147,14 +1198,14 @@ function RepairExplanationPanel({
       </div>
       <div className="repair-actions">
         <button type="button" onClick={onPreview}>
-          Tạo repair preview
+          Tạo bản xem trước sửa lỗi
         </button>
         <button className="button-secondary" type="button" onClick={onConfirm} disabled={!repairPreview}>
-          Xác nhận áp dụng draft repair
+          Xác nhận áp dụng bản sửa lỗi nháp
         </button>
         {repairPreview ? (
           <span className="repair-preview-result" role="status" aria-live="polite">
-            {repairPreview.movedAssignmentCount} move · ngoài scope giữ nguyên:{" "}
+            {repairPreview.movedAssignmentCount} lần chuyển · ngoài phạm vi giữ nguyên:{" "}
             {repairPreview.outsideScopeUnchanged ? "Có" : "Không"}
           </span>
         ) : null}
@@ -1187,10 +1238,10 @@ export function TimetableScreen() {
   const [compareResult, setCompareResult] = useState<ScheduleVersionCompareResult>(() =>
     buildLocalCompare(DEMO_LESSONS),
   );
-  const [versionNotice, setVersionNotice] = useState("Đang xem draft local từ bản published v1.");
-  const [draftVersionLabel, setDraftVersionLabel] = useState("Draft v2 · clone từ Published v1");
+  const [versionNotice, setVersionNotice] = useState("Đang xem bản nháp cục bộ từ phiên bản đã công bố v1.");
+  const [draftVersionLabel, setDraftVersionLabel] = useState("Bản nháp v2 · nhân bản từ phiên bản đã công bố v1");
   const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>("LOCKED");
-  const [exportNotice, setExportNotice] = useState("Sẵn sàng xuất từ schedule version được chọn ở server.");
+  const [exportNotice, setExportNotice] = useState("Sẵn sàng xuất từ phiên bản thời khóa biểu được chọn trên máy chủ.");
   const [exportingView, setExportingView] = useState<"all" | TimetableView | null>(null);
   const [repairPreview, setRepairPreview] = useState<LocalRepairPreviewState | null>(null);
   const [repairNotice, setRepairNotice] = useState("");
@@ -1262,8 +1313,8 @@ export function TimetableScreen() {
     });
     recordManualHistory(
       "MOVE",
-      `Di chuyển ${previewLesson?.subjectLabel ?? "lesson"}`,
-      `${movePreview.fromSlotId} → ${movePreview.targetSlotId} · draft local; server sẽ revalidate`,
+      `Di chuyển ${previewLesson?.subjectLabel ?? "phân công"}`,
+      `${movePreview.fromSlotId} → ${movePreview.targetSlotId} · bản nháp cục bộ; máy chủ sẽ kiểm tra lại`,
     );
     setCompareResult(
       buildLocalCompare(
@@ -1285,7 +1336,7 @@ export function TimetableScreen() {
     recordManualHistory(
       "UNDO",
       "Hoàn tác di chuyển",
-      `${lastMove.targetSlotId} → ${lastMove.fromSlotId} · draft local`,
+      `${lastMove.targetSlotId} → ${lastMove.fromSlotId} · bản nháp cục bộ`,
     );
     setLastMove(null);
   }
@@ -1330,47 +1381,55 @@ export function TimetableScreen() {
       setLockRecords((current) => [...current, ...newLockPlan]);
       setLastLockAction({
         previousLocks,
-        message: `Đã khóa ${newLockPlan.reduce((total, record) => total + record.lessonIds.length, 0)} lesson theo scope ${lockScope}.`,
+        message: `Đã khóa ${newLockPlan.reduce((total, record) => total + record.lessonIds.length, 0)} phân công theo phạm vi ${lockScope}.`,
       });
       recordManualHistory(
         "LOCK",
-        "Khóa lesson",
-        `${newLockPlan.length} scope · ${newLockPlan.reduce((total, record) => total + record.lessonIds.length, 0)} lesson`,
+        "Khóa phân công",
+        `${newLockPlan.length} phạm vi · ${newLockPlan.reduce((total, record) => total + record.lessonIds.length, 0)} phân công`,
       );
       return;
     }
     if (unlockPlan.length === 0) return;
     setLockRecords((current) => current.filter((record) => !unlockPlan.some((target) => target.id === record.id)));
-    setLastLockAction({ previousLocks, message: `Đã mở khóa ${unlockPlan.length} scope.` });
-    recordManualHistory("UNLOCK", "Mở khóa lesson", `${unlockPlan.length} scope · draft local`);
+    setLastLockAction({ previousLocks, message: `Đã mở khóa ${unlockPlan.length} phạm vi.` });
+    recordManualHistory("UNLOCK", "Mở khóa phân công", `${unlockPlan.length} phạm vi · bản nháp cục bộ`);
   }
 
   function undoLockAction() {
     if (!lastLockAction) return;
     setLockRecords(lastLockAction.previousLocks);
-    recordManualHistory("UNDO", "Hoàn tác lock", "Khôi phục trạng thái lock trước đó · draft local");
+    recordManualHistory("UNDO", "Hoàn tác khóa", "Khôi phục trạng thái khóa trước đó · bản nháp cục bộ");
     setLastLockAction(null);
   }
 
   function refreshCompare() {
     setCompareResult(buildLocalCompare(lessons));
-    setVersionNotice("Đã tính lại diff theo snapshot draft local; API server sẽ là nguồn chính thức.");
+    setVersionNotice("Đã tính lại phần chênh lệch theo bản chụp bản nháp cục bộ; API máy chủ sẽ là nguồn chính thức.");
   }
 
   function cloneDraft() {
-    setDraftVersionLabel("Draft v3 · clone từ Published v1");
-    setVersionNotice("Đã tạo draft mới từ snapshot published; bản published vẫn immutable.");
-    recordManualHistory("CLONE", "Clone phương án", "Published v1 → Draft v3 · actor local-qc-user");
+    setDraftVersionLabel("Bản nháp v3 · nhân bản từ phiên bản đã công bố v1");
+    setVersionNotice("Đã tạo bản nháp mới từ bản chụp đã công bố; phiên bản đã công bố vẫn không thể thay đổi.");
+    recordManualHistory(
+      "CLONE",
+      "Nhân bản phương án",
+      "Phiên bản đã công bố v1 → bản nháp v3 · người thực hiện local-qc-user",
+    );
   }
 
   function rollbackToPublished() {
     setLessons(DEMO_LESSONS);
     setLockRecords([]);
     setLastMove(null);
-    setDraftVersionLabel("Draft v4 · rollback từ Published v1");
-    setVersionNotice("Đã tạo draft mới từ snapshot published; không mutate bản published.");
+    setDraftVersionLabel("Bản nháp v4 · khôi phục từ phiên bản đã công bố v1");
+    setVersionNotice("Đã tạo bản nháp mới từ bản chụp đã công bố; không thay đổi phiên bản đã công bố.");
     setCompareResult(buildLocalCompare(DEMO_LESSONS));
-    recordManualHistory("ROLLBACK", "Rollback phương án", "Draft hiện tại → Published v1 · reason bắt buộc");
+    recordManualHistory(
+      "ROLLBACK",
+      "Khôi phục phương án",
+      "Bản nháp hiện tại → phiên bản đã công bố v1 · bắt buộc có lý do",
+    );
   }
 
   function transitionWorkflow(target: "APPROVED" | "PUBLISHED") {
@@ -1380,8 +1439,8 @@ export function TimetableScreen() {
     setWorkflowStatus(target);
     recordManualHistory(
       target === "APPROVED" ? "APPROVE" : "PUBLISH",
-      target === "APPROVED" ? "Approval phương án" : "Publish phương án",
-      `${target} · actor ${frontendConfig.actorId} · server sẽ kiểm tra gate và ghi timestamp`,
+      target === "APPROVED" ? "Phê duyệt phương án" : "Công bố phương án",
+      `${target} · người thực hiện ${frontendConfig.actorId} · máy chủ sẽ kiểm tra cổng và ghi thời điểm`,
     );
   }
 
@@ -1402,29 +1461,29 @@ export function TimetableScreen() {
       outsideScopeUnchanged: true,
     };
     setRepairPreview(nextPreview);
-    setRepairNotice("Đã tạo preview từ baseline; chưa mutate draft và chưa gửi request server.");
+    setRepairNotice("Đã tạo bản xem trước từ đường cơ sở; chưa thay đổi bản nháp và chưa gửi yêu cầu đến máy chủ.");
     recordManualHistory(
       "REPAIR_PREVIEW",
-      "Tạo local repair preview",
-      `${nextPreview.affectedAssignmentKeys.length} affected · ${nextPreview.frozenAssignmentKeys.length} frozen`,
+      "Tạo bản xem trước sửa lỗi cục bộ",
+      `${nextPreview.affectedAssignmentKeys.length} đối tượng ảnh hưởng · ${nextPreview.frozenAssignmentKeys.length} đối tượng đã đóng băng`,
     );
   }
 
   function confirmLocalRepair() {
     if (!repairPreview) return;
     setRepairNotice(
-      "Đã xác nhận draft repair để review; server vẫn phải revalidate hard constraints, ETag và quyền trước khi ghi.",
+      "Đã xác nhận bản sửa lỗi nháp để rà soát; máy chủ vẫn phải kiểm tra lại ràng buộc cứng, ETag và quyền trước khi ghi.",
     );
     recordManualHistory(
       "REPAIR_CONFIRM",
-      "Xác nhận draft repair",
-      `${repairPreview.movedAssignmentCount} move · baseline ${repairPreview.baselineSnapshotHash.slice(0, 8)}…`,
+      "Xác nhận bản sửa lỗi nháp",
+      `${repairPreview.movedAssignmentCount} lần chuyển · đường cơ sở ${repairPreview.baselineSnapshotHash.slice(0, 8)}…`,
     );
   }
 
   async function exportWorkbook(viewToExport: "all" | TimetableView) {
     setExportingView(viewToExport);
-    setExportNotice("Đang tạo workbook từ snapshot server...");
+    setExportNotice("Đang tạo tệp Excel từ bản chụp trên máy chủ...");
     try {
       const response = await fetch(
         `${frontendConfig.apiBaseUrl}/schools/${frontendConfig.schoolId}/schedule-versions/${frontendConfig.scheduleVersionId}/export.xlsx?view=${viewToExport}`,
@@ -1443,9 +1502,11 @@ export function TimetableScreen() {
       anchor.download = filename;
       anchor.click();
       URL.revokeObjectURL(url);
-      setExportNotice(`Đã tải ${filename}; workbook giữ nguyên metadata version/status và đối soát snapshot.`);
+      setExportNotice(
+        `Đã tải ${filename}; tệp Excel giữ nguyên siêu dữ liệu phiên bản/trạng thái và đối soát bản chụp.`,
+      );
     } catch (error) {
-      setExportNotice(error instanceof Error ? error.message : "Không thể export workbook.");
+      setExportNotice(error instanceof Error ? error.message : "Không thể xuất tệp Excel.");
     } finally {
       setExportingView(null);
     }
@@ -1464,13 +1525,15 @@ export function TimetableScreen() {
     <>
       <div className="page-header">
         <div>
-          <p className="eyebrow">Step 04 · Solve & review</p>
+          <p className="eyebrow">Bước 04 · Tối ưu và rà soát</p>
           <h1>Thời khóa biểu</h1>
-          <p className="lead">Một solution, ba góc nhìn nghiệp vụ — cùng lesson, cùng slot và cùng conflict marker.</p>
+          <p className="lead">
+            Một phương án, ba góc nhìn nghiệp vụ — cùng phân công, cùng khung tiết và cùng dấu xung đột.
+          </p>
         </div>
         <div className="page-header-action">
           <button className="button-secondary" type="button" onClick={() => navigateTo("imports")}>
-            ← Quay lại import
+            ← Quay lại nhập dữ liệu
           </button>
         </div>
       </div>
@@ -1480,13 +1543,13 @@ export function TimetableScreen() {
       <section className="panel timetable-shell" aria-labelledby="timetable-title">
         <div className="timetable-toolbar">
           <div>
-            <p className="eyebrow">Draft workspace · demo solution</p>
-            <h2 id="timetable-title">Review assignment theo resource</h2>
+            <p className="eyebrow">Không gian bản nháp · phương án minh họa</p>
+            <h2 id="timetable-title">Rà soát phân công theo tài nguyên</h2>
             <p className="small-note">
-              Dữ liệu mẫu minh họa contract `SolveJobResult`; hard constraints vẫn thuộc server/solver.
+              Dữ liệu mẫu minh họa hợp đồng `SolveJobResult`; ràng buộc cứng vẫn thuộc máy chủ/bộ tối ưu.
             </p>
           </div>
-          <span className="solve-status feasible-status">FEASIBLE · 842 ms</span>
+          <span className="solve-status feasible-status">KHẢ THI · 842 ms</span>
         </div>
 
         <div className="timetable-controls" aria-label="Bộ lọc thời khóa biểu">
@@ -1519,12 +1582,12 @@ export function TimetableScreen() {
             </select>
           </label>
           <label className="search-picker">
-            <span>Tìm trong timetable</span>
+            <span>Tìm trong thời khóa biểu</span>
             <input
               type="search"
               value={searchQuery}
               placeholder="Môn, lớp, GV, phòng"
-              aria-label="Tìm trong timetable"
+              aria-label="Tìm trong thời khóa biểu"
               onChange={(event) => setSearchQuery(event.target.value)}
             />
           </label>
@@ -1535,9 +1598,9 @@ export function TimetableScreen() {
               value={focusFilter}
               onChange={(event) => setFocusFilter(event.target.value as FocusFilter)}
             >
-              <option value="all">Tất cả lesson</option>
-              <option value="conflict">Chỉ conflict</option>
-              <option value="penalty">Có soft penalty</option>
+              <option value="all">Tất cả phân công</option>
+              <option value="conflict">Chỉ xung đột</option>
+              <option value="penalty">Có phạt mềm</option>
             </select>
           </label>
           <label className="state-picker">
@@ -1559,33 +1622,33 @@ export function TimetableScreen() {
               checked={heatmapEnabled}
               onChange={(event) => setHeatmapEnabled(event.target.checked)}
             />
-            <span>Heatmap soft penalty</span>
+            <span>Bản đồ nhiệt phạt mềm</span>
           </label>
         </div>
 
         <section className="lock-panel" aria-labelledby="lock-panel-title">
           <div className="lock-panel-heading">
             <div>
-              <p className="eyebrow">P2.3-T04 · Freeze scope</p>
-              <h3 id="lock-panel-title">Khóa các lesson đã thống nhất</h3>
+              <p className="eyebrow">P2.3-T04 · Phạm vi đóng băng</p>
+              <h3 id="lock-panel-title">Khóa các phân công đã thống nhất</h3>
               <p className="small-note">
-                Chọn lesson trên lưới rồi áp dụng scope. Lock được chuẩn bị trong solver input ở contract{" "}
-                {LOCKED_ASSIGNMENTS_CONTRACT_VERSION}; server/solver vẫn là nơi kiểm tra cuối.
+                Chọn phân công trên lưới rồi áp dụng phạm vi. Việc khóa được chuẩn bị trong dữ liệu đầu vào bộ tối ưu ở
+                hợp đồng {LOCKED_ASSIGNMENTS_CONTRACT_VERSION}; máy chủ/bộ tối ưu vẫn là nơi kiểm tra cuối.
               </p>
             </div>
             <span className={canManageLocks ? "permission-chip write" : "permission-chip read"}>
-              {canManageLocks ? "Có quyền lock" : "Chỉ đọc · cần quyền SCHEDULER/ADMIN"}
+              {canManageLocks ? "Có quyền khóa" : "Chỉ đọc · cần quyền SCHEDULER/ADMIN"}
             </span>
           </div>
           <div className="lock-controls">
             <label className="lock-scope-picker">
-              <span>Phạm vi lock</span>
+              <span>Phạm vi khóa</span>
               <select
-                aria-label="Phạm vi lock"
+                aria-label="Phạm vi khóa"
                 value={lockScope}
                 onChange={(event) => setLockScope(event.target.value as LockScope)}
               >
-                <option value="lesson">Lesson đã chọn</option>
+                <option value="lesson">Phân công đã chọn</option>
                 <option value="teacher">Toàn bộ giáo viên</option>
                 <option value="day">Toàn bộ ngày</option>
               </select>
@@ -1596,7 +1659,7 @@ export function TimetableScreen() {
               onClick={selectVisibleLessons}
               disabled={selectedLessons.length === 0}
             >
-              Chọn {selectedLessons.length} lesson đang xem
+              Chọn {selectedLessons.length} phân công đang xem
             </button>
             <button
               className="button-secondary"
@@ -1607,7 +1670,7 @@ export function TimetableScreen() {
               Bỏ chọn
             </button>
             <span className="lock-preview-count" role="status" aria-live="polite">
-              Đã chọn <b>{selectedLessonIds.length}</b> · khóa mới <b>{newLockPlan.length}</b> scope · mở khóa{" "}
+              Đã chọn <b>{selectedLessonIds.length}</b> · khóa mới <b>{newLockPlan.length}</b> phạm vi · mở khóa{" "}
               <b>{unlockPlan.length}</b>
             </span>
             <button
@@ -1627,59 +1690,61 @@ export function TimetableScreen() {
             </button>
           </div>
           {lockRecords.length > 0 ? (
-            <div className="lock-summary" aria-label="Các scope đang khóa">
-              <strong>Đang khóa {lockedLessonIds.size} lesson</strong>
+            <div className="lock-summary" aria-label="Các phạm vi đang khóa">
+              <strong>Đang khóa {lockedLessonIds.size} phân công</strong>
               <span className="lock-summary-item">
-                Solver input: {solverLockInput.assignments.length} assignment · {solverLockInput.contractVersion}
+                Dữ liệu đầu vào bộ tối ưu: {solverLockInput.assignments.length} phân công ·{" "}
+                {solverLockInput.contractVersion}
               </span>
               {lockRecords.map((record) => (
                 <span className="lock-summary-item" key={record.id}>
-                  🔒 {record.scopeLabel} · {record.lessonIds.length} lesson
+                  🔒 {record.scopeLabel} · {record.lessonIds.length} phân công
                 </span>
               ))}
             </div>
           ) : (
-            <p className="small-note lock-empty-note">Chưa có scope nào bị khóa trong draft local.</p>
+            <p className="small-note lock-empty-note">Chưa có phạm vi nào bị khóa trong bản nháp cục bộ.</p>
           )}
         </section>
         {lastLockAction ? (
           <div className="alert alert-success lock-success" role="status">
             <strong>{lastLockAction.message}</strong>
-            <span>Preview local; khi submit solve, backend phải xác thực lại quyền và hard constraints.</span>
+            <span>Xem trước cục bộ; khi gửi yêu cầu tối ưu, máy chủ phải xác thực lại quyền và ràng buộc cứng.</span>
             <button className="button-secondary" type="button" onClick={undoLockAction}>
-              Hoàn tác lock
+              Hoàn tác khóa
             </button>
           </div>
         ) : null}
 
-        <div className="solve-summary" aria-label="Tóm tắt solution">
+        <div className="solve-summary" aria-label="Tóm tắt phương án">
           <span>
             <b>{selectedEntity?.label ?? "—"}</b> · {selectedEntity?.detail ?? "Chưa chọn"}
           </span>
-          <span>{visibleCount} lesson</span>
+          <span>{visibleCount} phân công</span>
           <span>
-            Workload <b>{workloadDays}/5 ngày</b>
+            Khối lượng <b>{workloadDays}/5 ngày</b>
           </span>
           <span>
-            Teacher gap <b>{formatMetric(DEMO_OBJECTIVE.teacherGap)} penalty</b>
+            Chênh lệch giáo viên <b>{formatMetric(DEMO_OBJECTIVE.teacherGap)} điểm phạt</b>
           </span>
           <span className={conflictCount > 0 ? "summary-warning" : "summary-ok"}>
-            {conflictCount > 0 ? `${conflictCount} conflict cần review` : "Không có conflict"}
+            {conflictCount > 0 ? `${conflictCount} xung đột cần rà soát` : "Không có xung đột"}
           </span>
-          <span>Objective {formatMetric(DEMO_OBJECTIVE.weightedTotal)} · gap 0%</span>
+          <span>Mục tiêu {formatMetric(DEMO_OBJECTIVE.weightedTotal)} · chênh lệch 0%</span>
         </div>
 
         <section className="quality-panel" aria-labelledby="quality-title">
           <div className="quality-heading">
             <div>
-              <p className="eyebrow">Quality indicators</p>
-              <h3 id="quality-title">Soft score breakdown</h3>
+              <p className="eyebrow">Chỉ số chất lượng</p>
+              <h3 id="quality-title">Phân rã điểm phạt mềm</h3>
               <p className="small-note">
-                Đồng bộ theo `diagnostics.objectiveBreakdown`; thấp hơn là tốt hơn sau khi đã đạt hard feasibility.
+                Đồng bộ theo `diagnostics.objectiveBreakdown`; điểm thấp hơn là tốt hơn sau khi đã đạt khả năng thỏa mãn
+                ràng buộc cứng.
               </p>
             </div>
             <div className="objective-total">
-              <span>Weighted total</span>
+              <span>Tổng có trọng số</span>
               <strong>{formatMetric(DEMO_OBJECTIVE.weightedTotal)}</strong>
               <small>SOLVER-OBJECTIVE-1.0.0</small>
             </div>
@@ -1697,15 +1762,15 @@ export function TimetableScreen() {
               </div>
             ))}
           </div>
-          <div className="heatmap-legend" aria-label="Chú thích heatmap soft penalty">
-            <span>Heatmap cell</span>
+          <div className="heatmap-legend" aria-label="Chú thích bản đồ nhiệt phạt mềm">
+            <span>Ô bản đồ nhiệt</span>
             {[0, 1, 2, 3].map((level) => (
               <span className="heatmap-key" key={level}>
                 <i className={`heatmap-swatch heat-level-${level}`} aria-hidden="true" />
                 {level === 0 ? "0 · không phạt" : level === 3 ? "3+ · cao" : `${level} · thấp`}
               </span>
             ))}
-            <span className="heatmap-legend-note">Màu luôn đi kèm nhãn Soft N để không phụ thuộc vào màu sắc.</span>
+            <span className="heatmap-legend-note">Màu luôn đi kèm nhãn mức phạt để không phụ thuộc vào màu sắc.</span>
           </div>
         </section>
 
@@ -1721,47 +1786,47 @@ export function TimetableScreen() {
         <section className="version-panel" aria-labelledby="version-panel-title">
           <div className="version-heading">
             <div>
-              <p className="eyebrow">P2.4-T02 · Scenario management</p>
-              <h3 id="version-panel-title">Compare / clone / rollback phương án</h3>
+              <p className="eyebrow">P2.4-T02 · Quản lý kịch bản</p>
+              <h3 id="version-panel-title">So sánh / nhân bản / khôi phục phương án</h3>
               <p className="small-note">
-                <b>{draftVersionLabel}</b> · Published v1 luôn immutable; mọi clone/rollback tạo draft mới và ghi actor,
-                reason, source version ở server audit.
+                <b>{draftVersionLabel}</b> · Phiên bản đã công bố v1 không thể thay đổi; mọi thao tác nhân bản/khôi phục
+                tạo bản nháp mới và ghi người thực hiện, lý do, phiên bản nguồn vào nhật ký máy chủ.
               </p>
             </div>
             <span className="version-contract-badge">SCHEDULE-VERSION-OPS-1.0.0</span>
           </div>
           <div className="version-actions">
             <button type="button" onClick={refreshCompare}>
-              Compare snapshot
+              So sánh bản chụp
             </button>
             <button className="button-secondary" type="button" onClick={cloneDraft}>
-              Clone thành draft
+              Nhân bản thành bản nháp
             </button>
             <button className="button-secondary" type="button" onClick={rollbackToPublished}>
-              Rollback snapshot cũ
+              Khôi phục bản chụp cũ
             </button>
           </div>
           <div className="version-notice" role="status" aria-live="polite">
             {versionNotice}
           </div>
-          <div className="version-score-grid" aria-label="Score delta giữa hai phương án">
+          <div className="version-score-grid" aria-label="Chênh lệch điểm giữa hai phương án">
             <span>
               Thay đổi <b>{compareResult.summary.changedAssignments}</b>
             </span>
             <span>
-              Move <b>{compareResult.summary.moves}</b>
+              Chuyển <b>{compareResult.summary.moves}</b>
             </span>
             <span>
-              Add / remove{" "}
+              Thêm / xóa{" "}
               <b>
                 {compareResult.summary.additions} / {compareResult.summary.removals}
               </b>
             </span>
             <span>
-              Score delta{" "}
+              Chênh lệch điểm{" "}
               <b>
                 {compareResult.score.delta === null
-                  ? "N/A"
+                  ? "Không có"
                   : `${compareResult.score.delta > 0 ? "+" : ""}${compareResult.score.delta}`}
               </b>
             </span>
@@ -1771,7 +1836,7 @@ export function TimetableScreen() {
               {compareResult.diffs.map((diff) => (
                 <li key={`${diff.lessonId}-${diff.sessionIndex}`} className="version-diff-item">
                   <span className={`diff-operation diff-operation-${diff.operation.toLowerCase()}`}>
-                    {diff.operation}
+                    {DIFF_OPERATION_LABELS[diff.operation] ?? diff.operation}
                   </span>
                   <div>
                     <strong>{diff.after?.subjectLabel ?? diff.before?.subjectLabel ?? diff.lessonId}</strong>
@@ -1786,21 +1851,23 @@ export function TimetableScreen() {
               ))}
             </ol>
           ) : (
-            <p className="small-note version-empty">Hai snapshot không có thay đổi assignment.</p>
+            <p className="small-note version-empty">Hai bản chụp không có thay đổi phân công.</p>
           )}
         </section>
 
         <section className="workflow-panel" aria-labelledby="workflow-panel-title">
           <div className="workflow-heading">
             <div>
-              <p className="eyebrow">P2.4-T03 · Approval gate</p>
-              <h3 id="workflow-panel-title">Approval và publish permissions</h3>
+              <p className="eyebrow">P2.4-T03 · Cổng phê duyệt</p>
+              <h3 id="workflow-panel-title">Quyền phê duyệt và công bố</h3>
               <p className="small-note">
-                Role hiện tại: <b>{frontendConfig.actorRole}</b> · chỉ ADMIN/REVIEWER được approval hoặc publish; API
-                vẫn kiểm tra hard gate và ghi audit timestamp.
+                Vai trò hiện tại: <b>{frontendConfig.actorRole}</b> · chỉ ADMIN/REVIEWER được phê duyệt hoặc công bố;
+                API vẫn kiểm tra cổng ràng buộc và ghi thời điểm vào nhật ký.
               </p>
             </div>
-            <span className={`workflow-status workflow-status-${workflowStatus.toLowerCase()}`}>{workflowStatus}</span>
+            <span className={`workflow-status workflow-status-${workflowStatus.toLowerCase()}`}>
+              {WORKFLOW_STATUS_LABELS[workflowStatus]}
+            </span>
           </div>
           <div className="workflow-actions">
             <button
@@ -1808,7 +1875,7 @@ export function TimetableScreen() {
               onClick={() => transitionWorkflow("APPROVED")}
               disabled={!canApprovePublish || workflowStatus !== "IN_REVIEW"}
             >
-              Approve phương án
+              Phê duyệt phương án
             </button>
             <button
               className="button-secondary"
@@ -1816,23 +1883,24 @@ export function TimetableScreen() {
               onClick={() => transitionWorkflow("PUBLISHED")}
               disabled={!canApprovePublish || workflowStatus !== "LOCKED"}
             >
-              Publish phương án
+              Công bố phương án
             </button>
           </div>
           <p className="small-note workflow-note">
-            Preview local chỉ mô phỏng state; scheduler không thể tự approve. Publish thật chỉ thành công sau
-            completeness, scope và hard class/teacher/room gate ở NestJS/PostgreSQL.
+            Bản xem trước cục bộ chỉ mô phỏng trạng thái; người lập lịch không thể tự phê duyệt. Công bố thật chỉ thành
+            công sau khi vượt qua cổng kiểm tra đầy đủ, phạm vi và ràng buộc cứng về lớp/giáo viên/phòng tại
+            NestJS/PostgreSQL.
           </p>
         </section>
 
         <section className="export-panel" aria-labelledby="export-panel-title">
           <div className="export-heading">
             <div>
-              <p className="eyebrow">P2.4-T04 · Official workbook</p>
+              <p className="eyebrow">P2.4-T04 · Workbook chính thức</p>
               <h3 id="export-panel-title">Xuất Excel theo lớp, giáo viên và phòng</h3>
               <p className="small-note">
-                Server export từ version <b>{frontendConfig.scheduleVersionId}</b>; UI chỉ khởi chạy request, không thay
-                thế permission hoặc hard-constraint gate.
+                Máy chủ xuất dữ liệu từ phiên bản <b>{frontendConfig.scheduleVersionId}</b>; UI chỉ khởi chạy yêu cầu,
+                không thay thế quyền hạn hoặc cổng ràng buộc cứng.
               </p>
             </div>
             <span className="export-contract-badge">SCHEDULE-EXPORT-1.0.0</span>
@@ -1866,19 +1934,19 @@ export function TimetableScreen() {
             aria-live="polite"
           >
             <div>
-              <p className="eyebrow">Eligibility preview</p>
+              <p className="eyebrow">Xem trước tính hợp lệ</p>
               <h3>
                 {movePreview.eligible ? "Có thể chuyển" : "Không thể chuyển"} {previewLesson.subjectLabel} →{" "}
                 {previewTargetSlot.dayLabel} · Tiết {previewTargetSlot.period}
               </h3>
               <p>{movePreview.reason}</p>
               <small>
-                Soft penalty delta:{" "}
+                Chênh lệch phạt mềm:{" "}
                 <b>
                   {movePreview.softPenaltyDelta > 0 ? "+" : ""}
                   {movePreview.softPenaltyDelta}
                 </b>{" "}
-                · hard constraints phải được server xác nhận lại.
+                · máy chủ phải xác nhận lại các ràng buộc cứng.
               </small>
             </div>
             <div className="move-actions">
@@ -1893,8 +1961,8 @@ export function TimetableScreen() {
         ) : null}
         {lastMove ? (
           <div className="alert alert-success move-success" role="status">
-            <strong>Đã cập nhật vị trí lesson trong draft local.</strong>
-            <span>Chưa gửi persistence; server sẽ revalidate trước khi ghi.</span>
+            <strong>Đã cập nhật vị trí phân công trong bản nháp cục bộ.</strong>
+            <span>Chưa lưu vào nguồn chính thức; máy chủ sẽ kiểm tra lại trước khi ghi.</span>
             <button className="button-secondary" type="button" onClick={handleUndoMove}>
               Hoàn tác
             </button>
@@ -1904,11 +1972,11 @@ export function TimetableScreen() {
         <section className="history-panel" aria-labelledby="history-panel-title">
           <div className="history-heading">
             <div>
-              <p className="eyebrow">P2.3-T06 · Audit trail</p>
+              <p className="eyebrow">P2.3-T06 · Nhật ký thao tác</p>
               <h3 id="history-panel-title">Lịch sử chỉnh tay</h3>
               <p className="small-note">
-                Phiên local chỉ hiển thị metadata an toàn của move/lock/undo; audit server là nguồn khớp DB và có
-                correlation ID.
+                Phiên cục bộ chỉ hiển thị siêu dữ liệu an toàn của chuyển/khóa/hoàn tác; nhật ký máy chủ là nguồn khớp
+                với cơ sở dữ liệu và có mã đối soát.
               </p>
             </div>
             <span className="history-count" aria-label={`${manualHistory.length} thao tác trong phiên`}>
@@ -1919,7 +1987,9 @@ export function TimetableScreen() {
             <ol className="history-list" aria-label="Các thao tác chỉnh tay trong phiên">
               {manualHistory.slice(0, 8).map((entry) => (
                 <li key={entry.id} className="history-item">
-                  <span className={`history-kind history-kind-${entry.kind.toLowerCase()}`}>{entry.kind}</span>
+                  <span className={`history-kind history-kind-${entry.kind.toLowerCase()}`}>
+                    {MANUAL_HISTORY_LABELS[entry.kind] ?? entry.kind}
+                  </span>
                   <div>
                     <strong>{entry.summary}</strong>
                     <p>{entry.detail}</p>
@@ -1966,12 +2036,12 @@ export function TimetableScreen() {
             <i className="legend-dot scheduled-dot" aria-hidden="true" /> Đã xếp
           </span>
           <span>
-            <i className="legend-dot conflict-dot" aria-hidden="true" /> Conflict cần review
+            <i className="legend-dot conflict-dot" aria-hidden="true" /> Xung đột cần rà soát
           </span>
           <span className="legend-note">
-            Kéo lesson hoặc focus card + dùng phím mũi tên để xem eligibility preview.
+            Kéo phân công hoặc chọn thẻ rồi dùng phím mũi tên để xem trước tính hợp lệ.
           </span>
-          <span className="legend-note">Timezone: Asia/Ho_Chi_Minh · tuần pilot</span>
+          <span className="legend-note">Múi giờ: Asia/Ho_Chi_Minh · tuần thí điểm</span>
         </div>
       </section>
     </>

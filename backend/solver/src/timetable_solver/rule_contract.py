@@ -42,13 +42,13 @@ class RuleDefinition(BaseModel):
     @model_validator(mode="after")
     def validate_rule(self) -> "RuleDefinition":
         if self.effectiveTo and self.effectiveTo < self.effectiveFrom:
-            raise ValueError("effectiveTo must not be earlier than effectiveFrom")
+            raise ValueError("effectiveTo không được sớm hơn effectiveFrom")
         if self.kind == "HARD" and self.weight is not None:
-            raise ValueError("HARD rules must not carry a soft weight")
+            raise ValueError("Quy tắc HARD không được có trọng số mềm")
         if self.kind == "SOFT" and (self.weight is None or self.weight < 0):
-            raise ValueError("SOFT rules require a non-negative weight")
+            raise ValueError("Quy tắc SOFT yêu cầu trọng số không âm")
         if self.approvalState == "APPROVED" and (not self.approvedBy or not self.approvedAt):
-            raise ValueError("APPROVED rules require approvedBy and approvedAt")
+            raise ValueError("Quy tắc APPROVED yêu cầu approvedBy và approvedAt")
         return self
 
 
@@ -78,10 +78,10 @@ class RuleSetSnapshot(BaseModel):
         if self.effectiveTo and self.effectiveTo < self.effectiveFrom:
             raise ValueError("effectiveTo must not be earlier than effectiveFrom")
         if self.approvalState == "APPROVED" and (not self.approvedBy or not self.approvedAt):
-            raise ValueError("APPROVED snapshots require approvedBy and approvedAt")
+            raise ValueError("Bản chụp APPROVED yêu cầu approvedBy và approvedAt")
         codes = [rule.code for rule in self.rules]
         if len(codes) != len(set(codes)):
-            raise ValueError("rule codes must be unique within a snapshot")
+            raise ValueError("Mã quy tắc phải là duy nhất trong một bản chụp")
         return self
 
 

@@ -20,10 +20,10 @@ export function assertTenantId(value: string, field = "tenantId") {
 export function assertTenantScope(identityTenantId: string | undefined, requestedTenantId: string | undefined) {
   if (!requestedTenantId) return identityTenantId;
   if (!identityTenantId) {
-    throw new TenantScopeViolation("TENANT_CONTEXT_REQUIRED", "Tenant context phải đến từ identity đã xác thực.");
+    throw new TenantScopeViolation("TENANT_CONTEXT_REQUIRED", "Ngữ cảnh tenant phải đến từ danh tính đã xác thực.");
   }
   if (identityTenantId !== requestedTenantId) {
-    throw new TenantScopeViolation("TENANT_SCOPE_FORBIDDEN", "Không được truy cập tenant scope khác.");
+    throw new TenantScopeViolation("TENANT_SCOPE_FORBIDDEN", "Không được truy cập phạm vi tenant khác.");
   }
   return identityTenantId;
 }

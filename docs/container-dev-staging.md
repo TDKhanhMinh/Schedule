@@ -1,12 +1,11 @@
-# Container and dev/staging runbook — P2.5-T05
+# Runbook container và dev/staging — P2.5-T05
 
 ## Local Docker stack
 
-The compose stack contains PostgreSQL, Redis, a one-shot migration service, the
-NestJS API, the Python/OR-Tools worker and the Nginx-served React frontend.
-`migrate` waits for PostgreSQL health and API/worker wait for successful
-migrations plus Redis health. The API readiness probe checks both PostgreSQL
-and Redis through `/api/v1/health/ready`.
+Stack compose gồm PostgreSQL, Redis, dịch vụ migration chạy một lần, API NestJS,
+worker Python/OR-Tools và giao diện React được Nginx phục vụ. `migrate` chờ
+PostgreSQL khỏe; API/worker chờ migration thành công và Redis khỏe. Probe
+readiness của API kiểm tra cả PostgreSQL và Redis qua `/api/v1/health/ready`.
 
 ```powershell
 docker compose build
@@ -16,31 +15,29 @@ Invoke-WebRequest http://localhost:3011/api/v1/health/ready
 Invoke-WebRequest http://localhost:8080
 ```
 
-The local ports are API `3011`, frontend `8080`, PostgreSQL `55432` and Redis
-`6379`. The repository `.env.example` contains connection placeholders only;
-real credentials must be supplied through a local ignored `.env` or a secret
-manager. The compose file uses development identity headers and must not be
-used as a production identity boundary.
+Cổng cục bộ là API `3011`, giao diện `8080`, PostgreSQL `55432` và Redis
+`6379`. `.env.example` của kho chỉ chứa chỗ trống kết nối; thông tin xác thực
+thật phải được cung cấp qua `.env` cục bộ đã bỏ qua hoặc trình quản lý bí mật.
+Tệp compose dùng header danh tính phát triển và không được dùng làm ranh giới
+danh tính production.
 
-For a fresh database, the migration container applies ordered forward-only
-SQL files and records them in `schema_migrations`. If it finds the existing
-local database already contains the complete managed schema but has no
-migration ledger, it creates a baseline ledger without replaying SQL. Partial
-or unknown schemas fail and require an explicit database backup/review before
-continuing.
+Với cơ sở dữ liệu mới, container migration áp dụng các tệp SQL theo thứ tự, chỉ
+tiến tới và ghi nhận vào `schema_migrations`. Nếu phát hiện cơ sở dữ liệu cục bộ
+hiện có đã chứa đầy đủ schema được quản lý nhưng chưa có sổ migration, nó tạo sổ
+đường cơ sở mà không chạy lại SQL. Schema không đầy đủ hoặc không xác định sẽ
+thất bại và yêu cầu sao lưu/review cơ sở dữ liệu rõ ràng trước khi tiếp tục.
 
-## Staging template
+## Mẫu staging
 
-`deploy/staging/` is a Kubernetes/Kustomize template for a staging cluster.
-Replace the example image registry/tag, `CORS_ORIGIN`, database/Redis secret
-references and ingress/network policy according to the deployment platform.
-`secret.example.yaml` intentionally contains placeholders and must never be
-filled with real values in Git. Staging must provide a real OIDC/session
-adapter before the production fail-closed guard is relaxed, and should use
-managed PostgreSQL/Redis rather than the local compose volumes.
+`deploy/staging/` là mẫu Kubernetes/Kustomize cho cụm staging. Thay registry/tag
+image mẫu, `CORS_ORIGIN`, tham chiếu bí mật database/Redis và chính sách
+ingress/mạng theo nền tảng triển khai. `secret.example.yaml` cố ý chứa chỗ trống
+và tuyệt đối không điền giá trị thật trong Git. Staging phải cung cấp bộ điều hợp
+OIDC/session thật trước khi nới guard fail-closed của production, đồng thời nên
+dùng PostgreSQL/Redis được quản lý thay vì volume compose cục bộ.
 
-The manifests include API liveness/readiness probes, non-root container
-settings, separate API/worker/frontend Deployments and a ConfigMap/Secret
-boundary. They are static deployment evidence, not proof that a cluster,
-registry, TLS, identity provider, backups, monitoring or pilot has been
-configured.
+Các manifest gồm probe liveness/readiness của API, cấu hình container không chạy
+quyền root, Deployment riêng cho API/worker/giao diện và ranh giới
+ConfigMap/Secret. Đây chỉ là bằng chứng triển khai tĩnh, không chứng minh cụm,
+registry, TLS, nhà cung cấp danh tính, sao lưu, giám sát hoặc thí điểm đã được
+cấu hình.

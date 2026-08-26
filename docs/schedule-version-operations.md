@@ -1,9 +1,9 @@
-# Schedule version compare, clone and rollback
+# So sánh, nhân bản và khôi phục phiên bản thời khóa biểu
 
 **Contract:** `SCHEDULE-VERSION-OPS-1.0.0`
 
-The API treats a schedule version as an immutable snapshot once it is
-`PUBLISHED` or `ARCHIVED`. Scenario operations never update that snapshot:
+API coi phiên bản thời khóa biểu là bản chụp bất biến khi đã `PUBLISHED` hoặc
+`ARCHIVED`. Các thao tác kịch bản không bao giờ cập nhật bản chụp đó:
 
 - `GET /api/v1/schools/:schoolId/schedule-versions/:versionId/compare/:againstVersionId`
   returns assignment-level `MOVE`, `ADD` and `REMOVE` entries plus summary counts
@@ -18,10 +18,10 @@ The API treats a schedule version as an immutable snapshot once it is
   `{"sourceVersionId":"...","reason":"..."}`. The path version is retained
   as the rollback target in audit metadata and is not mutated.
 
-Clone and rollback run in one PostgreSQL transaction. The transaction locks the
+Nhân bản và khôi phục chạy trong một transaction PostgreSQL. Transaction khóa
 academic period while allocating the next version number, copies assignments,
 computes a canonical schedule snapshot hash and writes one audit event with the
-actor, reason, source version, operation and correlation ID. A failure rolls back
-the draft, copied assignments and audit event together. Server authorization and
-solver hard constraints remain authoritative; the frontend only previews the
-workflow.
+người thực hiện, lý do, phiên bản nguồn, thao tác và mã đối soát. Thất bại sẽ
+hoàn tác bản nháp, phân công đã sao chép và sự kiện nhật ký cùng nhau. Phân quyền
+máy chủ và ràng buộc cứng của bộ tối ưu vẫn có thẩm quyền; giao diện chỉ xem
+trước workflow.

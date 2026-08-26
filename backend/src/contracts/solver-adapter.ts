@@ -62,10 +62,10 @@ export function buildSolverAdapterPayload(input: SolveJobRequest, context: Solve
   const ruleSetVersion = input.ruleSetVersion;
   const ruleSnapshotHash = input.ruleSnapshotHash;
   if (!ruleSnapshotId || !ruleSetVersion || !ruleSnapshotHash) {
-    throw new Error("Solver adapter requires an approved rule snapshot reference.");
+    throw new Error("Bộ điều hợp tối ưu yêu cầu tham chiếu bản chụp quy tắc đã phê duyệt.");
   }
   if (!context.academicPeriodId || !context.templateVersion) {
-    throw new Error("Solver adapter requires academicPeriodId and templateVersion.");
+    throw new Error("Bộ điều hợp tối ưu yêu cầu academicPeriodId và templateVersion.");
   }
 
   const unsigned = {
@@ -100,10 +100,10 @@ export function verifySolverAdapterChecksum(payload: SolverAdapterPayload) {
 
 export function validateSolverAdapterPayload(payload: SolverAdapterPayload) {
   if (payload.adapterContractVersion !== SOLVER_ADAPTER_CONTRACT_VERSION) {
-    throw new Error(`Unsupported solver adapter contract: ${payload.adapterContractVersion}`);
+    throw new Error(`Hợp đồng bộ điều hợp tối ưu không được hỗ trợ: ${payload.adapterContractVersion}`);
   }
   if (!/^[0-9a-f]{64}$/.test(payload.inputChecksum) || !verifySolverAdapterChecksum(payload)) {
-    throw new Error("Solver adapter inputChecksum does not match the canonical payload.");
+    throw new Error("inputChecksum của bộ điều hợp tối ưu không khớp với dữ liệu chuẩn.");
   }
   return payload;
 }

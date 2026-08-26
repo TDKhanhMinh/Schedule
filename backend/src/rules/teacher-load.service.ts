@@ -174,7 +174,7 @@ export class TeacherLoadCalculationService {
     if (!rule) {
       throw new BadRequestException({
         code: "TEACHER_LOAD_RULE_NOT_EFFECTIVE",
-        message: `Rule ${code} không tồn tại, chưa được approve hoặc không có hiệu lực tại ${code}.`,
+        message: `Quy tắc ${code} không tồn tại, chưa được phê duyệt hoặc không có hiệu lực tại ${code}.`,
       });
     }
     return rule;
@@ -240,7 +240,10 @@ export class TeacherLoadService {
     ruleSnapshotId: string,
   ): Promise<TeacherLoadReport> {
     if (!ruleSnapshotId?.trim()) {
-      throw new BadRequestException({ code: "RULE_SNAPSHOT_REQUIRED", message: "Cần ruleSnapshotId đã được approve." });
+      throw new BadRequestException({
+        code: "RULE_SNAPSHOT_REQUIRED",
+        message: "Cần ruleSnapshotId đã được phê duyệt.",
+      });
     }
     const periodResult = await this.pool.query<AcademicPeriodRow>(
       `SELECT starts_on::text, ends_on::text
@@ -252,7 +255,7 @@ export class TeacherLoadService {
     if (!period) {
       throw new NotFoundException({
         code: "ACADEMIC_PERIOD_NOT_FOUND",
-        message: "Academic period không tồn tại trong school scope.",
+        message: "Khung năm học không tồn tại trong phạm vi trường.",
       });
     }
     const snapshotResult = await this.pool.query<RuleSnapshotRow>(
@@ -268,7 +271,7 @@ export class TeacherLoadService {
     if (!snapshotRow) {
       throw new NotFoundException({
         code: "RULE_SNAPSHOT_NOT_FOUND",
-        message: "Rule snapshot không tồn tại trong school scope.",
+        message: "Bản chụp quy tắc không tồn tại trong phạm vi trường.",
       });
     }
     const snapshot = this.toSnapshot(snapshotRow);
@@ -344,7 +347,7 @@ export class TeacherLoadService {
     }
     throw new BadRequestException({
       code: "RULE_SCOPE_SCHOOL_LEVEL_REQUIRED",
-      message: "Rule snapshot phải chỉ rõ scope.schoolLevel để tính định mức giáo viên.",
+      message: "Bản chụp quy tắc phải chỉ rõ scope.schoolLevel để tính định mức giáo viên.",
     });
   }
 

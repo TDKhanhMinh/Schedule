@@ -160,7 +160,7 @@ export class ImportsService {
     if (!file?.buffer?.length) {
       throw new BadRequestException({
         code: "FILE_REQUIRED",
-        message: "Vui lòng chọn file Excel để upload.",
+        message: "Vui lòng chọn tệp Excel để tải lên.",
       });
     }
 
@@ -183,7 +183,7 @@ export class ImportsService {
 
       throw new BadRequestException({
         code: "INVALID_WORKBOOK",
-        message: "Không thể đọc file Excel. Hãy dùng đúng template .xlsx.",
+        message: "Không thể đọc tệp Excel. Hãy dùng đúng mẫu .xlsx.",
       });
     }
     await this.assertSchool(schoolId);
@@ -212,7 +212,7 @@ export class ImportsService {
 
       throw new BadRequestException({
         code: "INVALID_WORKBOOK",
-        message: "Không thể đọc file Excel. Hãy dùng đúng template .xlsx.",
+        message: "Không thể đọc tệp Excel. Hãy dùng đúng mẫu .xlsx.",
       });
     }
 
@@ -300,7 +300,7 @@ export class ImportsService {
     if (!normalizedIdempotencyKey) {
       throw new BadRequestException({
         code: "IDEMPOTENCY_KEY_REQUIRED",
-        message: "Idempotency-Key hoặc import token là bắt buộc khi Confirm Import.",
+        message: "Idempotency-Key hoặc mã lô nhập là bắt buộc khi xác nhận nhập dữ liệu.",
       });
     }
     if (normalizedIdempotencyKey.length > 200) {
@@ -329,13 +329,13 @@ export class ImportsService {
 
       const batch = batchResult.rows[0];
       if (!batch) {
-        throw new NotFoundException("Import batch không tồn tại.");
+        throw new NotFoundException("Lô nhập không tồn tại.");
       }
 
       if (batch.idempotency_key && batch.idempotency_key !== normalizedIdempotencyKey) {
         throw new BadRequestException({
           code: "IDEMPOTENCY_KEY_MISMATCH",
-          message: "Import batch đã được gắn với một idempotency key khác.",
+          message: "Lô nhập đã được gắn với một khóa idempotency khác.",
           importBatchId: batch.id,
         });
       }
@@ -350,7 +350,7 @@ export class ImportsService {
       if (keyOwnerResult.rows[0]) {
         throw new BadRequestException({
           code: "IDEMPOTENCY_KEY_REUSED",
-          message: "Idempotency-Key đã được sử dụng cho một import batch khác.",
+          message: "Idempotency-Key đã được sử dụng cho một lô nhập khác.",
           importBatchId: keyOwnerResult.rows[0].id,
         });
       }
@@ -379,7 +379,7 @@ export class ImportsService {
       if (batch.error_count > 0 || batch.row_count === 0) {
         throw new BadRequestException({
           code: "IMPORT_HAS_ERRORS",
-          message: "Không thể Confirm Import khi dữ liệu còn lỗi.",
+          message: "Không thể xác nhận nhập dữ liệu khi dữ liệu còn lỗi.",
           importBatchId: batch.id,
         });
       }
@@ -473,7 +473,7 @@ export class ImportsService {
     );
     const batch = result.rows[0];
     if (!batch) {
-      throw new NotFoundException("Import batch không tồn tại.");
+      throw new NotFoundException("Lô nhập không tồn tại.");
     }
 
     const rows = await this.pool.query(
@@ -508,7 +508,7 @@ export class ImportsService {
       [batchId, schoolId],
     );
     if (!batchResult.rows[0]) {
-      throw new NotFoundException("Import batch không tồn tại.");
+      throw new NotFoundException("Lô nhập không tồn tại.");
     }
 
     const rows = await this.pool.query<{ row_number: number; errors: unknown }>(
@@ -520,19 +520,19 @@ export class ImportsService {
     );
     const issues = rows.rows.flatMap((row) => (Array.isArray(row.errors) ? (row.errors as ImportIssue[]) : []));
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = "School Timetable Optimizer";
+    workbook.creator = "Thời khóa biểu trường học - Bộ tối ưu";
     workbook.created = new Date();
     const worksheet = workbook.addWorksheet("ImportErrors");
     worksheet.columns = [
-      { header: "Sheet", key: "sheet", width: 22 },
-      { header: "Row", key: "row", width: 10 },
-      { header: "Column", key: "column", width: 16 },
-      { header: "Cell", key: "cell", width: 16 },
-      { header: "Field", key: "field", width: 22 },
-      { header: "Code", key: "code", width: 22 },
-      { header: "Severity", key: "severity", width: 12 },
-      { header: "Message", key: "message", width: 58 },
-      { header: "Original Value", key: "value", width: 28 },
+      { header: "Trang tính", key: "sheet", width: 22 },
+      { header: "Dòng", key: "row", width: 10 },
+      { header: "Cột", key: "column", width: 16 },
+      { header: "Ô", key: "cell", width: 16 },
+      { header: "Trường dữ liệu", key: "field", width: 22 },
+      { header: "Mã", key: "code", width: 22 },
+      { header: "Mức độ", key: "severity", width: 12 },
+      { header: "Thông báo", key: "message", width: 58 },
+      { header: "Giá trị ban đầu", key: "value", width: 28 },
     ];
     worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
     worksheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFB42318" } };
@@ -571,7 +571,7 @@ export class ImportsService {
     if (!worksheet) {
       throw new BadRequestException({
         code: "INVALID_TEMPLATE",
-        message: "File Excel không có sheet dữ liệu.",
+        message: "Tệp Excel không có trang tính dữ liệu.",
       });
     }
 
@@ -612,7 +612,7 @@ export class ImportsService {
     if (missingColumns.length > 0) {
       throw new BadRequestException({
         code: "INVALID_TEMPLATE",
-        message: "File thiếu các cột bắt buộc: " + missingColumns.map((column) => column.label).join(", "),
+        message: "Tệp thiếu các cột bắt buộc: " + missingColumns.map((column) => column.label).join(", "),
         missingColumns: missingColumns.map((column) => column.label),
       });
     }
@@ -871,7 +871,7 @@ export class ImportsService {
     if (buffer.byteLength > MAX_WORKBOOK_SIZE_BYTES) {
       throw new BadRequestException({
         code: "WORKBOOK_TOO_LARGE",
-        message: "File Excel vượt quá kích thước cho phép.",
+        message: "Tệp Excel vượt quá kích thước cho phép.",
         maxBytes: MAX_WORKBOOK_SIZE_BYTES,
       });
     }
@@ -879,7 +879,7 @@ export class ImportsService {
     if (!this.hasZipSignature(buffer)) {
       throw new BadRequestException({
         code: "INVALID_FILE_SIGNATURE",
-        message: "File không có chữ ký Excel hợp lệ.",
+        message: "Tệp không có chữ ký Excel hợp lệ.",
       });
     }
 
@@ -889,7 +889,7 @@ export class ImportsService {
     } catch {
       throw new BadRequestException({
         code: "INVALID_WORKBOOK",
-        message: "File Excel bị hỏng hoặc không phải workbook hợp lệ.",
+        message: "Tệp Excel bị hỏng hoặc không phải sổ làm việc hợp lệ.",
       });
     }
 
@@ -898,7 +898,7 @@ export class ImportsService {
     if (uncompressedBytes > MAX_WORKBOOK_UNCOMPRESSED_BYTES) {
       throw new BadRequestException({
         code: "WORKBOOK_UNSAFE_CONTENT",
-        message: "Workbook giải nén vượt quá giới hạn an toàn.",
+        message: "Sổ làm việc sau giải nén vượt quá giới hạn an toàn.",
         maxUncompressedBytes: MAX_WORKBOOK_UNCOMPRESSED_BYTES,
       });
     }
@@ -907,7 +907,7 @@ export class ImportsService {
     if (entryNames.some((name) => /(^|\/)(externalLinks?|vbaProject\.bin)(\/|$)/i.test(name))) {
       throw new BadRequestException({
         code: "WORKBOOK_UNSAFE_CONTENT",
-        message: "Workbook chứa macro hoặc liên kết ngoài không được hỗ trợ.",
+        message: "Sổ làm việc chứa macro hoặc liên kết ngoài không được hỗ trợ.",
       });
     }
 
@@ -915,7 +915,7 @@ export class ImportsService {
     if (!workbookEntry) {
       throw new BadRequestException({
         code: "INVALID_WORKBOOK",
-        message: "Workbook thiếu cấu trúc Excel bắt buộc.",
+        message: "Sổ làm việc thiếu cấu trúc Excel bắt buộc.",
       });
     }
 
@@ -924,13 +924,13 @@ export class ImportsService {
     if (sheetCount === 0) {
       throw new BadRequestException({
         code: "INVALID_TEMPLATE",
-        message: "File Excel không có sheet dữ liệu.",
+        message: "Tệp Excel không có trang tính dữ liệu.",
       });
     }
     if (sheetCount > MAX_WORKBOOK_SHEETS) {
       throw new BadRequestException({
         code: "WORKBOOK_LIMIT_EXCEEDED",
-        message: "Workbook vượt quá số sheet cho phép.",
+        message: "Sổ làm việc vượt quá số trang tính cho phép.",
         limit: "sheets",
         max: MAX_WORKBOOK_SHEETS,
       });
@@ -941,7 +941,7 @@ export class ImportsService {
       if (/<(?:x:)?f(?:\s|>)/i.test(xml) || /<(?:x:)?hyperlink(?:\s|>)/i.test(xml)) {
         throw new BadRequestException({
           code: "WORKBOOK_UNSAFE_CONTENT",
-          message: "Workbook chứa công thức hoặc liên kết không được phép.",
+          message: "Sổ làm việc chứa công thức hoặc liên kết không được phép.",
         });
       }
 
@@ -949,7 +949,7 @@ export class ImportsService {
       if (rowCount > MAX_WORKBOOK_ROWS) {
         throw new BadRequestException({
           code: "WORKBOOK_LIMIT_EXCEEDED",
-          message: "Workbook vượt quá số hàng cho phép.",
+          message: "Sổ làm việc vượt quá số hàng cho phép.",
           limit: "rows",
           max: MAX_WORKBOOK_ROWS,
         });
@@ -962,7 +962,7 @@ export class ImportsService {
       if (maxColumn > MAX_WORKBOOK_COLUMNS) {
         throw new BadRequestException({
           code: "WORKBOOK_LIMIT_EXCEEDED",
-          message: "Workbook vượt quá số cột cho phép.",
+          message: "Sổ làm việc vượt quá số cột cho phép.",
           limit: "columns",
           max: MAX_WORKBOOK_COLUMNS,
         });
@@ -974,7 +974,7 @@ export class ImportsService {
       if (/relationships\/hyperlink|TargetMode\s*=\s*["']External["']/i.test(xml)) {
         throw new BadRequestException({
           code: "WORKBOOK_UNSAFE_CONTENT",
-          message: "Workbook chứa liên kết ngoài không được phép.",
+          message: "Sổ làm việc chứa liên kết ngoài không được phép.",
         });
       }
     }
@@ -984,7 +984,7 @@ export class ImportsService {
     if (workbook.worksheets.length > MAX_WORKBOOK_SHEETS) {
       throw new BadRequestException({
         code: "WORKBOOK_LIMIT_EXCEEDED",
-        message: "Workbook vượt quá số sheet cho phép.",
+        message: "Sổ làm việc vượt quá số trang tính cho phép.",
         limit: "sheets",
         max: MAX_WORKBOOK_SHEETS,
       });
@@ -994,7 +994,7 @@ export class ImportsService {
       if (worksheet.rowCount > MAX_WORKBOOK_ROWS) {
         throw new BadRequestException({
           code: "WORKBOOK_LIMIT_EXCEEDED",
-          message: "Workbook vượt quá số hàng cho phép.",
+          message: "Sổ làm việc vượt quá số hàng cho phép.",
           limit: "rows",
           max: MAX_WORKBOOK_ROWS,
         });
@@ -1002,7 +1002,7 @@ export class ImportsService {
       if (worksheet.columnCount > MAX_WORKBOOK_COLUMNS) {
         throw new BadRequestException({
           code: "WORKBOOK_LIMIT_EXCEEDED",
-          message: "Workbook vượt quá số cột cho phép.",
+          message: "Sổ làm việc vượt quá số cột cho phép.",
           limit: "columns",
           max: MAX_WORKBOOK_COLUMNS,
         });
@@ -1021,7 +1021,7 @@ export class ImportsService {
           if (hasFormula || cell.hyperlink) {
             throw new BadRequestException({
               code: "WORKBOOK_UNSAFE_CONTENT",
-              message: "Workbook chứa công thức hoặc liên kết không được phép.",
+              message: "Sổ làm việc chứa công thức hoặc liên kết không được phép.",
               sheet: worksheet.name,
               cell: cell.address,
             });
@@ -1063,7 +1063,7 @@ export class ImportsService {
   private async assertSchool(schoolId: string) {
     const result = await this.pool.query("SELECT 1 FROM schools WHERE id = $1", [schoolId]);
     if (result.rowCount === 0) {
-      throw new NotFoundException("School không tồn tại.");
+      throw new NotFoundException("Trường không tồn tại.");
     }
   }
 
@@ -1104,7 +1104,7 @@ export class ImportsService {
       id: row.id,
       action: row.action,
       actorId: row.actor_id,
-      message: "User " + row.actor_id + " đã import danh sách lịch học lúc " + row.created_at.toISOString(),
+      message: "Người dùng " + row.actor_id + " đã nhập danh sách lịch học lúc " + row.created_at.toISOString(),
       metadata: row.metadata,
       createdAt: row.created_at.toISOString(),
     };
@@ -1134,7 +1134,7 @@ export class ImportsService {
       templateVersion: batch.template_version,
       fileChecksum: batch.file_checksum,
       importToken: batch.idempotency_key,
-      message: "Import thành công.",
+      message: "Nhập dữ liệu thành công.",
       rowCount: batch.row_count,
       validRowCount: batch.valid_row_count,
       confirmedBy: batch.confirmed_by,
@@ -1147,7 +1147,7 @@ export class ImportsService {
     if (!/\.(xlsx|xlsm)$/i.test(filename)) {
       throw new BadRequestException({
         code: "INVALID_FILE_TYPE",
-        message: "Định dạng file không hợp lệ. Chỉ hỗ trợ file Excel .xlsx hoặc .xlsm.",
+        message: "Định dạng tệp không hợp lệ. Chỉ hỗ trợ tệp Excel .xlsx hoặc .xlsm.",
       });
     }
   }

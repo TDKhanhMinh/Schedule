@@ -105,7 +105,7 @@ export function mapImportRow(profile: ImportMappingProfile, row: Readonly<Record
       diagnostics.push({
         code: "MAPPING_PROFILE_INVALID",
         field: externalField,
-        message: `Canonical field không hỗ trợ: ${canonicalField}.`,
+        message: `Trường dữ liệu chuẩn không được hỗ trợ: ${canonicalField}.`,
       });
   }
   for (const externalField of profile.requiredExternalFields) {
@@ -113,7 +113,7 @@ export function mapImportRow(profile: ImportMappingProfile, row: Readonly<Record
       diagnostics.push({
         code: "REQUIRED_FIELD_MISSING",
         field: externalField,
-        message: `Thiếu field bắt buộc: ${externalField}.`,
+        message: `Thiếu trường dữ liệu bắt buộc: ${externalField}.`,
       });
   }
   const canonicalRow: Record<string, unknown> = {};

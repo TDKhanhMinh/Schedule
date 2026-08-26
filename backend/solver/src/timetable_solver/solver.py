@@ -185,12 +185,12 @@ def solve(
             conflict_diagnostic(issue.code, issue.message, issue.entityReferences, issue.severity)
             for issue in pre_solve.issues
         ]
-        if "No feasible assignment satisfies all hard class and teacher constraints" not in pre_solve_conflicts:
-            pre_solve_conflicts.append("No feasible assignment satisfies all hard class and teacher constraints")
+        if "Không có phân công khả thi nào thỏa mãn mọi ràng buộc cứng về lớp và giáo viên" not in pre_solve_conflicts:
+            pre_solve_conflicts.append("Không có phân công khả thi nào thỏa mãn mọi ràng buộc cứng về lớp và giáo viên")
             conflict_details.append(
                 conflict_diagnostic(
                     "NO_FEASIBLE_ASSIGNMENT",
-                    "No feasible assignment satisfies all hard class and teacher constraints",
+                    "Không có phân công khả thi nào thỏa mãn mọi ràng buộc cứng về lớp và giáo viên",
                 )
             )
         return SolveJobResult(
@@ -306,9 +306,9 @@ def solve(
 
     for lesson in request.lessons:
         if lesson.fixedSlotId and lesson.fixedSlotId not in slot_ids:
-            conflicts.append(f"Lesson {lesson.id} references unknown fixed slot {lesson.fixedSlotId}")
+            conflicts.append(f"Yêu cầu tiết học {lesson.id} tham chiếu khung tiết cố định không tồn tại {lesson.fixedSlotId}")
             conflict_details.append(
-                conflict_diagnostic("UNKNOWN_FIXED_SLOT", f"Lesson {lesson.id} references unknown fixed slot.", {"lessonId": lesson.id})
+                conflict_diagnostic("UNKNOWN_FIXED_SLOT", f"Yêu cầu tiết học {lesson.id} tham chiếu khung tiết cố định không tồn tại.", {"lessonId": lesson.id})
             )
             continue
 
@@ -318,9 +318,9 @@ def solve(
             allowed = {lesson.fixedSlotId}
         unknown = sorted(allowed - slot_ids)
         if unknown:
-            conflicts.append(f"Lesson {lesson.id} references unknown slots: {', '.join(unknown)}")
+            conflicts.append(f"Yêu cầu tiết học {lesson.id} tham chiếu các khung tiết không tồn tại: {', '.join(unknown)}")
             conflict_details.append(
-                conflict_diagnostic("UNKNOWN_ALLOWED_SLOT", f"Lesson {lesson.id} references unknown slots.", {"lessonId": lesson.id})
+                conflict_diagnostic("UNKNOWN_ALLOWED_SLOT", f"Yêu cầu tiết học {lesson.id} tham chiếu các khung tiết không tồn tại.", {"lessonId": lesson.id})
             )
             allowed -= set(unknown)
 
@@ -337,11 +337,11 @@ def solve(
             room_domain_count += len(eligible_room_ids)
             domain_pruned_count += max(0, len(rooms_by_id) - len(eligible_room_ids)) * len(allowed) * lesson.requiredSessions
             if not eligible_room_ids:
-                conflicts.append(f"Lesson {lesson.id} has no eligible rooms")
+                conflicts.append(f"Yêu cầu tiết học {lesson.id} không có phòng phù hợp")
                 conflict_details.append(
                     conflict_diagnostic(
                         "ROOM_CAPABILITY_UNSATISFIED",
-                        f"Lesson {lesson.id} has no room matching its room constraints.",
+                        f"Yêu cầu tiết học {lesson.id} không có phòng đáp ứng ràng buộc phòng.",
                         {"lessonId": lesson.id},
                     )
                 )
@@ -361,23 +361,23 @@ def solve(
             if locked_assignment:
                 if locked_assignment.slotId not in slot_ids:
                     conflicts.append(
-                        f"Locked assignment for lesson {lesson.id} references unknown slot {locked_assignment.slotId}"
+                        f"Phân công đã khóa của yêu cầu tiết học {lesson.id} tham chiếu khung tiết không tồn tại {locked_assignment.slotId}"
                     )
                     conflict_details.append(
                         conflict_diagnostic(
                             "UNKNOWN_LOCKED_SLOT",
-                            f"Locked assignment for lesson {lesson.id} references unknown slot.",
+                            f"Phân công đã khóa của yêu cầu tiết học {lesson.id} tham chiếu khung tiết không tồn tại.",
                             {"lessonId": lesson.id, "slotId": locked_assignment.slotId},
                         )
                     )
                     continue
                 session_allowed &= {locked_assignment.slotId}
                 if locked_assignment.roomId and not room_model_enabled:
-                    conflicts.append(f"Locked assignment for lesson {lesson.id} requires a room model")
+                    conflicts.append(f"Phân công đã khóa của yêu cầu tiết học {lesson.id} yêu cầu mô hình phòng")
                     conflict_details.append(
                         conflict_diagnostic(
                             "LOCKED_ROOM_MODEL_REQUIRED",
-                            f"Locked assignment for lesson {lesson.id} requires room constraints in the solve input.",
+                            f"Phân công đã khóa của yêu cầu tiết học {lesson.id} yêu cầu ràng buộc phòng trong dữ liệu đầu vào tối ưu.",
                             {"lessonId": lesson.id, "roomId": locked_assignment.roomId},
                         )
                     )
@@ -441,13 +441,13 @@ def solve(
             else:
                 if class_blocked_slots == len(session_allowed) and session_allowed:
                     code = "CLASS_AVAILABILITY_CONFLICT"
-                    message = f"Lesson {lesson.id} session {session_index} has no slots after class unavailability rules"
+                    message = f"Yêu cầu tiết học {lesson.id}, buổi {session_index}, không còn khung tiết sau khi áp dụng quy tắc lớp không khả dụng"
                 elif room_blocked_slots == len(session_allowed) and session_allowed and room_model_enabled:
                     code = "ROOM_AVAILABILITY_CONFLICT"
-                    message = f"Lesson {lesson.id} session {session_index} has no rooms available in its allowed slots"
+                    message = f"Yêu cầu tiết học {lesson.id}, buổi {session_index}, không còn phòng trong các khung tiết được phép"
                 else:
                     code = "HARD_AVAILABILITY_CONFLICT"
-                    message = f"Lesson {lesson.id} session {session_index} has no allowed slots after hard availability rules"
+                    message = f"Yêu cầu tiết học {lesson.id}, buổi {session_index}, không còn khung tiết được phép sau khi áp dụng quy tắc sẵn sàng cứng"
                 conflicts.append(message)
                 conflict_details.append(
                     conflict_diagnostic(
@@ -593,9 +593,9 @@ def solve(
     }.get(status, "UNKNOWN")
 
     if status_name == "INFEASIBLE" and not conflicts:
-        conflicts.append("No feasible assignment satisfies all hard class and teacher constraints")
+        conflicts.append("Không có phân công khả thi nào thỏa mãn mọi ràng buộc cứng về lớp và giáo viên")
         conflict_details.append(
-            conflict_diagnostic("NO_FEASIBLE_ASSIGNMENT", "No feasible assignment satisfies all hard class and teacher constraints")
+            conflict_diagnostic("NO_FEASIBLE_ASSIGNMENT", "Không có phân công khả thi nào thỏa mãn mọi ràng buộc cứng về lớp và giáo viên")
         )
 
     assignments: list[Assignment] = []
@@ -623,7 +623,7 @@ def solve(
         conflict_details.append(
             conflict_diagnostic(
                 "NO_FEASIBLE_ASSIGNMENT",
-                "Decoded solver output violated one or more hard constraints.",
+                "Kết quả bộ tối ưu giải mã đã vi phạm một hoặc nhiều ràng buộc cứng.",
             )
         )
 
@@ -656,7 +656,7 @@ def solve(
                     conflict_details.append(
                         conflict_diagnostic(
                             "PREFERENCE_VIOLATED",
-                            f"Teacher {lesson.teacherId} preference {rule.code} was violated at slot {assignment.slotId}.",
+                            f"Ưu tiên {rule.code} của giáo viên {lesson.teacherId} bị vi phạm tại khung tiết {assignment.slotId}.",
                             {"teacherId": lesson.teacherId, "slotId": assignment.slotId},
                             "WARNING",
                         )

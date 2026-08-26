@@ -1,27 +1,25 @@
-# Approval and publish permissions
+# Quyền phê duyệt và công bố
 
-The schedule lifecycle has two authorization layers:
+Vòng đời thời khóa biểu có hai lớp phân quyền:
 
-- `AuthGuard` maps `APPROVED`, `PUBLISHED` and `ARCHIVED` transitions to the
-  `PUBLISH` permission. `REVIEWER` and `ADMIN` have that permission; a
-  `SCHEDULER` can prepare/review and lock a version but cannot approve or
-  publish it.
-- `ScheduleVersionService` repeats the policy check so a direct service call
-  cannot bypass the HTTP boundary. Approval and publish also require a non-empty
-  reason.
+- `AuthGuard` ánh xạ chuyển trạng thái `APPROVED`, `PUBLISHED` và `ARCHIVED` vào
+  quyền `PUBLISH`. `REVIEWER` và `ADMIN` có quyền đó; `SCHEDULER` có thể chuẩn bị,
+  rà soát và khóa phiên bản nhưng không thể phê duyệt hoặc công bố.
+- `ScheduleVersionService` lặp lại kiểm tra chính sách để lời gọi trực tiếp đến
+  service không thể bỏ qua ranh giới HTTP. Phê duyệt và công bố cũng yêu cầu lý do không rỗng.
 
-`APPROVED` and `PUBLISHED` transitions run in a PostgreSQL transaction. The
-transaction locks the version, rechecks its lifecycle state, and writes an
-`APPROVE` or `PUBLISH` audit event with actor, role, reason, correlation ID
-and timestamp. A failed transition rolls back the state change and audit.
+Chuyển `APPROVED` và `PUBLISHED` chạy trong transaction PostgreSQL. Transaction
+khóa phiên bản, kiểm tra lại trạng thái vòng đời và ghi sự kiện nhật ký `APPROVE`
+hoặc `PUBLISH` với người thực hiện, vai trò, lý do, mã đối soát và thời điểm.
+Chuyển đổi thất bại sẽ hoàn tác thay đổi trạng thái và nhật ký.
 
-Before `PUBLISHED`, the service checks:
+Trước `PUBLISHED`, service kiểm tra:
 
-- expected lesson sessions equal materialized assignments;
-- every assignment stays inside the school and academic-period scope;
-- no class, teacher or room is assigned twice in the same slot.
+- số buổi học dự kiến bằng số phân công đã hiện thực;
+- mọi phân công nằm trong phạm vi trường và khung năm học;
+- không có lớp, giáo viên hoặc phòng được phân công hai lần trong cùng khung tiết.
 
-The publish transaction also computes the canonical schedule snapshot hash.
-PostgreSQL lifecycle/assignment triggers remain the final immutability boundary
-for published and archived snapshots. The frontend displays role-aware controls
-as a workflow aid only; it is not a security or correctness boundary.
+Transaction công bố cũng tính mã băm bản chụp thời khóa biểu chuẩn. Trigger vòng
+đời/phân công PostgreSQL vẫn là ranh giới bất biến cuối cho bản chụp đã công bố
+và lưu trữ. Giao diện chỉ hiển thị điều khiển theo vai trò để hỗ trợ workflow;
+đây không phải ranh giới bảo mật hay tính đúng đắn.

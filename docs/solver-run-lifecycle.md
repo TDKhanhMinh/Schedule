@@ -1,14 +1,13 @@
-# Solver run lifecycle
+# Vòng đời lần chạy bộ tối ưu
 
-`SolveJobResult.status` is one of `INVALID`, `INFEASIBLE`, `FEASIBLE`,
+`SolveJobResult.status` là một trong `INVALID`, `INFEASIBLE`, `FEASIBLE`,
 `OPTIMAL`, or `UNKNOWN`:
 
-- `INVALID`: the worker rejected the input contract before solving;
-- `INFEASIBLE`: pre-solve or CP-SAT proved no hard-feasible assignment;
-- `FEASIBLE`: a time-limited run returned a valid incumbent;
-- `OPTIMAL`: CP-SAT proved the best objective found;
-- `UNKNOWN`: no valid incumbent was available or the solver returned an
-  unclassified status.
+- `INVALID`: worker từ chối hợp đồng đầu vào trước khi tối ưu;
+- `INFEASIBLE`: kiểm tra trước hoặc CP-SAT chứng minh không có phân công khả thi cứng;
+- `FEASIBLE`: lần chạy giới hạn thời gian trả nghiệm hiện tại hợp lệ;
+- `OPTIMAL`: CP-SAT chứng minh mục tiêu tốt nhất đã tìm thấy;
+- `UNKNOWN`: không có nghiệm hiện tại hợp lệ hoặc bộ tối ưu trả trạng thái chưa phân loại.
 
 `diagnostics.runMetrics` records `wallTimeMs`, `bestObjectiveBound`, and
 `objectiveGapPercent`. Seed and time limit remain in `metadata`, while the
@@ -16,9 +15,8 @@ weighted objective is in `objectiveBreakdown`. A feasible incumbent is retained
 when the time limit is reached; the post-solve hard-constraint audit still runs
 before the result is returned.
 
-At the NestJS worker boundary, malformed solver input is converted to an
-`INVALID` result with machine-readable diagnostics. Python process failures are
-reported as worker/system errors and are not relabeled as business
-`INFEASIBLE`. `runPythonSolver` accepts an `AbortSignal`; abort kills the child
-process and rejects with `SOLVER_CANCELLED`, preventing a partial result from
-being published.
+Tại ranh giới worker NestJS, đầu vào bộ tối ưu sai được chuyển thành kết quả
+`INVALID` với chẩn đoán máy đọc được. Lỗi tiến trình Python được báo như lỗi
+worker/hệ thống và không đổi nhãn thành nghiệp vụ `INFEASIBLE`.
+`runPythonSolver` nhận `AbortSignal`; hủy sẽ dừng tiến trình con và từ chối với
+`SOLVER_CANCELLED`, ngăn công bố kết quả một phần.

@@ -112,5 +112,5 @@ phương/trường.
 5. Quy tắc availability và preference của giáo viên: hard ban hay soft
    preference, trọng số và cách xử lý khi không khả thi.
 
-Until these approvals exist, this register is suitable as an implementation and
-audit baseline, not as a final legal/business approval.
+Cho đến khi có các phê duyệt này, sổ đăng ký chỉ phù hợp làm đường cơ sở triển
+khai và kiểm toán, không phải phê duyệt pháp lý/nghiệp vụ cuối cùng.

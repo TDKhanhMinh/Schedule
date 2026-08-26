@@ -70,7 +70,7 @@ export class TeacherAvailabilityCalculationService {
     if (snapshot.approvalState !== "APPROVED") {
       throw new BadRequestException({
         code: "RULE_SNAPSHOT_NOT_APPROVED",
-        message: "Availability chỉ được đọc từ rule snapshot đã được approve.",
+        message: "Tình trạng sẵn sàng chỉ được đọc từ bản chụp quy tắc đã được phê duyệt.",
       });
     }
 
@@ -102,7 +102,7 @@ export class TeacherAvailabilityCalculationService {
     if (!scope.actorId) {
       throw new BadRequestException({
         code: "AVAILABILITY_TEACHER_SCOPE_REQUIRED",
-        message: `${rule.code} phải scope theo teacherId/actorId.`,
+        message: `${rule.code} phải giới hạn phạm vi theo teacherId/actorId.`,
       });
     }
     return !input.teacherId || scope.actorId === input.teacherId;
@@ -133,7 +133,7 @@ export class TeacherAvailabilityCalculationService {
     if (slotId && blockedSlotIds.length === 0) {
       throw new BadRequestException({
         code: "AVAILABILITY_SLOT_NOT_FOUND",
-        message: `${rule.code} tham chiếu slot không tồn tại trong academic period.`,
+        message: `${rule.code} tham chiếu khung tiết không tồn tại trong khung năm học.`,
       });
     }
 
@@ -229,7 +229,10 @@ export class TeacherAvailabilityService {
     teacherId?: string,
   ): Promise<TeacherAvailabilitySet> {
     if (!ruleSnapshotId?.trim()) {
-      throw new BadRequestException({ code: "RULE_SNAPSHOT_REQUIRED", message: "Cần ruleSnapshotId đã được approve." });
+      throw new BadRequestException({
+        code: "RULE_SNAPSHOT_REQUIRED",
+        message: "Cần ruleSnapshotId đã được phê duyệt.",
+      });
     }
     const periodResult = await this.pool.query<AcademicPeriodRow>(
       `SELECT starts_on::text
@@ -241,7 +244,7 @@ export class TeacherAvailabilityService {
     if (!period) {
       throw new NotFoundException({
         code: "ACADEMIC_PERIOD_NOT_FOUND",
-        message: "Academic period không tồn tại trong school scope.",
+        message: "Khung năm học không tồn tại trong phạm vi trường.",
       });
     }
     const snapshotResult = await this.pool.query<RuleSnapshotRow>(
@@ -257,7 +260,7 @@ export class TeacherAvailabilityService {
     if (!snapshotRow) {
       throw new NotFoundException({
         code: "RULE_SNAPSHOT_NOT_FOUND",
-        message: "Rule snapshot không tồn tại trong school scope.",
+        message: "Bản chụp quy tắc không tồn tại trong phạm vi trường.",
       });
     }
     const slotsResult = await this.pool.query<TimeSlotRow>(

@@ -331,15 +331,15 @@ describe("ImportsService secure workbook boundary", () => {
     if (!worksheet) throw new Error("ImportErrors sheet is missing");
     const rowValues = (row: { values: unknown }) => Array.from(row.values as unknown[]).slice(1);
     expect(rowValues(worksheet.getRow(1))).toEqual([
-      "Sheet",
-      "Row",
-      "Column",
-      "Cell",
-      "Field",
-      "Code",
-      "Severity",
-      "Message",
-      "Original Value",
+      "Trang tính",
+      "Dòng",
+      "Cột",
+      "Ô",
+      "Trường dữ liệu",
+      "Mã",
+      "Mức độ",
+      "Thông báo",
+      "Giá trị ban đầu",
     ]);
     expect(rowValues(worksheet.getRow(2))).toEqual([
       "LessonRequirements",

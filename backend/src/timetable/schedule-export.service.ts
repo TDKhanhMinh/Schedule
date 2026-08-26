@@ -159,7 +159,7 @@ export class ScheduleExportService {
     if (result.rows.length === 0) {
       throw new NotFoundException({
         code: "SCHEDULE_VERSION_NOT_FOUND",
-        message: "Schedule version không tồn tại trong school scope.",
+        message: "Phiên bản thời khóa biểu không tồn tại trong phạm vi trường.",
       });
     }
     return result.rows[0];
@@ -169,7 +169,7 @@ export class ScheduleExportService {
     if (actorRole === "VIEWER" && status !== "PUBLISHED") {
       throw new ForbiddenException({
         code: "SCHEDULE_EXPORT_DRAFT_FORBIDDEN",
-        message: "VIEWER chỉ được export schedule version PUBLISHED.",
+        message: "VIEWER chỉ được xuất phiên bản thời khóa biểu PUBLISHED.",
         status,
       });
     }
@@ -241,7 +241,7 @@ export class ScheduleExportService {
       throw new ConflictException({
         code: "SCHEDULE_EXPORT_SNAPSHOT_INVALID",
         gate: "SCOPE",
-        message: "Snapshot có assignment nằm ngoài school hoặc academic period scope.",
+        message: "Bản chụp có phân công nằm ngoài phạm vi trường hoặc khung năm học.",
         assignmentCount,
         loadedAssignmentCount,
       });
@@ -281,7 +281,7 @@ export class ScheduleExportService {
       throw new ConflictException({
         code: "SCHEDULE_EXPORT_SNAPSHOT_INVALID",
         gate: "HARD_CONSTRAINTS",
-        message: "Không thể export snapshot còn xung đột lớp, giáo viên hoặc phòng.",
+        message: "Không thể xuất bản chụp còn xung đột lớp, giáo viên hoặc phòng.",
         conflicts: conflicts.rows,
       });
     }
@@ -290,7 +290,7 @@ export class ScheduleExportService {
       throw new ConflictException({
         code: "SCHEDULE_EXPORT_SNAPSHOT_INVALID",
         gate: "SCOPE",
-        message: "Snapshot không thuộc school scope được yêu cầu.",
+        message: "Bản chụp không thuộc phạm vi trường được yêu cầu.",
       });
     }
   }

@@ -1,4 +1,4 @@
-# Schedule edit concurrency
+# Đồng thời khi chỉnh sửa thời khóa biểu
 
 **Contract:** `SCHEDULE-EDIT-1.0.0`
 
@@ -14,25 +14,25 @@ Content-Type: application/json
 {"timeSlotId":"<slot-id>","roomId":"<room-id-or-null>"}
 ```
 
-The NestJS service opens a PostgreSQL transaction, locks the schedule version,
+Service NestJS mở transaction PostgreSQL, khóa phiên bản thời khóa biểu,
 checks the ETag and editable lifecycle state, validates that the lesson, slot
 and room remain in the same school/academic-period scope, and checks class,
 teacher and room occupancy hard constraints before changing an assignment. A
 successful edit increments `schedule_versions.revision` and returns the new
 snapshot/ETag.
 
-If the ETag is stale, the API returns HTTP `409` with code
+Nếu ETag cũ, API trả HTTP `409` với mã
 `SCHEDULE_VERSION_CONCURRENT_UPDATE` and `currentSnapshot`. Hard constraint or
 scope conflicts also return `409` with `currentSnapshot`; the transaction is
 rolled back, so no partial write is visible. Missing `If-Match` returns HTTP
-`428` and the client must first refresh the snapshot. The UI remains a workflow
-aid; authorization and correctness stay server-owned.
+`428` và client phải làm mới bản chụp trước. Giao diện chỉ hỗ trợ workflow; phân
+quyền và tính đúng thuộc máy chủ.
 
-`GET /api/v1/schools/:schoolId/schedule-versions/:versionId/history` returns
-the audit history for manual edits. A successful non-noop assignment edit writes
+`GET /api/v1/schools/:schoolId/schedule-versions/:versionId/history` trả lịch sử
+nhật ký chỉnh sửa thủ công. Một chỉnh sửa phân công thành công, không phải no-op, ghi
 one `schedule_assignment` audit event in the same transaction as the assignment
-and revision update; a failed edit rolls back both. The event records safe
+và cập nhật revision; chỉnh sửa thất bại hoàn tác cả hai. Sự kiện ghi siêu dữ liệu an toàn
 workflow metadata (actor, correlation ID, lesson/session, from/to slot and room,
 and revision/ETag transition) without persisting the request body or sensitive
-client logs. The timetable UI also presents session-local move/lock/unlock/undo
-metadata as a review aid; the server audit log remains authoritative.
+log client. Giao diện thời khóa biểu cũng hiển thị siêu dữ liệu chuyển/khóa/mở
+khóa/hoàn tác trong phiên như hỗ trợ review; nhật ký máy chủ vẫn có thẩm quyền.

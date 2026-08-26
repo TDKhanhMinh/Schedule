@@ -121,7 +121,7 @@ describe("freeze scope contract", () => {
   });
 
   it("validates the day selector and duplicate selectors before evaluation", () => {
-    expect(() => validateFreezeScope(scope([{ kind: "DAY", id: "8" }]))).toThrow("DAY selector");
+    expect(() => validateFreezeScope(scope([{ kind: "DAY", id: "8" }]))).toThrow("Bộ chọn ngày");
     expect(() =>
       validateFreezeScope(
         scope([

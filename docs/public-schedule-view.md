@@ -1,11 +1,11 @@
-# Public read-only schedule — P2.4-T05
+# Thời khóa biểu công khai chỉ đọc — P2.4-T05
 
-## Contracts and routes
+## Hợp đồng và route
 
-- `SCHEDULE-PUBLIC-LINK-1.0.0`: expiring/revocable link creation response.
-- `SCHEDULE-PUBLIC-VIEW-1.0.0`: safe read-only JSON payload; internal lesson,
-  room and schedule-assignment IDs are not exposed.
-- `SCHEDULE-PDF-1.0.0`: printable PDF metadata and watermark contract.
+- `SCHEDULE-PUBLIC-LINK-1.0.0`: phản hồi tạo liên kết có thể hết hạn/thu hồi.
+- `SCHEDULE-PUBLIC-VIEW-1.0.0`: payload JSON chỉ đọc an toàn; không để lộ ID
+  nội bộ của tiết học, phòng và phân công thời khóa biểu.
+- `SCHEDULE-PDF-1.0.0`: hợp đồng siêu dữ liệu và watermark PDF có thể in.
 
 Authenticated link management:
 
@@ -14,30 +14,29 @@ POST /api/v1/schools/:schoolId/schedule-versions/:versionId/public-links
 POST /api/v1/schools/:schoolId/schedule-versions/:versionId/public-links/:linkId/revoke
 ```
 
-Only `ADMIN` and `REVIEWER` can create/revoke links, and only `PUBLISHED`
-versions can receive a public link. The database stores only a SHA-256 token
-hash. Default expiry is 168 hours and the API caps it at 720 hours.
+Chỉ `ADMIN` và `REVIEWER` có thể tạo/thu hồi liên kết, và chỉ phiên bản
+`PUBLISHED` mới nhận được liên kết công khai. Cơ sở dữ liệu chỉ lưu mã băm token
+SHA-256. Thời hạn mặc định là 168 giờ và API giới hạn tối đa 720 giờ.
 
-Unauthenticated read-only routes:
+Các route chỉ đọc không cần xác thực:
 
 ```text
 GET /api/v1/public/schedules/:token?view=all|class|teacher|room&resource=...
 GET /api/v1/public/schedules/:token.pdf?view=all|class|teacher|room&resource=...
 ```
 
-Expired/revoked links return `410`; unknown links return `404`. If the linked
-version is no longer `PUBLISHED`, the public view is unavailable. The React
-route `/public/schedules/:token` contains filters, print action and PDF link,
-but has no edit/lock/approval/publish controls.
+Liên kết hết hạn/thu hồi trả `410`; liên kết không xác định trả `404`. Nếu phiên
+bản liên kết không còn `PUBLISHED`, chế độ xem công khai không khả dụng. Route
+React `/public/schedules/:token` có bộ lọc, thao tác in và liên kết PDF nhưng
+không có điều khiển chỉnh sửa/khóa/phê duyệt/công bố.
 
-## PDF and security boundary
+## PDF và ranh giới bảo mật
 
-NestJS generates an A4 landscape PDF with embedded Unicode font when available,
-compact resource/time columns, repeated metadata footer, page numbering and a
-`PUBLIC READ ONLY` watermark. The server validates the token, link lifecycle
-and published snapshot before JSON or PDF output; UI visibility is not a
-security boundary.
+NestJS tạo PDF A4 ngang với font Unicode nhúng nếu có, cột tài nguyên/thời gian
+gọn, footer siêu dữ liệu lặp lại, đánh số trang và watermark `CHỈ ĐỌC CÔNG KHAI`.
+Máy chủ kiểm tra token, vòng đời liên kết và bản chụp đã công bố trước khi xuất
+JSON hoặc PDF; việc hiển thị trên giao diện không phải ranh giới bảo mật.
 
-Local runtime evidence is separate from staging/production, pilot and
-stakeholder approval. The PDF output must be rendered and visually inspected
-before claiming the layout gate.
+Bằng chứng thời gian chạy cục bộ tách biệt với staging/production, thí điểm và
+phê duyệt bên liên quan. PDF đầu ra phải được render và kiểm tra trực quan trước
+khi kết luận cổng bố cục đã đạt.

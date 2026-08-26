@@ -1,23 +1,26 @@
-# Master data UI contract
+# Hợp đồng giao diện dữ liệu danh mục
 
-P1.3-T05 adds the `/master-data` React route for direct maintenance of the canonical data used by import validation and the Python solver input.
+P1.3-T05 bổ sung route React `/master-data` để bảo trì trực tiếp dữ liệu chuẩn
+dùng cho kiểm tra nhập và dữ liệu đầu vào bộ tối ưu Python.
 
-## Scope
+## Phạm vi
 
-The screen provides create, edit, archive/delete, list and client-side filter for:
+Màn hình cung cấp tạo, sửa, lưu trữ/xóa, liệt kê và lọc phía client cho:
 
-- school;
-- academic period and its time slots;
-- teachers, classes, subjects and rooms;
-- lesson requirements (the class/subject/teacher/room assignment input).
+- trường;
+- khung năm học và khung tiết;
+- giáo viên, lớp, môn học và phòng;
+- yêu cầu tiết học (dữ liệu đầu vào phân công lớp/môn/giáo viên/phòng).
 
-The active school is `VITE_DEMO_SCHOOL_ID` (fallback: the local demo school). Time slots and lesson requirements are scoped to the selected academic period.
+Trường đang hoạt động là `VITE_DEMO_SCHOOL_ID` (dự phòng: trường demo cục bộ).
+Khung tiết và yêu cầu tiết học thuộc phạm vi khung năm học đã chọn.
 
-## API boundary
+## Ranh giới API
 
-The UI reuses the existing NestJS endpoints under `/api/v1/schools`. Payload names are unchanged and match `backend/src/master-data/master-data.dto.ts`:
+Giao diện dùng lại các endpoint NestJS hiện có dưới `/api/v1/schools`. Tên payload
+không đổi và khớp `backend/src/master-data/master-data.dto.ts`:
 
-| Entity             | Create/update fields                                              | API scope                                                           |
+| Thực thể           | Trường tạo/cập nhật                                               | Phạm vi API                                                         |
 | ------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------- |
 | School             | `code`, `name`, `timezone`                                        | `/schools`                                                          |
 | Academic period    | `academicYear`, `termCode`, `name`, `startsOn`, `endsOn`          | `/schools/:schoolId/academic-periods`                               |
@@ -28,19 +31,30 @@ The UI reuses the existing NestJS endpoints under `/api/v1/schools`. Payload nam
 | Room               | `code`, `name`, `roomType`, `capacity`                            | `/schools/:schoolId/rooms`                                          |
 | Lesson requirement | `classId`, `subjectId`, `teacherId`, `roomId`, `requiredSessions` | `/schools/:schoolId/academic-periods/:periodId/lesson-requirements` |
 
-The backend remains the source of truth for authorization, school scope, uniqueness, reference integrity, lifecycle status and solver-facing persistence. The UI does not copy Python/OR-Tools rules.
+Backend vẫn là nguồn chuẩn cho phân quyền, phạm vi trường, tính duy nhất, toàn vẹn
+tham chiếu, trạng thái vòng đời và lưu trữ phục vụ bộ tối ưu. Giao diện không sao
+chép quy tắc Python/OR-Tools.
 
-## Permission and error behavior
+## Quyền và hành vi lỗi
 
-`ADMIN` and `SCHEDULER` see write controls; `REVIEWER` and `VIEWER` remain read-only. The NestJS `AuthGuard` still enforces `WRITE` and returns the authoritative error when the UI role is not allowed. Validation arrays and business errors are shown in the form alert, with field-level highlighting when a server message identifies a field.
+`ADMIN` và `SCHEDULER` thấy điều khiển ghi; `REVIEWER` và `VIEWER` vẫn chỉ đọc.
+`AuthGuard` NestJS vẫn thực thi `WRITE` và trả lỗi có thẩm quyền khi vai trò giao
+diện không được phép. Mảng kiểm tra và lỗi nghiệp vụ hiển thị trong cảnh báo biểu
+mẫu, đồng thời tô trường khi thông báo máy chủ xác định được trường.
 
-The “Kiểm tra dữ liệu” action is intentionally basic: it checks required values, grade range, positive numeric values and time/date ordering for the currently filtered list. It is a convenience check, not a replacement for NestJS validation.
+Thao tác “Kiểm tra dữ liệu” cố ý ở mức cơ bản: kiểm tra giá trị bắt buộc, phạm vi
+khối, số dương và thứ tự thời gian/ngày cho danh sách đang lọc. Đây là kiểm tra
+tiện ích, không thay thế kiểm tra NestJS.
 
-After every successful mutation the UI reloads the affected lists from the API. This makes the next Excel preview and solver request consume the same PostgreSQL-backed master data.
+Sau mỗi thay đổi thành công, giao diện tải lại danh sách bị ảnh hưởng từ API. Vì
+vậy lần xem trước Excel và request bộ tối ưu tiếp theo dùng cùng dữ liệu danh mục
+được PostgreSQL lưu trữ.
 
-## Validation evidence
+## Bằng chứng kiểm chứng
 
-- Frontend typecheck, lint, production build and smoke test must pass.
-- Backend master-data unit tests and the existing root CI checks must pass.
-- Local HTTP runtime must cover read, create/update/delete, permission denial and a server validation error before this task can be accepted.
-- Browser visual/E2E, real pilot data and stakeholder approval remain separate gates.
+- Kiểm tra kiểu giao diện, lint, build production và smoke test phải đạt.
+- Kiểm thử đơn vị dữ liệu danh mục backend và kiểm tra CI gốc phải đạt.
+- Thời gian chạy HTTP cục bộ phải bao phủ đọc, tạo/cập nhật/xóa, từ chối quyền và
+  lỗi kiểm tra máy chủ trước khi nghiệm thu task.
+- Trình duyệt trực quan/E2E, dữ liệu thí điểm thật và phê duyệt bên liên quan là
+  các cổng riêng.

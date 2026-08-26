@@ -73,7 +73,7 @@ class LockedAssignments(BaseModel):
     def validate_unique_occurrences(self) -> "LockedAssignments":
         keys = [(item.lessonId, item.sessionIndex) for item in self.assignments]
         if len(keys) != len(set(keys)):
-            raise ValueError("locked assignments cannot repeat the same lesson session")
+            raise ValueError("Phân công đã khóa không được lặp cùng một buổi của yêu cầu tiết học")
         return self
 
 
@@ -101,16 +101,16 @@ class LocalRepairRequest(BaseModel):
             f"{assignment.lessonId}:{assignment.sessionIndex}" for assignment in self.baselineAssignments
         }
         if len(baseline_keys) != len(self.baselineAssignments):
-            raise ValueError("local repair baseline cannot repeat the same lesson session")
+            raise ValueError("Đường cơ sở sửa lỗi cục bộ không được lặp cùng một buổi của yêu cầu tiết học")
         if not self.affectedAssignmentKeys:
-            raise ValueError("local repair must include at least one affected assignment key")
+            raise ValueError("Sửa lỗi cục bộ phải có ít nhất một khóa phân công bị ảnh hưởng")
         if len(set(self.affectedAssignmentKeys)) != len(self.affectedAssignmentKeys):
-            raise ValueError("local repair affected assignment keys must be unique")
+            raise ValueError("Các khóa phân công bị ảnh hưởng của sửa lỗi cục bộ phải là duy nhất")
         if len(set(self.frozenAssignmentKeys)) != len(self.frozenAssignmentKeys):
-            raise ValueError("local repair frozen assignment keys must be unique")
+            raise ValueError("Các khóa phân công đã đóng băng của sửa lỗi cục bộ phải là duy nhất")
         unknown = (set(self.affectedAssignmentKeys) | set(self.frozenAssignmentKeys)) - baseline_keys
         if unknown:
-            raise ValueError(f"local repair scope references unknown baseline assignments: {sorted(unknown)}")
+            raise ValueError(f"Phạm vi sửa lỗi cục bộ tham chiếu các phân công đường cơ sở không tồn tại: {sorted(unknown)}")
         return self
 
 
@@ -155,7 +155,7 @@ class SolveJobRequest(BaseModel):
     def validate_rule_snapshot_reference(self) -> "SolveJobRequest":
         fields = (self.ruleSnapshotId, self.ruleSetVersion, self.ruleSnapshotHash)
         if any(value is not None for value in fields) and not all(value is not None for value in fields):
-            raise ValueError("rule snapshot metadata must include id, version and hash together")
+            raise ValueError("Siêu dữ liệu bản chụp quy tắc phải có đồng thời mã, phiên bản và mã băm")
         return self
 
 

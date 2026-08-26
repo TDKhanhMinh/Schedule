@@ -20,7 +20,7 @@ describe("validateEnvironment", () => {
 
   it("rejects missing infrastructure configuration", () => {
     expect(() => validateEnvironment({ NODE_ENV: "test", API_PORT: "3100" })).toThrow(
-      "Invalid environment configuration",
+      "Cấu hình môi trường không hợp lệ",
     );
   });
 
@@ -32,7 +32,7 @@ describe("validateEnvironment", () => {
         DATABASE_URL: "postgresql://localhost/scheduler",
         REDIS_URL: "redis://localhost:6379",
       }),
-    ).toThrow("CORS_ORIGIN is required in production");
+    ).toThrow("production yêu cầu CORS_ORIGIN");
   });
 
   it("requires tenant database enforcement in production", () => {
@@ -44,6 +44,6 @@ describe("validateEnvironment", () => {
         REDIS_URL: "redis://localhost:6379",
         CORS_ORIGIN: "https://schedule.example.com",
       }),
-    ).toThrow("TENANT_DB_ENFORCEMENT=true is required in production");
+    ).toThrow("production yêu cầu TENANT_DB_ENFORCEMENT=true");
   });
 });

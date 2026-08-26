@@ -67,4 +67,4 @@ for (const [name, command, args] of steps) {
   }
 }
 
-console.log("\n[ci] all local quality gates passed");
+console.log("\n[ci] tất cả cổng chất lượng cục bộ đã đạt");
