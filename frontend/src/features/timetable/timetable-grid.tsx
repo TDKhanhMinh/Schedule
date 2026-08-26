@@ -1,4 +1,10 @@
-import type { TimetableAssignment, TimetableView } from "./timetable-types";
+import type { TimetableAssignment, TimetableView, TimeSlot } from "./timetable-types";
+
+const SCHOOL_DAYS = [1, 2, 3, 4, 5, 6];
+const SHIFT_LABELS: Record<string, string> = {
+  MORNING: "Sáng",
+  AFTERNOON: "Chiều",
+};
 
 function viewLabel(view: TimetableView) {
   if (view === "school") return "Toàn trường";
@@ -11,10 +17,14 @@ function viewValue(assignment: TimetableAssignment, view: TimetableView) {
 
 export function TimetableGrid({
   assignments,
+  classLabels,
+  timeSlots,
   view,
   query,
 }: {
   assignments: TimetableAssignment[];
+  classLabels: string[];
+  timeSlots: TimeSlot[];
   view: TimetableView;
   query: string;
 }) {
@@ -34,7 +44,15 @@ export function TimetableGrid({
         <p>Hãy tạo hoặc chọn phiên bản thời khóa biểu có dữ liệu từ API.</p>
       </div>
     );
-  if (view === "school") return <SchoolWideView assignments={visibleAssignments} />;
+  if (view === "school") {
+    const visibleClassLabels = classLabels.filter(
+      (classLabel) =>
+        !normalizedQuery ||
+        classLabel.toLowerCase().includes(normalizedQuery) ||
+        visibleAssignments.some((assignment) => assignment.classLabel === classLabel),
+    );
+    return <SchoolWideView assignments={visibleAssignments} classLabels={visibleClassLabels} timeSlots={timeSlots} />;
+  }
   return (
     <div className="table-wrap">
       <table>
@@ -54,7 +72,7 @@ export function TimetableGrid({
           {visibleAssignments.map((assignment) => (
             <tr key={assignment.id}>
               <td>{viewValue(assignment, view)}</td>
-              <td>{assignment.day ? `Thứ ${assignment.day}` : "—"}</td>
+              <td>{assignment.day ? dayLabel(assignment.day) : "—"}</td>
               <td>{assignment.period ?? "—"}</td>
               <td>{assignment.timeLabel}</td>
               <td>{assignment.subjectLabel}</td>
@@ -68,63 +86,60 @@ export function TimetableGrid({
   );
 }
 
-function SchoolWideView({ assignments }: { assignments: TimetableAssignment[] }) {
-  const groups = Array.from(
-    assignments
-      .slice()
-      .sort((left, right) => {
-        const classOrder = left.classLabel.localeCompare(right.classLabel, "vi");
-        if (classOrder !== 0) return classOrder;
-        return (left.day ?? 99) - (right.day ?? 99) || (left.period ?? 99) - (right.period ?? 99);
-      })
-      .reduce((grouped, assignment) => {
-        const group = grouped.get(assignment.classLabel) ?? [];
-        group.push(assignment);
-        grouped.set(assignment.classLabel, group);
-        return grouped;
-      }, new Map<string, TimetableAssignment[]>())
-      .entries(),
+function SchoolWideView({
+  assignments,
+  classLabels,
+  timeSlots,
+}: {
+  assignments: TimetableAssignment[];
+  classLabels: string[];
+  timeSlots: TimeSlot[];
+}) {
+  const groups = classLabels.map(
+    (classLabel) => [classLabel, assignments.filter((assignment) => assignment.classLabel === classLabel)] as const,
   );
+  const days =
+    timeSlots.some((slot) => slot.day === 7) || assignments.some((assignment) => assignment.day === 7)
+      ? [...SCHOOL_DAYS, 7]
+      : SCHOOL_DAYS;
+  const shifts = buildShiftRows(timeSlots, assignments);
 
   return (
     <div className="school-wide-view" aria-label="Thời khóa biểu toàn trường theo lớp">
       <div className="school-wide-summary">
         <div>
           <p className="eyebrow">Tổng quan toàn trường</p>
-          <h3>{groups.length} lớp có phân công</h3>
+          <h3>{groups.length} lớp trong phạm vi xem</h3>
         </div>
-        <span>{assignments.length} tiết đã xếp</span>
+        <span>{assignments.length} tiết phù hợp bộ lọc</span>
       </div>
       <div className="school-wide-groups">
         {groups.map(([classLabel, classAssignments], index) => (
           <section className="school-wide-class" key={classLabel} aria-labelledby={`school-class-${index}`}>
             <div className="school-wide-class-heading">
-              <h3 id={`school-class-${index}`}>{classLabel}</h3>
-              <span>{classAssignments.length} tiết</span>
+              <h3 id={`school-class-${index}`}>{shortLabel(classLabel)}</h3>
+              <span>{classAssignments.length} tiết có dữ liệu</span>
             </div>
             <div className="table-wrap">
               <table className="school-wide-table">
                 <caption className="sr-only">Thời khóa biểu lớp {classLabel}</caption>
                 <thead>
                   <tr>
-                    <th>Thứ</th>
-                    <th>Tiết</th>
-                    <th>Giờ</th>
-                    <th>Môn</th>
-                    <th>Giáo viên</th>
-                    <th>Phòng</th>
+                    <th>{shifts[0]?.label ?? "Tiết"}</th>
+                    {days.map((day) => (
+                      <th key={day}>{dayLabel(day)}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {classAssignments.map((assignment) => (
-                    <tr key={assignment.id}>
-                      <td>{assignment.day ? `Thứ ${assignment.day}` : "—"}</td>
-                      <td>{assignment.period ?? "—"}</td>
-                      <td>{assignment.timeLabel}</td>
-                      <td>{assignment.subjectLabel}</td>
-                      <td>{assignment.teacherLabel}</td>
-                      <td>{assignment.roomLabel}</td>
-                    </tr>
+                  {shifts.map((shift, shiftIndex) => (
+                    <SchoolWideShiftRows
+                      key={shift.code}
+                      assignments={classAssignments}
+                      days={days}
+                      showShiftLabel={shiftIndex > 0}
+                      shift={shift}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -134,4 +149,91 @@ function SchoolWideView({ assignments }: { assignments: TimetableAssignment[] })
       </div>
     </div>
   );
+}
+
+function SchoolWideShiftRows({
+  assignments,
+  days,
+  showShiftLabel,
+  shift,
+}: {
+  assignments: TimetableAssignment[];
+  days: number[];
+  showShiftLabel: boolean;
+  shift: { code: string; label: string; periods: number[] };
+}) {
+  const cells = new Map<string, TimetableAssignment[]>();
+  for (const assignment of assignments) {
+    if (assignment.shiftCode !== shift.code || assignment.day === null || assignment.period === null) continue;
+    const key = `${assignment.day}:${assignment.period}`;
+    cells.set(key, [...(cells.get(key) ?? []), assignment]);
+  }
+
+  return (
+    <>
+      {showShiftLabel ? (
+        <tr className="school-shift-divider">
+          <th scope="row">{shift.label}</th>
+          {days.map((day) => (
+            <td key={day} />
+          ))}
+        </tr>
+      ) : null}
+      {shift.periods.map((period) => (
+        <tr key={`${shift.code}-${period}`}>
+          <th className="school-period-cell" scope="row">
+            {period}
+          </th>
+          {days.map((day) => {
+            const cellAssignments = cells.get(`${day}:${period}`) ?? [];
+            return (
+              <td className="school-subject-cell" key={day}>
+                {cellAssignments.map((assignment) => shortLabel(assignment.subjectLabel)).join(" / ")}
+              </td>
+            );
+          })}
+        </tr>
+      ))}
+    </>
+  );
+}
+
+function buildShiftRows(timeSlots: TimeSlot[], assignments: TimetableAssignment[]) {
+  const periodMap = new Map<string, Set<number>>();
+  for (const slot of timeSlots) {
+    const code = slot.shiftCode ?? "MORNING";
+    const periods = periodMap.get(code) ?? new Set<number>();
+    periods.add(slot.period);
+    periodMap.set(code, periods);
+  }
+  for (const assignment of assignments) {
+    const code = assignment.shiftCode ?? "MORNING";
+    const periods = periodMap.get(code) ?? new Set<number>();
+    if (assignment.period !== null) periods.add(assignment.period);
+    periodMap.set(code, periods);
+  }
+  return [...periodMap.entries()]
+    .sort(([left], [right]) => shiftOrder(left) - shiftOrder(right) || left.localeCompare(right))
+    .map(([code, periods]) => ({
+      code,
+      label: SHIFT_LABELS[code] ?? code,
+      periods: [...periods].sort((left, right) => left - right),
+    }));
+}
+
+function shiftOrder(code: string) {
+  if (code === "MORNING") return 0;
+  if (code === "AFTERNOON") return 1;
+  return 2;
+}
+
+function shortLabel(value: string) {
+  const parts = value.split(" · ");
+  return parts.at(-1) ?? value;
+}
+
+function dayLabel(day: number) {
+  if (day >= 1 && day <= 6) return `Thứ ${day + 1}`;
+  if (day === 7) return "Chủ nhật";
+  return `Ngày ${day}`;
 }

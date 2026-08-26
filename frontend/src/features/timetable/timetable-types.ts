@@ -46,6 +46,7 @@ export interface TimetableAssignment {
   subjectLabel: string;
   teacherLabel: string;
   roomLabel: string;
+  shiftCode: string | null;
   day: number | null;
   period: number | null;
   timeLabel: string;

@@ -57,10 +57,17 @@ export async function loadTimetable(signal?: AbortSignal) {
         lesson?.teacherId ?? "Giáo viên chưa xác định",
       ),
       roomLabel: assignment.roomId ? label(roomMap.get(assignment.roomId), assignment.roomId) : "Chưa chỉ định phòng",
+      shiftCode: slot?.shiftCode ?? null,
       day: slot?.day ?? null,
       period: slot?.period ?? null,
       timeLabel: slot?.startsAt && slot.endsAt ? `${slot.startsAt}–${slot.endsAt}` : "—",
     };
   });
-  return { snapshot, assignments, history };
+  return {
+    snapshot,
+    assignments,
+    history,
+    timeSlots: periodSlots,
+    classLabels: classes.map((item) => label(item, item.id)),
+  };
 }

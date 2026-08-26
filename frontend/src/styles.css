@@ -991,11 +991,47 @@ tr.has-warning td {
   font-size: 0.9rem;
 }
 .school-wide-table {
-  min-width: 640px;
+  min-width: 760px;
+  table-layout: fixed;
 }
 .school-wide-table th,
 .school-wide-table td {
   padding: 9px 11px;
+  text-align: center;
+  vertical-align: middle;
+}
+.school-wide-table th {
+  color: var(--blue);
+  font-size: 0.8rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.school-wide-table thead th {
+  background: var(--surface);
+  color: #dc2626;
+  font-size: 0.86rem;
+}
+.school-wide-table thead th:first-child,
+.school-wide-table .school-period-cell,
+.school-wide-table .school-shift-divider th {
+  width: 78px;
+  color: var(--blue);
+}
+.school-wide-table .school-period-cell {
+  background: var(--surface);
+  font-weight: 800;
+}
+.school-wide-table .school-subject-cell {
+  min-height: 42px;
+  color: var(--blue);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.school-wide-table .school-shift-divider th,
+.school-wide-table .school-shift-divider td {
+  background: var(--surface-soft);
+  color: var(--blue);
+  font-weight: 800;
 }
 .heatmap-toggle {
   display: inline-flex;
