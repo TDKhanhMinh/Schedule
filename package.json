@@ -36,6 +36,7 @@
     "release:record": "node scripts/generate-release-record.mjs",
     "design:multi-tenant": "node scripts/validate-multi-tenant-design.mjs",
     "decision:tauri": "node scripts/validate-tauri-offline-decision.mjs",
+    "tenant:evidence": "node scripts/run-tenant-scope-evidence.mjs",
     "ci:local": "node scripts/ci.mjs",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"

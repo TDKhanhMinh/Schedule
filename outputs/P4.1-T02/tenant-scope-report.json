@@ -1,0 +1,26 @@
+{
+  "task": "P4.1-T02",
+  "contractVersion": "TENANT-SCOPE-1.0.0",
+  "generatedAt": "2026-08-26T03:16:42.530Z",
+  "environment": "local unit tests; V1-compatible auth/queue boundary; no tenant DB migration",
+  "command": "C:\\Program Files\\nodejs\\node.exe D:\\Schedule\\node_modules\\jest\\bin\\jest.js --runInBand --runTestsByPath src/auth/tenant-scope.spec.ts src/auth/auth.guard.spec.ts src/jobs/optimization-queue.service.spec.ts",
+  "result": "PASS",
+  "exitCode": 0,
+  "checks": [
+    "trusted tenant identity is required when client requests tenant scope",
+    "client tenant mismatch is rejected before business handler",
+    "tenant job namespace and contract version are propagated from auth context",
+    "legacy V1 requests remain compatible without tenant_id migration"
+  ],
+  "gates": {
+    "devTestComplete": true,
+    "tenantDatabaseMigrationApplied": false,
+    "repositoryRlsEnforced": false,
+    "pilotApproved": false,
+    "productionApproved": false
+  },
+  "openDependencies": [
+    "P4.1-T03 tenant migration/repository scope",
+    "P4.1-T05 cross-tenant integration/migration tests"
+  ]
+}

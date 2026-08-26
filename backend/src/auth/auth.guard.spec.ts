@@ -51,10 +51,38 @@ describe("AuthGuard", () => {
       "x-user-id": "viewer-001",
       "x-user-role": "VIEWER",
       "x-school-id": "school-001",
+      "x-tenant-id": "tenant-a",
     });
 
     expect(guard.canActivate(context)).toBe(true);
-    expect(request.auth).toMatchObject({ userId: "viewer-001", role: "VIEWER", schoolId: "school-001" });
+    expect(request.auth).toMatchObject({
+      userId: "viewer-001",
+      role: "VIEWER",
+      schoolId: "school-001",
+      tenantId: "tenant-a",
+    });
+  });
+
+  it("rejects a client tenant payload that differs from trusted identity", () => {
+    const { context } = makeContext(
+      { "x-user-id": "admin-001", "x-user-role": "ADMIN", "x-school-id": "school-001", "x-tenant-id": "tenant-a" },
+      { method: "POST", body: { tenantId: "tenant-b" } },
+    );
+
+    expect(() => guard.canActivate(context)).toThrow(
+      expect.objectContaining({ response: expect.objectContaining({ code: "TENANT_SCOPE_FORBIDDEN" }) }),
+    );
+  });
+
+  it("rejects a tenant payload when no trusted tenant identity exists", () => {
+    const { context } = makeContext(
+      { "x-user-id": "admin-001", "x-user-role": "ADMIN", "x-school-id": "school-001" },
+      { method: "POST", body: { tenantId: "tenant-a" } },
+    );
+
+    expect(() => guard.canActivate(context)).toThrow(
+      expect.objectContaining({ response: expect.objectContaining({ code: "TENANT_CONTEXT_REQUIRED" }) }),
+    );
   });
 
   it("denies a viewer from mutating master data", () => {

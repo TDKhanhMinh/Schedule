@@ -28,6 +28,7 @@ import {
 import { OptimizationRunConflictError, OptimizationRunStore } from "./optimization-run.store";
 import { randomUUID } from "node:crypto";
 import { ObservabilityService } from "../observability/observability.service";
+import { TENANT_SCOPE_CONTRACT_VERSION, tenantQueueNamespace } from "../auth/tenant-scope";
 
 const SOLVE_HEARTBEAT_STALE_AFTER_MS = 15_000;
 const QUEUE_HEARTBEAT_STALE_AFTER_MS = 60_000;
@@ -43,7 +44,7 @@ export class OptimizationQueueService implements OnModuleDestroy {
     @Optional() private readonly observability?: ObservabilityService,
   ) {}
 
-  async enqueue(payload: SolveJobRequest & OptimizationJobContext, traceId = payload.jobId) {
+  async enqueue(payload: SolveJobRequest & OptimizationJobContext, traceId = payload.jobId, tenantId?: string) {
     const { academicPeriodId, templateVersion, randomSeed, ...request } = payload;
     const report = this.preflightService.check(request);
     if (!report.canSolve) {
@@ -88,6 +89,9 @@ export class OptimizationQueueService implements OnModuleDestroy {
           inputChecksum,
           maxAttempts: OPTIMIZATION_MAX_ATTEMPTS,
           traceId,
+          tenantId,
+          queueNamespace: tenantQueueNamespace(tenantId, request.schoolId),
+          tenantScopeContractVersion: TENANT_SCOPE_CONTRACT_VERSION,
         },
         {
           jobId: request.jobId,
@@ -108,6 +112,9 @@ export class OptimizationQueueService implements OnModuleDestroy {
         inputChecksum,
         maxAttempts: OPTIMIZATION_MAX_ATTEMPTS,
         traceId,
+        tenantId,
+        queueNamespace: tenantQueueNamespace(tenantId, request.schoolId),
+        tenantScopeContractVersion: TENANT_SCOPE_CONTRACT_VERSION,
       };
     }
 
@@ -190,7 +197,7 @@ export class OptimizationQueueService implements OnModuleDestroy {
     return this.getStatus(jobId, schoolId);
   }
 
-  async retry(jobId: string, schoolId: string, idempotencyKey?: string, traceId = jobId) {
+  async retry(jobId: string, schoolId: string, idempotencyKey?: string, traceId = jobId, tenantId?: string) {
     const retryKey = idempotencyKey?.trim();
     if (!retryKey) throw new BadRequestException("Idempotency-Key là bắt buộc khi retry optimization job.");
     if (retryKey.length > 200) throw new BadRequestException("Idempotency-Key không được vượt quá 200 ký tự.");
@@ -251,6 +258,9 @@ export class OptimizationQueueService implements OnModuleDestroy {
           inputChecksum,
           maxAttempts: OPTIMIZATION_MAX_ATTEMPTS,
           traceId,
+          tenantId,
+          queueNamespace: tenantQueueNamespace(tenantId, schoolId),
+          tenantScopeContractVersion: TENANT_SCOPE_CONTRACT_VERSION,
         },
         {
           jobId: run.jobId,
@@ -271,6 +281,9 @@ export class OptimizationQueueService implements OnModuleDestroy {
         canCancel: true,
         canRetry: false,
         traceId,
+        tenantId,
+        queueNamespace: tenantQueueNamespace(tenantId, schoolId),
+        tenantScopeContractVersion: TENANT_SCOPE_CONTRACT_VERSION,
       };
     } catch (error) {
       await this.runStore.markFailed(run.id, 0, error instanceof Error ? error : new Error(String(error)));

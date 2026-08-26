@@ -11,6 +11,7 @@ import { Reflector } from "@nestjs/core";
 import { isRole, ROLE_PERMISSIONS, type Permission } from "./auth.constants";
 import { REQUIRED_PERMISSION } from "./auth.decorators";
 import type { RequestWithAuth } from "./auth.types";
+import { assertTenantId, assertTenantScope, TenantScopeViolation } from "./tenant-scope";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -30,6 +31,7 @@ export class AuthGuard implements CanActivate {
     const userId = this.header(request, "x-user-id");
     const roleValue = this.header(request, "x-user-role").toUpperCase();
     const schoolId = this.header(request, "x-school-id");
+    const tenantIdHeader = this.header(request, "x-tenant-id");
 
     if (!userId || !roleValue || !schoolId) {
       throw new UnauthorizedException({
@@ -39,6 +41,17 @@ export class AuthGuard implements CanActivate {
     }
     if (!isRole(roleValue)) {
       throw new ForbiddenException({ code: "ROLE_INVALID", message: "Role không được hỗ trợ." });
+    }
+
+    let tenantId: string | undefined;
+    try {
+      tenantId = tenantIdHeader ? assertTenantId(tenantIdHeader) : undefined;
+      assertTenantScope(tenantId, this.requestTenantId(request));
+    } catch (error) {
+      if (error instanceof TenantScopeViolation) {
+        throw new ForbiddenException({ code: error.code, message: error.message });
+      }
+      throw error;
     }
 
     const requestedSchoolId = this.requestSchoolId(request);
@@ -61,7 +74,7 @@ export class AuthGuard implements CanActivate {
       });
     }
 
-    request.auth = { userId, role: roleValue, schoolId, permissions };
+    request.auth = { userId, role: roleValue, schoolId, tenantId, permissions };
     return true;
   }
 
@@ -70,6 +83,13 @@ export class AuthGuard implements CanActivate {
     const body = request.body as Record<string, unknown> | undefined;
     const bodySchoolId = typeof body?.schoolId === "string" ? body.schoolId : undefined;
     return params.schoolId ?? bodySchoolId;
+  }
+
+  private requestTenantId(request: RequestWithAuth) {
+    const params = request.params as Record<string, string | undefined>;
+    const body = request.body as Record<string, unknown> | undefined;
+    const bodyTenantId = typeof body?.tenantId === "string" ? body.tenantId : undefined;
+    return params.tenantId ?? bodyTenantId;
   }
 
   private inferPermission(request: RequestWithAuth): Permission {

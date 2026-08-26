@@ -1,4 +1,5 @@
 import type { SolveJobRequest, SolveJobResult, SolverAdapterPayload } from "../contracts";
+import type { TENANT_SCOPE_CONTRACT_VERSION } from "../auth/tenant-scope";
 
 export const OPTIMIZATION_QUEUE_CONTRACT_VERSION = "BULLMQ-OPTIMIZATION-1.0.0" as const;
 export const OPTIMIZATION_JOB_STATUS_CONTRACT_VERSION = "OPTIMIZATION-JOB-STATUS-1.0.0" as const;
@@ -20,6 +21,9 @@ export interface OptimizationJobData {
   inputChecksum: string;
   maxAttempts: number;
   traceId?: string;
+  tenantId?: string;
+  queueNamespace?: string;
+  tenantScopeContractVersion?: typeof TENANT_SCOPE_CONTRACT_VERSION;
 }
 
 export interface OptimizationRunSnapshot {

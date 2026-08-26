@@ -111,6 +111,20 @@ describe("optimization queue producer", () => {
     expect(add.mock.calls[0][1]).toEqual(expect.objectContaining({ traceId: "trace-queue-001" }));
   });
 
+  it("propagates tenant context without trusting a payload tenant field", async () => {
+    const { service, add } = createService();
+
+    await service.enqueue(basePayload, "trace-tenant-001", "tenant-a");
+
+    expect(add.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        tenantId: "tenant-a",
+        queueNamespace: "tenant:tenant-a:school:school-001:optimization",
+        tenantScopeContractVersion: "TENANT-SCOPE-1.0.0",
+      }),
+    );
+  });
+
   it("does not create a queue record when pre-solve rejects the request", async () => {
     const { service, add, runStore } = createService({ canSolve: false });
 

@@ -5,6 +5,7 @@ export interface AuthContext {
   userId: string;
   role: Role;
   schoolId: string;
+  tenantId?: string;
   permissions: readonly Permission[];
 }
 

@@ -19,6 +19,7 @@ const requiredFiles = [
   "scripts/generate-release-record.mjs",
   "scripts/validate-multi-tenant-design.mjs",
   "scripts/validate-tauri-offline-decision.mjs",
+  "backend/src/auth/tenant-scope.spec.ts",
   "backend/src/timetable/public-schedule.service.spec.ts",
   "backend/src/jobs/optimization-queue.service.spec.ts",
   "backend/src/worker/optimization-worker.spec.ts",
@@ -52,6 +53,7 @@ for (const id of [
   "IT-08",
   "IT-09",
   "IT-10",
+  "UT-15",
   "E2E-02",
 ]) {
   if (!matrix.includes(id)) {

@@ -16,7 +16,7 @@ export class OptimizationJobsController {
 
   @Post()
   enqueue(@Body() payload: SolveJobDto, @Req() request: RequestWithAuth) {
-    return this.queue.enqueue(payload, request.requestId);
+    return this.queue.enqueue(payload, request.requestId, request.auth!.tenantId);
   }
 
   @Get(":jobId")
@@ -35,6 +35,6 @@ export class OptimizationJobsController {
     @Req() request: RequestWithAuth,
     @Headers("idempotency-key") idempotencyKey?: string,
   ) {
-    return this.queue.retry(jobId, request.auth!.schoolId, idempotencyKey, request.requestId);
+    return this.queue.retry(jobId, request.auth!.schoolId, idempotencyKey, request.requestId, request.auth!.tenantId);
   }
 }
