@@ -1,0 +1,31 @@
+{
+  "dashboardVersion": "SCHEDULE-OBSERVABILITY-1.0.0",
+  "title": "School Timetable Optimizer — API / Queue / Solver",
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": "api-error-rate",
+      "title": "API 5xx rate",
+      "query": "sum(rate(schedule_http_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(schedule_http_requests_total[5m])), 1)",
+      "unit": "percent"
+    },
+    {
+      "id": "queue-events",
+      "title": "Queue events by state",
+      "query": "sum by (event) (rate(schedule_queue_events_total[5m]))",
+      "unit": "events_per_second"
+    },
+    {
+      "id": "solver-latency",
+      "title": "Solver p95 latency",
+      "query": "histogram_quantile(0.95, sum(rate(schedule_solver_duration_ms_bucket[10m])) by (le))",
+      "unit": "milliseconds"
+    },
+    {
+      "id": "solver-status",
+      "title": "Solver outcomes",
+      "query": "sum by (status) (rate(schedule_solver_runs_total[10m]))",
+      "unit": "runs_per_second"
+    }
+  ]
+}

@@ -19,6 +19,7 @@ export interface OptimizationJobData {
   solverPayload: OptimizationSolverPayload;
   inputChecksum: string;
   maxAttempts: number;
+  traceId?: string;
 }
 
 export interface OptimizationRunSnapshot {

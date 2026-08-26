@@ -15,6 +15,7 @@ export async function createApp() {
     exposedHeaders: [
       "ETag",
       "x-request-id",
+      "x-trace-id",
       "Content-Disposition",
       "X-Export-Contract-Version",
       "X-Export-Assignment-Count",

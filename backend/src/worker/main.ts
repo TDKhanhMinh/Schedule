@@ -7,16 +7,18 @@ import type { OptimizationJobData } from "../jobs/optimization-job.contract";
 import { OptimizationRunStore } from "../jobs/optimization-run.store";
 import { processOptimizationJob } from "./optimization-worker";
 import { runPythonSolver } from "./solver-process";
+import { ObservabilityService } from "../observability/observability.service";
 
 const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is required for the solver worker.");
 const pool = new Pool({ connectionString: databaseUrl });
 const store = new OptimizationRunStore(pool);
+const observability = new ObservabilityService();
 
 const worker = new Worker<OptimizationJobData>(
   OPTIMIZATION_QUEUE,
-  async (job) => processOptimizationJob(job, { store, solve: runPythonSolver }),
+  async (job) => processOptimizationJob(job, { store, solve: runPythonSolver, observability }),
   { connection: parseRedisConnection(redisUrl) },
 );
 

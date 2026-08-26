@@ -29,6 +29,7 @@
     "weights:pilot": "python backend/solver/scripts/run_weight_sensitivity.py --output outputs/P3.1-T04/weight-sensitivity-report.json",
     "uat:pilot": "node scripts/generate-uat-gap-report.mjs",
     "freeze:scope": "node scripts/run-freeze-scope-evidence.mjs",
+    "observability:evidence": "node scripts/run-observability-evidence.mjs",
     "ci:local": "node scripts/ci.mjs",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"

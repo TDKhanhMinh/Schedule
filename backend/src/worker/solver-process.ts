@@ -17,6 +17,7 @@ export class SolverProcessError extends Error {
 
 export interface RunPythonSolverOptions {
   signal?: AbortSignal;
+  traceId?: string;
 }
 
 function getSolverRuntime() {
@@ -37,6 +38,7 @@ function getSolverRuntime() {
 function invalidResult(
   payload: SolveJobRequest | SolverAdapterPayload,
   error: { code?: string; message?: string; details?: unknown },
+  traceId?: string,
 ): SolveJobResult {
   const request = "input" in payload ? payload.input : payload;
   const randomSeed = "reproducibility" in payload ? payload.reproducibility.randomSeed : 0;
@@ -69,6 +71,7 @@ function invalidResult(
       contractVersion: "1.0",
       randomSeed,
       timeLimitSeconds,
+      traceId,
     },
   };
 }
@@ -124,7 +127,7 @@ export function runPythonSolver(
           };
           if (parsed.error?.code?.startsWith("INVALID_")) {
             settled = true;
-            resolveResult(invalidResult(payload, parsed.error));
+            resolveResult(invalidResult(payload, parsed.error, options.traceId));
             return;
           }
         } catch {
@@ -139,7 +142,11 @@ export function runPythonSolver(
 
       try {
         settled = true;
-        resolveResult(JSON.parse(stdout.trim()) as SolveJobResult);
+        const result = JSON.parse(stdout.trim()) as SolveJobResult;
+        resolveResult({
+          ...result,
+          metadata: { ...result.metadata, ...(options.traceId ? { traceId: options.traceId } : {}) },
+        });
       } catch (error) {
         settled = true;
         reject(

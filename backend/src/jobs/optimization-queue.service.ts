@@ -1,4 +1,11 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleDestroy } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  OnModuleDestroy,
+  Optional,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Queue } from "bullmq";
 import {
@@ -20,6 +27,7 @@ import {
 } from "./optimization-job.contract";
 import { OptimizationRunConflictError, OptimizationRunStore } from "./optimization-run.store";
 import { randomUUID } from "node:crypto";
+import { ObservabilityService } from "../observability/observability.service";
 
 const SOLVE_HEARTBEAT_STALE_AFTER_MS = 15_000;
 const QUEUE_HEARTBEAT_STALE_AFTER_MS = 60_000;
@@ -32,12 +40,14 @@ export class OptimizationQueueService implements OnModuleDestroy {
     private readonly config: ConfigService,
     private readonly preflightService: OptimizationPreflightService,
     private readonly runStore: OptimizationRunStore,
+    @Optional() private readonly observability?: ObservabilityService,
   ) {}
 
-  async enqueue(payload: SolveJobRequest & OptimizationJobContext) {
+  async enqueue(payload: SolveJobRequest & OptimizationJobContext, traceId = payload.jobId) {
     const { academicPeriodId, templateVersion, randomSeed, ...request } = payload;
     const report = this.preflightService.check(request);
     if (!report.canSolve) {
+      this.observability?.recordQueue("PRECHECK_REJECTED", { traceId, jobId: request.jobId, state: "REJECTED" });
       throw new BadRequestException({
         code: "PRESOLVE_FAILED",
         message: "Dữ liệu chắc chắn vô nghiệm; solver chưa được gọi.",
@@ -77,6 +87,7 @@ export class OptimizationQueueService implements OnModuleDestroy {
           solverPayload,
           inputChecksum,
           maxAttempts: OPTIMIZATION_MAX_ATTEMPTS,
+          traceId,
         },
         {
           jobId: request.jobId,
@@ -86,6 +97,7 @@ export class OptimizationQueueService implements OnModuleDestroy {
           removeOnFail: 100,
         },
       );
+      this.observability?.recordQueue("ENQUEUED", { traceId, runId: run.id, jobId: run.jobId, state: run.status });
 
       return {
         jobId: job.id,
@@ -95,9 +107,11 @@ export class OptimizationQueueService implements OnModuleDestroy {
         state: run.status,
         inputChecksum,
         maxAttempts: OPTIMIZATION_MAX_ATTEMPTS,
+        traceId,
       };
     }
 
+    this.observability?.recordQueue("COMPLETED", { traceId, runId: run.id, jobId: run.jobId, state: run.status });
     return {
       jobId: run.jobId,
       runId: run.id,
@@ -106,6 +120,7 @@ export class OptimizationQueueService implements OnModuleDestroy {
       state: run.status,
       inputChecksum: run.inputChecksum,
       maxAttempts: run.maxAttempts,
+      traceId,
     };
   }
 
@@ -175,7 +190,7 @@ export class OptimizationQueueService implements OnModuleDestroy {
     return this.getStatus(jobId, schoolId);
   }
 
-  async retry(jobId: string, schoolId: string, idempotencyKey?: string) {
+  async retry(jobId: string, schoolId: string, idempotencyKey?: string, traceId = jobId) {
     const retryKey = idempotencyKey?.trim();
     if (!retryKey) throw new BadRequestException("Idempotency-Key là bắt buộc khi retry optimization job.");
     if (retryKey.length > 200) throw new BadRequestException("Idempotency-Key không được vượt quá 200 ký tự.");
@@ -235,6 +250,7 @@ export class OptimizationQueueService implements OnModuleDestroy {
           solverPayload,
           inputChecksum,
           maxAttempts: OPTIMIZATION_MAX_ATTEMPTS,
+          traceId,
         },
         {
           jobId: run.jobId,
@@ -254,6 +270,7 @@ export class OptimizationQueueService implements OnModuleDestroy {
         maxAttempts: OPTIMIZATION_MAX_ATTEMPTS,
         canCancel: true,
         canRetry: false,
+        traceId,
       };
     } catch (error) {
       await this.runStore.markFailed(run.id, 0, error instanceof Error ? error : new Error(String(error)));

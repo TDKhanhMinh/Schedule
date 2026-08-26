@@ -144,6 +144,7 @@ export interface SolverMetadata {
   ruleSetVersion?: string;
   ruleSnapshotHash?: string;
   objectiveContractVersion?: typeof SOLVER_OBJECTIVE_CONTRACT_VERSION;
+  traceId?: string;
 }
 
 export interface SolveJobResult {

@@ -10,6 +10,7 @@ import { JobsModule } from "./jobs/jobs.module";
 import { MasterDataModule } from "./master-data/master-data.module";
 import { RulesModule } from "./rules/rules.module";
 import { TimetableModule } from "./timetable/timetable.module";
+import { ObservabilityModule } from "./observability/observability.module";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { TimetableModule } from "./timetable/timetable.module";
     JobsModule,
     HealthModule,
     DatabaseModule,
+    ObservabilityModule,
   ],
 })
 export class AppModule implements NestModule {

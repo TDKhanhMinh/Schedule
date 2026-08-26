@@ -1,0 +1,80 @@
+{
+  "task": "P3.3-T01",
+  "contractVersion": "SCHEDULE-OBSERVABILITY-1.0.0",
+  "generatedAt": "2026-08-26T02:38:35.687Z",
+  "environment": "local unit test; API/queue/worker trace model; no production collector",
+  "command": "npm.cmd run test --workspace @schedule/backend -- --runTestsByPath src/observability/observability.service.spec.ts",
+  "result": "PASS",
+  "exitCode": 0,
+  "sourceArtifacts": [
+    {
+      "path": "backend/src/observability/observability.service.ts",
+      "bytes": 8081,
+      "sha256": "dcddeffa0202e47d336fbdd16a497bfcb696798239e50bed902e83dc9cabea39"
+    },
+    {
+      "path": "backend/src/observability/observability.service.spec.ts",
+      "bytes": 1825,
+      "sha256": "a342acd7a8fa4239fa6fad06bde8f6f50787db4a176bd83b93675959f9b67966"
+    },
+    {
+      "path": "backend/src/observability/observability.interceptor.ts",
+      "bytes": 1294,
+      "sha256": "33d3700fb320b48f31c07a949e0c8ef3b88a969bd516694822eacf675c7d7e47"
+    },
+    {
+      "path": "backend/src/worker/optimization-worker.ts",
+      "bytes": 5427,
+      "sha256": "b074fae6f8b0f2a0168284a7075c6e5a9f9fba56f03366435e7ad2bb2cf01f00"
+    },
+    {
+      "path": "backend/src/worker/solver-process.ts",
+      "bytes": 5066,
+      "sha256": "f4332d3ee2bdadc83cdfc622888d0207c64fe08edadba8a5816a28fb7951ae24"
+    },
+    {
+      "path": "docs/observability.md",
+      "bytes": 2462,
+      "sha256": "7f9a14eb7a3fd918cb72d2a2faed7f8f1c1495ae48e7673e029d015243f80b93"
+    },
+    {
+      "path": "deploy/observability/dashboard.json",
+      "bytes": 980,
+      "sha256": "75af363ac001204bac4fdcf423c908e6d8751a7066bc45d8c4f3a4aa65e520d3"
+    },
+    {
+      "path": "deploy/observability/alerts.yaml",
+      "bytes": 894,
+      "sha256": "8e6717eddb6cfea2b5affbefee10f4827e1315214e267df4e2112e5d01256918"
+    }
+  ],
+  "checks": [
+    "opaque request/trace ID is propagated through API enqueue, BullMQ data and worker solver options",
+    "structured events exclude request body/workbook/raw PII/secret and hash job identifiers",
+    "HTTP, queue and solver counters/histograms render in Prometheus text format",
+    "alert state transition OPEN -> CLOSED is recorded exactly once per change"
+  ],
+  "gates": {
+    "devTestComplete": true,
+    "productionCollectorConfigured": false,
+    "alertPagingVerified": false,
+    "pilotApproved": false,
+    "productionApproved": false
+  },
+  "runtimeEvidence": {
+    "status": "PASS",
+    "environment": "Docker Compose api/worker/postgres/redis",
+    "jobId": "p3-3-t01-runtime-001",
+    "runId": "0675e336-cf04-4df0-832b-00e623a9e097",
+    "traceId": "trace-p3-3-t01-001",
+    "resultStatus": "OPTIMAL",
+    "metricsEndpoint": "GET /api/v1/metrics -> 200 text/plain; version=0.0.4",
+    "workerEvents": [
+      "queue.dequeued",
+      "solver.run.completed",
+      "queue.persisting",
+      "queue.completed"
+    ],
+    "limitation": "Worker counters remain process-local until a production collector aggregates structured worker events."
+  }
+}

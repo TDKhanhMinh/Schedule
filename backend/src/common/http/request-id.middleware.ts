@@ -12,6 +12,7 @@ export class RequestIdMiddleware implements NestMiddleware {
 
     request.requestId = requestId;
     response.setHeader("x-request-id", requestId);
+    response.setHeader("x-trace-id", requestId);
     next();
   }
 

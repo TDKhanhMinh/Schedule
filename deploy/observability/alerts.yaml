@@ -1,0 +1,21 @@
+apiVersion: monitoring.schedule/v1
+kind: AlertRules
+metadata:
+  name: school-timetable-optimizer
+  contractVersion: SCHEDULE-OBSERVABILITY-1.0.0
+rules:
+  - name: ScheduleApi5xxRateHigh
+    severity: critical
+    expr: sum(rate(schedule_http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(schedule_http_requests_total[5m])), 1) > 0.05
+    for: 10m
+    runbook: docs/observability.md#alerts
+  - name: ScheduleQueueFailureRateHigh
+    severity: warning
+    expr: sum(rate(schedule_queue_events_total{event="failed"}[5m])) / clamp_min(sum(rate(schedule_queue_events_total{event=~"enqueued|dequeued"}[5m])), 1) > 0.02
+    for: 10m
+    runbook: docs/observability.md#alerts
+  - name: ScheduleSolverLatencyHigh
+    severity: warning
+    expr: histogram_quantile(0.95, sum(rate(schedule_solver_duration_ms_bucket[10m])) by (le)) > 10000
+    for: 10m
+    runbook: docs/observability.md#alerts

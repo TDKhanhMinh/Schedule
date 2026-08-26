@@ -103,6 +103,14 @@ describe("optimization queue producer", () => {
     expect(add).not.toHaveBeenCalled();
   });
 
+  it("propagates the opaque request trace id into the queue payload", async () => {
+    const { service, add } = createService();
+
+    await service.enqueue(basePayload, "trace-queue-001");
+
+    expect(add.mock.calls[0][1]).toEqual(expect.objectContaining({ traceId: "trace-queue-001" }));
+  });
+
   it("does not create a queue record when pre-solve rejects the request", async () => {
     const { service, add, runStore } = createService({ canSolve: false });
 

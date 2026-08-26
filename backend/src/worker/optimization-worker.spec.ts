@@ -41,9 +41,11 @@ describe("optimization worker boundary", () => {
       markCancelled: jest.fn(),
     };
 
-    const processed = await processOptimizationJob(job(), {
+    const observability = { recordQueue: jest.fn(), recordSolver: jest.fn() };
+    const processed = await processOptimizationJob(job({ traceId: "trace-worker-001" }), {
       store,
       solve: jest.fn().mockResolvedValue(result),
+      observability,
     });
 
     expect(store.markRunning).toHaveBeenCalledWith("run-001", 1);
@@ -53,6 +55,15 @@ describe("optimization worker boundary", () => {
       inputChecksum: "a".repeat(64),
       outputChecksum: expect.stringMatching(/^[0-9a-f]{64}$/),
     });
+    expect(observability.recordSolver).toHaveBeenCalledWith(
+      "OPTIMAL",
+      expect.any(Number),
+      expect.objectContaining({ traceId: "trace-worker-001", runId: "run-001" }),
+    );
+    expect(observability.recordQueue).toHaveBeenCalledWith(
+      "COMPLETED",
+      expect.objectContaining({ traceId: "trace-worker-001", state: "OPTIMAL" }),
+    );
   });
 
   it("records a retryable failure without making it terminal", async () => {
