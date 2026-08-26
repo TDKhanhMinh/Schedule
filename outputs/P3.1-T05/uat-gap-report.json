@@ -1,7 +1,7 @@
 {
   "task": "P3.1-T05",
   "reportVersion": "1.0",
-  "generatedAt": "2026-08-26T02:15:39.476Z",
+  "generatedAt": "2026-08-26T02:16:13.790Z",
   "scriptVersion": "P3.1-T05-UAT-1.0",
   "environment": "local Docker/dev; synthetic or workspace fixture data; no staging or production approval",
   "participants": [
@@ -51,8 +51,8 @@
     },
     {
       "path": "docs/uat-pilot-script.md",
-      "bytes": 6405,
-      "sha256": "51f0163e0fdde307568b977ce2e2424d37f37461ae383ea28a633fd90412abc7"
+      "bytes": 6401,
+      "sha256": "f6801109ef3e83f75395d348f4f3c06aa5f37b83c73bab72b9cfc0f2488f2eee"
     }
   ],
   "cases": [
