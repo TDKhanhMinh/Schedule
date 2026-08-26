@@ -120,13 +120,14 @@ export class ScheduleVersionService {
           WHERE school_id = $1 AND academic_period_id = $2
        )
        INSERT INTO schedule_versions
-         (school_id, academic_period_id, version_number, status, source_run_id,
+         (tenant_id, school_id, academic_period_id, version_number, status, source_run_id,
           created_by, rule_snapshot_id, rule_set_version, rule_snapshot_hash,
           input_snapshot_hash, schedule_snapshot_hash, status_changed_by,
           status_changed_at)
-       SELECT $1, $2, next_version.version_number, 'DRAFT', $3, $4, $5, $6, $7,
+       SELECT school.tenant_id, $1, $2, next_version.version_number, 'DRAFT', $3, $4, $5, $6, $7,
               $8, $9, $4, now()
          FROM next_version
+         JOIN schools school ON school.id = $1
         WHERE EXISTS (
           SELECT 1 FROM academic_periods
            WHERE id = $2 AND school_id = $1
@@ -356,11 +357,11 @@ export class ScheduleVersionService {
       const scheduleSnapshotHash = this.hashAssignments(assignments);
       const result = await client.query<ScheduleVersionRow>(
         `INSERT INTO schedule_versions
-          (school_id, academic_period_id, version_number, status, source_run_id,
+          (tenant_id, school_id, academic_period_id, version_number, status, source_run_id,
            created_by, rule_snapshot_id, rule_set_version, rule_snapshot_hash,
            input_snapshot_hash, schedule_snapshot_hash, status_changed_by,
            status_changed_at, status_reason)
-         VALUES ($1, $2, $3, 'DRAFT', $4, $5, $6, $7, $8, $9, $10, $5, now(), $11)
+         VALUES ((SELECT tenant_id FROM schools WHERE id = $1), $1, $2, $3, 'DRAFT', $4, $5, $6, $7, $8, $9, $10, $5, now(), $11)
          RETURNING id::text, school_id::text, academic_period_id::text, version_number,
                    status, source_run_id::text, created_by, approved_by, approved_at,
                    locked_at, published_at, archived_at, rule_snapshot_id::text,
@@ -389,8 +390,8 @@ export class ScheduleVersionService {
       }
       const created = result.rows[0];
       await client.query(
-        `INSERT INTO schedule_assignments (schedule_version_id, lesson_id, session_index, time_slot_id, room_id)
-         SELECT $1, lesson_id, session_index, time_slot_id, room_id
+        `INSERT INTO schedule_assignments (tenant_id, schedule_version_id, lesson_id, session_index, time_slot_id, room_id)
+         SELECT (SELECT tenant_id FROM schedule_versions WHERE id = $1), $1, lesson_id, session_index, time_slot_id, room_id
            FROM schedule_assignments
           WHERE schedule_version_id = $2
           ORDER BY lesson_id, session_index`,

@@ -9,22 +9,24 @@
 | ------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------- |
 | Identity/payload spoofing | Tenant mismatch and missing trusted context rejected              | PASS — P4.1-T02 policy tests                                |
 | Queue/cache namespace     | Tenant + school namespace and retry keys cannot collide           | PASS — namespace policy tests; durable Redis isolation open |
-| API repositories          | Same object ID from another tenant returns 403/404                | BLOCKED — V1 tables have no tenant_id/RLS                   |
-| Import/export             | Cross-tenant batch/version/export denied                          | BLOCKED — requires tenant-aware repository/FK migration     |
-| Public links              | Invalid tenant/token cannot resolve published snapshot            | BLOCKED — public-link tenant key not migrated               |
-| Migration                 | Large snapshot backfill, checksum/row counts, downtime/throughput | BLOCKED — no V2 migration applied                           |
+| API repositories          | Same object ID from another tenant returns 403/404                | BLOCKED — app tenant context/repository scope not wired     |
+| Import/export             | Cross-tenant batch/version/export denied                          | BLOCKED — app tenant context/repository scope not wired     |
+| Public links              | Invalid tenant/token cannot resolve published snapshot            | BLOCKED — app tenant context not wired                      |
+| Migration                 | Large snapshot backfill, checksum/row counts, downtime/throughput | PARTIAL — migration 013/RLS policy pass; large-table open   |
 | Rollback/repair           | Forward-only repair and restore drill                             | PLAN ONLY — use ADR-004 and P3.3-T04 runbook                |
 
 ## Gate decision
 
-`BLOCKED_MIGRATION_NOT_APPLIED` is the correct result. Policy tests prove only the
-identity/queue boundary; they do not prove database isolation. Do not mark tenant
-rollout GO or Production Approved.
+`REQUIRES_APPLICATION_TENANT_CONTEXT` is the current result. Migration 013 and a
+non-owner RLS policy test prove database policy behavior, but the running API still
+uses the scheduler database owner and does not set `app.tenant_id` per trusted
+request. Do not mark tenant rollout GO or Production Approved.
 
 ## Required next steps
 
-1. Implement tenant migration/repository scope with nullable backfill, composite
-   FKs, indexes and RLS/least-privilege review.
+1. Wire trusted request tenant context to a non-owner application role and set
+   `app.tenant_id` per transaction; add tenant-aware repository/export/public-link
+   queries.
 2. Create two synthetic tenants/schools in an isolated database and run read/write,
    import/export, public-link, cache/queue and solver payload negative tests.
 3. Run large-table rehearsal with checksum/row counts, lock budget, throughput,

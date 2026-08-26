@@ -228,9 +228,9 @@ export class ImportsService {
       await client.query("BEGIN");
       await client.query(
         `INSERT INTO import_batches
-          (id, school_id, original_filename, template_version, file_checksum, idempotency_key,
+          (tenant_id, id, school_id, original_filename, template_version, file_checksum, idempotency_key,
            status, row_count, valid_row_count, error_count, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, 'PREVIEWED', $7, $8, $9, $10)`,
+         VALUES ((SELECT tenant_id FROM schools WHERE id = $2), $1, $2, $3, $4, $5, $6, 'PREVIEWED', $7, $8, $9, $10)`,
         [
           batchId,
           schoolId,
@@ -247,8 +247,8 @@ export class ImportsService {
 
       for (const row of parsed.rows) {
         await client.query(
-          `INSERT INTO import_rows (id, batch_id, row_number, payload, errors)
-           VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)`,
+          `INSERT INTO import_rows (tenant_id, id, batch_id, row_number, payload, errors)
+           VALUES ((SELECT tenant_id FROM import_batches WHERE id = $2), $1, $2, $3, $4::jsonb, $5::jsonb)`,
           [
             row.id,
             batchId,
@@ -396,8 +396,8 @@ export class ImportsService {
         const payload = row.payload;
         await client.query(
           `INSERT INTO lesson_requirements
-             (id, school_id, class_id, subject_id, teacher_id, required_sessions)
-           VALUES ($1, $2, $3, $4, $5, $6)
+             (tenant_id, id, school_id, class_id, subject_id, teacher_id, required_sessions)
+           VALUES ((SELECT tenant_id FROM schools WHERE id = $2), $1, $2, $3, $4, $5, $6)
            ON CONFLICT (id) DO NOTHING`,
           [row.id, batch.school_id, payload.classId, payload.subjectId, payload.teacherId, payload.requiredSessions],
         );
@@ -418,8 +418,10 @@ export class ImportsService {
         metadata: Record<string, unknown>;
         created_at: Date;
       }>(
-        `INSERT INTO audit_logs (school_id, action, entity_type, entity_id, actor_id, metadata)
-         VALUES ($1, 'IMPORT_CONFIRMED', 'import_batch', $2, $3, $4::jsonb)
+        `INSERT INTO audit_logs (tenant_id, school_id, action, entity_type, entity_id, actor_id, metadata)
+         SELECT school.tenant_id, $1, 'IMPORT_CONFIRMED', 'import_batch', $2, $3, $4::jsonb
+           FROM schools school
+          WHERE school.id = $1
          RETURNING id, actor_id, action, metadata, created_at`,
         [
           batch.school_id,

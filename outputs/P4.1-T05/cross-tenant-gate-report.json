@@ -1,35 +1,45 @@
 {
   "task": "P4.1-T05",
   "gateVersion": "CROSS-TENANT-MIGRATION-GATE-1.0.0",
-  "generatedAt": "2026-08-26T03:37:29.194Z",
+  "generatedAt": "2026-08-26T03:56:31.336Z",
   "policyTests": {
     "status": "PASS",
     "exitCode": 0,
     "suites": 4
   },
   "database": {
-    "tenantColumnCount": 0,
-    "migrationApplied": false,
-    "rlsMigrationApplied": false
+    "tenantColumnCount": 21,
+    "migrationApplied": true,
+    "rlsTableCount": 21,
+    "rlsPolicyTest": {
+      "executed": true,
+      "ownRows": 1,
+      "crossTenantRows": 0,
+      "pass": true
+    }
   },
   "areas": {
     "identityPayload": "PASS",
     "queueNamespace": "PASS_POLICY_ONLY",
-    "apiRepositoryIsolation": "BLOCKED_MIGRATION_NOT_APPLIED",
-    "importExportIsolation": "BLOCKED_MIGRATION_NOT_APPLIED",
-    "publicLinkIsolation": "BLOCKED_MIGRATION_NOT_APPLIED",
-    "largeMigrationRehearsal": "BLOCKED_MIGRATION_NOT_APPLIED"
+    "apiRepositoryIsolation": "RLS_POLICY_PASS_APP_CONTEXT_OPEN",
+    "importExportIsolation": "BLOCKED_APP_REPOSITORY_SCOPE",
+    "publicLinkIsolation": "BLOCKED_APP_REPOSITORY_SCOPE",
+    "largeMigrationRehearsal": "BLOCKED_LARGE_TABLE_REHEARSAL"
   },
-  "decision": "BLOCKED_MIGRATION_NOT_APPLIED",
+  "decision": "REQUIRES_APPLICATION_TENANT_CONTEXT",
   "gates": {
     "devPolicyTestsComplete": true,
+    "migrationApplied": true,
+    "rlsPolicyIsolationProven": true,
+    "applicationTenantContextConfigured": false,
     "crossTenantLeakageProven": false,
     "migrationApproved": false,
     "pilotApproved": false,
     "productionApproved": false
   },
   "nextSteps": [
-    "P4.1 migration/repository scope",
+    "set app.tenant_id from trusted request context for non-owner application role",
+    "tenant-aware repository/import/export/public-link queries",
     "isolated two-tenant negative matrix",
     "large-table checksum/throughput/RTO rehearsal",
     "security/architecture/release approval"

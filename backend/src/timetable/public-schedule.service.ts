@@ -98,8 +98,8 @@ export class PublicScheduleService {
     const expiresAt = new Date(Date.now() + boundedHours * 60 * 60 * 1000);
     const result = await this.pool.query<{ id: string }>(
       `INSERT INTO schedule_public_links
-        (school_id, schedule_version_id, token_hash, expires_at, created_by)
-       VALUES ($1, $2, $3, $4, $5)
+        (tenant_id, school_id, schedule_version_id, token_hash, expires_at, created_by)
+       VALUES ((SELECT tenant_id FROM schools WHERE id = $1), $1, $2, $3, $4, $5)
        RETURNING id::text`,
       [schoolId, version.id, tokenHash, expiresAt, actorId],
     );

@@ -51,8 +51,10 @@ export class AuditLogService {
     const entityKey = event.entityKey ?? (event.entityId && !entityId ? event.entityId : null);
     const result = await client.query<AuditLogRow>(
       `INSERT INTO audit_logs
-        (school_id, action, entity_type, entity_id, entity_key, actor_id, actor_role, correlation_id, metadata)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+        (tenant_id, school_id, action, entity_type, entity_id, entity_key, actor_id, actor_role, correlation_id, metadata)
+       SELECT school.tenant_id, $1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb
+         FROM schools school
+        WHERE school.id = $1
        RETURNING id::text, school_id::text, action, entity_type, entity_id::text, entity_key,
                  actor_id, actor_role, correlation_id, metadata, created_at`,
       [

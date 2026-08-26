@@ -85,11 +85,11 @@ export class OptimizationRunStore {
 
       const result = await client.query<OptimizationRunRow>(
         `INSERT INTO optimization_runs
-          (id, school_id, academic_period_id, job_id, status, contract_version,
+          (tenant_id, id, school_id, academic_period_id, job_id, status, contract_version,
            rule_snapshot_id, rule_set_version, rule_snapshot_hash,
            payload_checksum, payload, adapter_contract_version, max_attempts,
            progress_stage, retry_key, retry_of_run_id)
-         VALUES ($1, $2, $3, $4, 'QUEUED', '1.0', $5, $6, $7, $8, $9::jsonb, $10, $11, 'QUEUED', $12, $13)
+         VALUES ((SELECT tenant_id FROM schools WHERE id = $2), $1, $2, $3, $4, 'QUEUED', '1.0', $5, $6, $7, $8, $9::jsonb, $10, $11, 'QUEUED', $12, $13)
          RETURNING ${this.selectColumns()}`,
         [
           input.runId,
@@ -248,8 +248,8 @@ export class OptimizationRunStore {
       if (assignments.length === result.assignments.length) {
         for (const assignment of assignments) {
           await client.query(
-            `INSERT INTO optimization_assignments (run_id, lesson_id, session_index, time_slot_id)
-             VALUES ($1, $2, $3, $4)
+            `INSERT INTO optimization_assignments (tenant_id, run_id, lesson_id, session_index, time_slot_id)
+             VALUES ((SELECT tenant_id FROM optimization_runs WHERE id = $1), $1, $2, $3, $4)
              ON CONFLICT (run_id, lesson_id, session_index) DO NOTHING`,
             [runId, assignment.lessonId, assignment.sessionIndex, assignment.slotId],
           );

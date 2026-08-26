@@ -1,7 +1,7 @@
 {
   "task": "P3.3-T03",
   "benchmarkVersion": "LOAD-SOAK-1.0.0",
-  "generatedAt": "2026-08-26T02:52:04.720Z",
+  "generatedAt": "2026-08-26T03:56:58.112Z",
   "environment": "local Docker Compose; synthetic small-feasible dataset; no production SLO claim",
   "config": {
     "baseUrl": "http://localhost:3011/api/v1",
@@ -18,9 +18,9 @@
       "successes": 60,
       "failures": 0,
       "errorRate": 0,
-      "p50Ms": 6.264,
-      "p95Ms": 23.168,
-      "maxMs": 57.401,
+      "p50Ms": 7.932,
+      "p95Ms": 26.141,
+      "maxMs": 57.259,
       "statuses": {
         "200": 60
       }
@@ -31,9 +31,9 @@
       "successes": 20,
       "failures": 0,
       "errorRate": 0,
-      "p50Ms": 7.935,
-      "p95Ms": 23.78,
-      "maxMs": 24.879,
+      "p50Ms": 10.944,
+      "p95Ms": 36.911,
+      "maxMs": 39.098,
       "statuses": {
         "201": 20
       }
@@ -44,9 +44,9 @@
       "successes": 10,
       "failures": 0,
       "errorRate": 0,
-      "p50Ms": 2.569,
-      "p95Ms": 3.324,
-      "maxMs": 3.324,
+      "p50Ms": 2.844,
+      "p95Ms": 3.709,
+      "maxMs": 3.709,
       "statuses": {
         "200": 10
       }
@@ -57,9 +57,9 @@
       "successes": 60,
       "failures": 0,
       "errorRate": 0,
-      "p50Ms": 4.378,
-      "p95Ms": 8.189,
-      "maxMs": 9.141,
+      "p50Ms": 6.285,
+      "p95Ms": 13.894,
+      "maxMs": 14.26,
       "statuses": {
         "200": 60
       }
@@ -70,24 +70,24 @@
     "created": 3,
     "terminal": 3,
     "statusByJob": {
-      "p3-3-t03-load-1787712723078-0": "OPTIMAL",
-      "p3-3-t03-load-1787712723078-1": "OPTIMAL",
-      "p3-3-t03-load-1787712723078-2": "OPTIMAL"
+      "p3-3-t03-load-1787716616148-0": "OPTIMAL",
+      "p3-3-t03-load-1787716616148-1": "OPTIMAL",
+      "p3-3-t03-load-1787716616148-2": "OPTIMAL"
     },
     "jobIds": [
-      "p3-3-t03-load-1787712723078-0",
-      "p3-3-t03-load-1787712723078-1",
-      "p3-3-t03-load-1787712723078-2"
+      "p3-3-t03-load-1787716616148-0",
+      "p3-3-t03-load-1787716616148-1",
+      "p3-3-t03-load-1787716616148-2"
     ],
     "traceIds": [
-      "p3-3-t03-load-1787712723078-trace-0",
-      "p3-3-t03-load-1787712723078-trace-1",
-      "p3-3-t03-load-1787712723078-trace-2"
+      "p3-3-t03-load-1787716616148-trace-0",
+      "p3-3-t03-load-1787716616148-trace-1",
+      "p3-3-t03-load-1787716616148-trace-2"
     ],
     "responseTraceIds": [
-      "p3-3-t03-load-1787712723078-trace-0",
-      "p3-3-t03-load-1787712723078-trace-1",
-      "p3-3-t03-load-1787712723078-trace-2"
+      "p3-3-t03-load-1787716616148-trace-0",
+      "p3-3-t03-load-1787716616148-trace-1",
+      "p3-3-t03-load-1787716616148-trace-2"
     ],
     "duplicateJobIds": 0,
     "lostJobIds": [],
@@ -98,44 +98,44 @@
       "BlockIO": "0B / 0B",
       "CPUPerc": "0.00%",
       "Container": "schedule-api-1",
-      "ID": "fea69dac651c",
-      "MemPerc": "1.18%",
-      "MemUsage": "89.24MiB / 7.361GiB",
+      "ID": "8bbd3bb53c51",
+      "MemPerc": "1.10%",
+      "MemUsage": "83.17MiB / 7.361GiB",
       "Name": "schedule-api-1",
-      "NetIO": "941kB / 1.4MB",
+      "NetIO": "295kB / 420kB",
       "PIDs": "11"
     },
     {
       "BlockIO": "0B / 0B",
       "CPUPerc": "0.00%",
       "Container": "schedule-worker-1",
-      "ID": "f3b34c2ee698",
-      "MemPerc": "1.41%",
-      "MemUsage": "106.2MiB / 7.361GiB",
+      "ID": "4e9fc9d20057",
+      "MemPerc": "0.58%",
+      "MemUsage": "43.98MiB / 7.361GiB",
       "Name": "schedule-worker-1",
-      "NetIO": "164kB / 315kB",
+      "NetIO": "56.7kB / 95.7kB",
       "PIDs": "11"
     },
     {
       "BlockIO": "0B / 0B",
-      "CPUPerc": "0.02%",
+      "CPUPerc": "0.01%",
       "Container": "schedule-postgres-1",
       "ID": "0f175dacd16a",
-      "MemPerc": "0.91%",
-      "MemUsage": "68.86MiB / 7.361GiB",
+      "MemPerc": "0.97%",
+      "MemUsage": "73.25MiB / 7.361GiB",
       "Name": "schedule-postgres-1",
-      "NetIO": "536kB / 658kB",
+      "NetIO": "778kB / 933kB",
       "PIDs": "12"
     },
     {
       "BlockIO": "0B / 0B",
-      "CPUPerc": "0.39%",
+      "CPUPerc": "0.35%",
       "Container": "schedule-redis-1",
       "ID": "77e78cf2e0a9",
       "MemPerc": "0.19%",
-      "MemUsage": "14.14MiB / 7.361GiB",
+      "MemUsage": "14.06MiB / 7.361GiB",
       "Name": "schedule-redis-1",
-      "NetIO": "1.46MB / 806kB",
+      "NetIO": "2.58MB / 1.32MB",
       "PIDs": "6"
     }
   ],
