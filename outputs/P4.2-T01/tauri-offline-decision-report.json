@@ -1,0 +1,31 @@
+{
+  "task": "P4.2-T01",
+  "decisionVersion": "TAURI-OFFLINE-DECISION-1.0.0",
+  "generatedAt": "2026-08-26T03:11:06.671Z",
+  "decision": "NO-GO_PENDING_EVIDENCE",
+  "document": "docs/tauri-offline-business-case.md",
+  "checks": {
+    "TAURI-OFFLINE-DECISION-1.0.0": true,
+    "NO-GO_PENDING_EVIDENCE": true,
+    "Network pain": true,
+    "Sync safety": true,
+    "Security": true,
+    "TCO": true,
+    "Web-first": true,
+    "GO criteria": true,
+    "Evidence boundary": true
+  },
+  "gates": {
+    "designEvidenceComplete": true,
+    "pilotApproved": false,
+    "productionApproved": false
+  },
+  "openEvidence": [
+    "pilot network telemetry/interviews",
+    "3-year TCO/budget",
+    "offline threat model",
+    "sync/conflict contract",
+    "signed update/support owner"
+  ],
+  "limitation": "No Tauri implementation or offline runtime was added; web-first remains the interim recommendation."
+}
