@@ -38,6 +38,7 @@
     "decision:tauri": "node scripts/validate-tauri-offline-decision.mjs",
     "tenant:evidence": "node scripts/run-tenant-scope-evidence.mjs",
     "integration:evidence": "node scripts/run-integration-contract-evidence.mjs",
+    "cross-tenant:gate": "node scripts/run-cross-tenant-gate.mjs",
     "ci:local": "node scripts/ci.mjs",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present"

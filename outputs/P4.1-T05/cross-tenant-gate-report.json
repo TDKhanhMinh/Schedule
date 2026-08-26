@@ -1,0 +1,37 @@
+{
+  "task": "P4.1-T05",
+  "gateVersion": "CROSS-TENANT-MIGRATION-GATE-1.0.0",
+  "generatedAt": "2026-08-26T03:37:29.194Z",
+  "policyTests": {
+    "status": "PASS",
+    "exitCode": 0,
+    "suites": 4
+  },
+  "database": {
+    "tenantColumnCount": 0,
+    "migrationApplied": false,
+    "rlsMigrationApplied": false
+  },
+  "areas": {
+    "identityPayload": "PASS",
+    "queueNamespace": "PASS_POLICY_ONLY",
+    "apiRepositoryIsolation": "BLOCKED_MIGRATION_NOT_APPLIED",
+    "importExportIsolation": "BLOCKED_MIGRATION_NOT_APPLIED",
+    "publicLinkIsolation": "BLOCKED_MIGRATION_NOT_APPLIED",
+    "largeMigrationRehearsal": "BLOCKED_MIGRATION_NOT_APPLIED"
+  },
+  "decision": "BLOCKED_MIGRATION_NOT_APPLIED",
+  "gates": {
+    "devPolicyTestsComplete": true,
+    "crossTenantLeakageProven": false,
+    "migrationApproved": false,
+    "pilotApproved": false,
+    "productionApproved": false
+  },
+  "nextSteps": [
+    "P4.1 migration/repository scope",
+    "isolated two-tenant negative matrix",
+    "large-table checksum/throughput/RTO rehearsal",
+    "security/architecture/release approval"
+  ]
+}

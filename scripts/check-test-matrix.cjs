@@ -28,6 +28,7 @@ const requiredFiles = [
   "backend/solver/tests/test_benchmark_rubric.py",
   "frontend/scripts/smoke.mjs",
   "scripts/test-p2-5-t04-runtime.mjs",
+  "scripts/run-cross-tenant-gate.mjs",
 ];
 
 for (const relativePath of requiredFiles) {
@@ -57,6 +58,7 @@ for (const id of [
   "UT-15",
   "UT-16",
   "E2E-03",
+  "IT-11",
   "E2E-02",
 ]) {
   if (!matrix.includes(id)) {
