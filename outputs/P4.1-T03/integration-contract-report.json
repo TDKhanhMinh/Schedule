@@ -1,0 +1,26 @@
+{
+  "task": "P4.1-T03",
+  "contractVersion": "SCHOOL-INTEGRATION-1.0.0",
+  "generatedAt": "2026-08-26T03:22:31.749Z",
+  "environment": "local unit tests; canonical import contract; no external provider/DLQ persistence",
+  "result": "PASS",
+  "exitCode": 0,
+  "checks": [
+    "HMAC signature/tamper/secret rotation",
+    "event replay deduplication",
+    "mapping profile diagnostics",
+    "bounded retry/dead-letter classification"
+  ],
+  "gates": {
+    "devTestComplete": true,
+    "durableWebhookPersistence": false,
+    "externalProviderRollout": false,
+    "pilotApproved": false,
+    "productionApproved": false
+  },
+  "openDependencies": [
+    "durable idempotency/DLQ persistence",
+    "secret manager/rotation operation",
+    "external provider contract and staging replay"
+  ]
+}
