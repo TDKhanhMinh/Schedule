@@ -94,7 +94,9 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        VITE_TENANT_ID: 34ec13a2-7f70-4325-8439-408885feca58
+        VITE_TENANT_ID: ${VITE_TENANT_ID:-}
+        VITE_SCHOOL_ID: ${VITE_SCHOOL_ID:-}
+        VITE_SCHEDULE_VERSION_ID: ${VITE_SCHEDULE_VERSION_ID:-}
     ports:
       - "8080:8080"
     depends_on:

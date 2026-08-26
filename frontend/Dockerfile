@@ -1,7 +1,11 @@
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
 ARG VITE_TENANT_ID
+ARG VITE_SCHOOL_ID
+ARG VITE_SCHEDULE_VERSION_ID
 ENV VITE_TENANT_ID=$VITE_TENANT_ID
+ENV VITE_SCHOOL_ID=$VITE_SCHOOL_ID
+ENV VITE_SCHEDULE_VERSION_ID=$VITE_SCHEDULE_VERSION_ID
 COPY package.json package-lock.json ./
 COPY backend/package.json backend/package.json
 COPY frontend/package.json frontend/package.json

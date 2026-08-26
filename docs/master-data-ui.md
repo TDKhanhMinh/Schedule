@@ -12,7 +12,7 @@ Màn hình cung cấp tạo, sửa, lưu trữ/xóa, liệt kê và lọc phía 
 - giáo viên, lớp, môn học và phòng;
 - yêu cầu tiết học (dữ liệu đầu vào phân công lớp/môn/giáo viên/phòng).
 
-Trường đang hoạt động là `VITE_DEMO_SCHOOL_ID` (dự phòng: trường demo cục bộ).
+Trường đang hoạt động được cấu hình qua `VITE_SCHOOL_ID`; không có mã trường mặc định.
 Khung tiết và yêu cầu tiết học thuộc phạm vi khung năm học đã chọn.
 
 ## Ranh giới API

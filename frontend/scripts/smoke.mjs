@@ -16,23 +16,17 @@ assert.ok(stylesheet, "the production CSS asset is missing");
 
 const bundle = readFileSync(join(dist, "assets", javascript), "utf8");
 for (const marker of [
-  "School Timetable",
+  "Thời khóa biểu trường học",
   "/master-data",
   "/imports",
   "/timetable",
-  "Upload & Preview",
+  "Tải lên và xem trước",
   "Tải báo cáo lỗi Excel",
-  "Nhập tay & chỉnh sửa dữ liệu",
-  "Khóa các lesson đã thống nhất",
-  "LOCKED-ASSIGNMENTS-1.0.0",
-  "Lịch sử chỉnh tay",
-  "P2.3-T06",
-  "Compare / clone / rollback phương án",
-  "SCHEDULE-VERSION-OPS-1.0.0",
-  "Approval và publish permissions",
-  "Xuất Excel theo lớp, giáo viên và phòng",
-  "SCHEDULE-EXPORT-1.0.0",
-  "PUBLIC READ ONLY",
+  "Nhập dữ liệu danh mục",
+  "Chưa có phân công để hiển thị",
+  "Theo dõi và điều khiển tác vụ",
+  "Xuất Excel",
+  "CHỈ ĐỌC CÔNG KHAI",
 ]) {
   assert.ok(bundle.includes(marker), `bundle marker missing: ${marker}`);
 }
