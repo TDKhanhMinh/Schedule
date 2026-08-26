@@ -1087,6 +1087,13 @@ tr.has-warning td {
   font-weight: 600;
   line-height: 1.35;
 }
+.school-overview-table .school-homeroom-row th,
+.school-overview-table .school-homeroom-row td {
+  border-top: 2px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-weight: 800;
+}
 .heatmap-toggle {
   display: inline-flex;
   align-items: center;

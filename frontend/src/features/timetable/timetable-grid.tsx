@@ -168,6 +168,16 @@ function SchoolOverviewView({
               )),
             )}
           </tbody>
+          <tfoot>
+            <tr className="school-homeroom-row">
+              <th colSpan={2} scope="row">
+                GVCN
+              </th>
+              {classLabels.map((classLabel) => (
+                <td key={classLabel}>—</td>
+              ))}
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>
