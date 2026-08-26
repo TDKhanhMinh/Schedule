@@ -1,7 +1,7 @@
 # ADR-004 — Multi-tenant isolation và migration path
 
-**Status:** Proposed for V2.0 design review  
-**Date:** 2026-08-26  
+**Status:** Proposed for V2.0 design review
+**Date:** 2026-08-26
 **Decision version:** `TENANT-ISOLATION-1.0.0`
 
 ## Context
