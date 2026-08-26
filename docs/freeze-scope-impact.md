@@ -1,7 +1,7 @@
 # Freeze scope và affected-neighborhood — P3.2-T01
 
-**Contract:** `FREEZE-SCOPE-1.0.0`  
-**Ngày:** 2026-08-26  
+**Contract:** `FREEZE-SCOPE-1.0.0`
+**Ngày:** 2026-08-26
 **Phạm vi:** V1.1 Web MVP; snapshot gốc là immutable input, không phải bảng tạm để ghi đè.
 
 ## Contract
