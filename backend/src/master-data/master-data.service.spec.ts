@@ -74,6 +74,13 @@ describe("MasterDataService", () => {
     service = new MasterDataService(pool);
   });
 
+  it("lists only the authenticated school scope", async () => {
+    query.mockResolvedValueOnce({ rows: [schoolRow] });
+
+    await expect(service.listSchools("school-001")).resolves.toEqual([expect.objectContaining({ id: "school-001" })]);
+    expect(query).toHaveBeenCalledWith(expect.stringContaining("WHERE id = $1"), ["school-001"]);
+  });
+
   it("creates a school and maps database fields to the API contract", async () => {
     query.mockResolvedValueOnce({ rows: [schoolRow] });
 

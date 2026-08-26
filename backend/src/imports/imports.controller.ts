@@ -5,6 +5,7 @@ import {
   Headers,
   Param,
   Post,
+  Req,
   Res,
   UploadedFile,
   UseGuards,
@@ -13,6 +14,7 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import type { Response } from "express";
 import { AuthGuard } from "../auth/auth.guard";
+import type { RequestWithAuth } from "../auth/auth.types";
 import { ImportsService, MAX_WORKBOOK_SIZE_BYTES, type UploadedExcelFile } from "./imports.service";
 import { ImportPreviewDto } from "./import-preview.dto";
 
@@ -30,41 +32,36 @@ export class ImportsController {
   preview(
     @UploadedFile() file: UploadedExcelFile | undefined,
     @Body() body: ImportPreviewDto,
-    @Headers("x-user-id") actorId?: string,
+    @Req() request: RequestWithAuth,
   ) {
-    return this.imports.preview(file, body.schoolId, actorId || "local-qc-user");
+    return this.imports.preview(file, body.schoolId, request.auth!.userId);
   }
 
   @Post(":batchId/confirm")
   confirm(
     @Param("batchId") batchId: string,
-    @Headers("x-user-id") actorId: string | undefined,
-    @Headers("x-school-id") schoolId: string,
+    @Req() request: RequestWithAuth,
     @Headers("idempotency-key") idempotencyKey: string | undefined,
     @Headers("x-import-token") importToken: string | undefined,
   ) {
-    return this.imports.confirm(batchId, actorId || "local-qc-user", schoolId, idempotencyKey || importToken);
+    return this.imports.confirm(batchId, request.auth!.userId, request.auth!.schoolId, idempotencyKey || importToken);
   }
 
   @Get(":batchId")
-  getBatch(@Param("batchId") batchId: string, @Headers("x-school-id") schoolId: string) {
-    return this.imports.getBatch(batchId, schoolId);
+  getBatch(@Param("batchId") batchId: string, @Req() request: RequestWithAuth) {
+    return this.imports.getBatch(batchId, request.auth!.schoolId);
   }
 
   @Get(":batchId/error-report")
-  async errorReport(
-    @Param("batchId") batchId: string,
-    @Headers("x-school-id") schoolId: string,
-    @Res() response: Response,
-  ) {
-    const workbook = await this.imports.buildErrorReport(batchId, schoolId);
+  async errorReport(@Param("batchId") batchId: string, @Req() request: RequestWithAuth, @Res() response: Response) {
+    const workbook = await this.imports.buildErrorReport(batchId, request.auth!.schoolId);
     response.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     response.setHeader("Content-Disposition", `attachment; filename="import-error-report-${batchId}.xlsx"`);
     response.send(workbook);
   }
 
   @Get(":batchId/audit")
-  getAudit(@Param("batchId") batchId: string, @Headers("x-school-id") schoolId: string) {
-    return this.imports.getAudit(batchId, schoolId);
+  getAudit(@Param("batchId") batchId: string, @Req() request: RequestWithAuth) {
+    return this.imports.getAudit(batchId, request.auth!.schoolId);
   }
 }

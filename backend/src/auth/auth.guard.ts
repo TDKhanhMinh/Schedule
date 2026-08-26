@@ -1,4 +1,12 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { Reflector } from "@nestjs/core";
 import { isRole, ROLE_PERMISSIONS, type Permission } from "./auth.constants";
 import { REQUIRED_PERMISSION } from "./auth.decorators";
@@ -6,9 +14,18 @@ import type { RequestWithAuth } from "./auth.types";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly config: ConfigService,
+  ) {}
 
   canActivate(context: ExecutionContext) {
+    if (this.config.get<string>("NODE_ENV", "development") === "production") {
+      throw new ServiceUnavailableException({
+        code: "AUTH_PROVIDER_REQUIRED",
+        message: "Production identity provider chưa được cấu hình; local identity headers đã bị vô hiệu hóa.",
+      });
+    }
     const request = context.switchToHttp().getRequest<RequestWithAuth>();
     const userId = this.header(request, "x-user-id");
     const roleValue = this.header(request, "x-user-role").toUpperCase();

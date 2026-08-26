@@ -23,4 +23,15 @@ describe("validateEnvironment", () => {
       "Invalid environment configuration",
     );
   });
+
+  it("requires an explicit CORS allow-list in production", () => {
+    expect(() =>
+      validateEnvironment({
+        NODE_ENV: "production",
+        API_PORT: "3100",
+        DATABASE_URL: "postgresql://localhost/scheduler",
+        REDIS_URL: "redis://localhost:6379",
+      }),
+    ).toThrow("CORS_ORIGIN is required in production");
+  });
 });

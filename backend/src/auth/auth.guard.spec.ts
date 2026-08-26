@@ -1,6 +1,12 @@
 /// <reference types="jest" />
 
-import { ExecutionContext, ForbiddenException, UnauthorizedException } from "@nestjs/common";
+import {
+  ExecutionContext,
+  ForbiddenException,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from "@nestjs/common";
+import type { ConfigService } from "@nestjs/config";
 import { Reflector } from "@nestjs/core";
 import { AuthGuard } from "./auth.guard";
 import type { RequestWithAuth } from "./auth.types";
@@ -31,7 +37,8 @@ function makeContext(headers: Record<string, string | undefined>, overrides: Par
 }
 
 describe("AuthGuard", () => {
-  const guard = new AuthGuard(new Reflector());
+  const config = { get: jest.fn().mockReturnValue("test") } as unknown as ConfigService;
+  const guard = new AuthGuard(new Reflector(), config);
 
   it("rejects requests without the local identity headers", () => {
     const { context } = makeContext({});
@@ -101,5 +108,22 @@ describe("AuthGuard", () => {
     );
 
     expect(guard.canActivate(context)).toBe(true);
+  });
+
+  it("fails closed instead of trusting local identity headers in production", () => {
+    config.get = jest.fn().mockReturnValue("production");
+    const { context } = makeContext({
+      "x-user-id": "admin-001",
+      "x-user-role": "ADMIN",
+      "x-school-id": "school-001",
+    });
+
+    expect(() => guard.canActivate(context)).toThrow(ServiceUnavailableException);
+    try {
+      guard.canActivate(context);
+    } catch (error) {
+      expect((error as ServiceUnavailableException).getResponse()).toMatchObject({ code: "AUTH_PROVIDER_REQUIRED" });
+    }
+    config.get = jest.fn().mockReturnValue("test");
   });
 });

@@ -115,4 +115,19 @@ describe("ScheduleExportService", () => {
       response: expect.objectContaining({ code: "SCHEDULE_EXPORT_SNAPSHOT_INVALID", gate: "HARD_CONSTRAINTS" }),
     });
   });
+
+  it("escapes formula-like user data before placing it in an Excel cell", async () => {
+    query
+      .mockResolvedValueOnce({ rows: [version({ status: "PUBLISHED" })] })
+      .mockResolvedValueOnce({ rows: [assignment, { ...assignment, subject_name: '=HYPERLINK("https://evil")' }] })
+      .mockResolvedValueOnce({ rows: [{ required_sessions: 2 }] })
+      .mockResolvedValueOnce({ rows: [{ assignment_count: 2 }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const result = await service.build("school-001", "version-001", "scheduler-001", "SCHEDULER", "class");
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(result.buffer as never);
+
+    expect(workbook.getWorksheet("Theo lớp")?.getRow(5).getCell(6).value).toBe('\'=HYPERLINK("https://evil")');
+  });
 });

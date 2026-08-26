@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "../auth/auth.guard";
+import type { RequestWithAuth } from "../auth/auth.types";
 import {
   CreateAcademicPeriodDto,
   CreateClassDto,
@@ -26,8 +27,8 @@ export class MasterDataController {
   constructor(private readonly masterData: MasterDataService) {}
 
   @Get()
-  listSchools() {
-    return this.masterData.listSchools();
+  listSchools(@Req() request: RequestWithAuth) {
+    return this.masterData.listSchools(request.auth!.schoolId);
   }
 
   @Post()

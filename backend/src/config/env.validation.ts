@@ -39,6 +39,10 @@ export function validateEnvironment(config: Record<string, unknown>) {
     throw new Error(`Invalid environment configuration: ${missingOrInvalid}`);
   }
 
+  if (variables.NODE_ENV === "production" && !variables.CORS_ORIGIN?.trim()) {
+    throw new Error("Invalid environment configuration: CORS_ORIGIN is required in production");
+  }
+
   return {
     ...config,
     NODE_ENV: variables.NODE_ENV,

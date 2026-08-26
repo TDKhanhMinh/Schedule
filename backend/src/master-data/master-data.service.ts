@@ -118,11 +118,13 @@ interface LessonRequirementRow extends QueryResultRow {
 export class MasterDataService {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
-  async listSchools() {
+  async listSchools(schoolId: string) {
     const result = await this.pool.query<SchoolRow>(
       `SELECT id::text, code, name, timezone, status, created_at, updated_at
          FROM schools
+        WHERE id = $1
         ORDER BY code`,
+      [schoolId],
     );
     return result.rows.map((row) => this.toSchool(row));
   }

@@ -394,16 +394,18 @@ export class ScheduleExportService {
             ? assignment.teacher_name
             : (assignment.room_name ?? "—");
       const row = sheet.addRow([
-        resourceCode,
-        resourceName,
-        `Thứ ${assignment.day}`,
+        this.safeWorkbookValue(resourceCode),
+        this.safeWorkbookValue(resourceName),
+        this.safeWorkbookValue(`Thứ ${assignment.day}`),
         assignment.period,
-        assignment.starts_at && assignment.ends_at ? `${assignment.starts_at}–${assignment.ends_at}` : "—",
-        assignment.subject_name,
-        assignment.subject_code,
-        assignment.class_name,
-        assignment.teacher_name,
-        assignment.room_name ?? "—",
+        this.safeWorkbookValue(
+          assignment.starts_at && assignment.ends_at ? `${assignment.starts_at}–${assignment.ends_at}` : "—",
+        ),
+        this.safeWorkbookValue(assignment.subject_name),
+        this.safeWorkbookValue(assignment.subject_code),
+        this.safeWorkbookValue(assignment.class_name),
+        this.safeWorkbookValue(assignment.teacher_name),
+        this.safeWorkbookValue(assignment.room_name ?? "—"),
       ]);
       row.eachCell((cell) => {
         cell.alignment = { vertical: "top", wrapText: true };
@@ -430,6 +432,10 @@ export class ScheduleExportService {
     cell.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F766E" } };
     cell.alignment = { vertical: "middle", horizontal: "left" };
+  }
+
+  private safeWorkbookValue(value: string) {
+    return /^[=+\-@]/.test(value) ? `'${value}` : value;
   }
 
   private styleHeader(row: ExcelJS.Row) {

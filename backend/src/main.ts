@@ -20,6 +20,13 @@ export async function createApp() {
       "X-Export-Assignment-Count",
     ],
   });
+  app.use((_request: unknown, response: { setHeader: (name: string, value: string) => void }, next: () => void) => {
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    response.setHeader("X-Frame-Options", "DENY");
+    response.setHeader("Referrer-Policy", "no-referrer");
+    response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    next();
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
