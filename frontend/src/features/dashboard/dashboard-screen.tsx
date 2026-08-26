@@ -1,5 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { Activity, Database, FileSpreadsheet, ListChecks, RefreshCw, Server } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "../../app/app-shell";
 import { frontendConfig } from "../../config";
 import { apiRequest, apiText } from "../../lib/api-client";
@@ -12,22 +19,12 @@ interface DashboardAuditEntry {
   actorId: string;
   createdAt: string;
 }
-
 interface DashboardSnapshot {
   readiness: { status: string; dependencies?: Record<string, string> };
   metricsText: string;
   auditLogs: DashboardAuditEntry[];
   fetchedAt: string;
 }
-
-function metricValue(metricsText: string, metricName: string, label?: string) {
-  const line = metricsText
-    .split("\n")
-    .find((candidate) => candidate.startsWith(metricName) && (!label || candidate.includes(label)));
-  const value = line?.match(/ ([0-9]+(?:\.[0-9]+)?)$/)?.[1];
-  return value ? Number(value) : 0;
-}
-
 const auditActionLabels: Record<string, string> = {
   IMPORT_CONFIRMED: "Đã xác nhận nhập dữ liệu",
   IMPORT: "Nhập dữ liệu",
@@ -36,11 +33,14 @@ const auditActionLabels: Record<string, string> = {
   LOCK: "Khóa",
   UNLOCK: "Mở khóa",
 };
-
-function auditActionLabel(action: string) {
-  return auditActionLabels[action] ?? action;
+const auditActionLabel = (action: string) => auditActionLabels[action] ?? action;
+function metricValue(metricsText: string, metricName: string, label?: string) {
+  const line = metricsText
+    .split("\n")
+    .find((candidate) => candidate.startsWith(metricName) && (!label || candidate.includes(label)));
+  const value = line?.match(/ ([0-9]+(?:\.[0-9]+)?)$/)?.[1];
+  return value ? Number(value) : 0;
 }
-
 async function fetchDashboard(signal: AbortSignal): Promise<DashboardSnapshot> {
   const [readiness, metricsText, auditLogs] = await Promise.all([
     apiRequest<DashboardSnapshot["readiness"]>("/health/ready", { signal }),
@@ -59,14 +59,13 @@ export function DashboardScreen() {
     queryFn: ({ signal }) => fetchDashboard(signal),
     enabled: Boolean(frontendConfig.schoolId),
   });
-  const snapshot = dashboardQuery.data ?? null;
+  const snapshot = dashboardQuery.data;
   const error = !frontendConfig.schoolId
-    ? "Chưa cấu hình mã trường. Hãy đặt VITE_SCHOOL_ID trước khi sử dụng dữ liệu."
+    ? "Chưa cấu hình mã trường. Hãy chọn trường trong header hoặc đặt VITE_SCHOOL_ID."
     : dashboardQuery.error instanceof Error
       ? dashboardQuery.error.message
       : "";
-  const isLoading = dashboardQuery.isPending;
-
+  const isLoading = dashboardQuery.isPending && Boolean(frontendConfig.schoolId);
   const filteredAuditLogs = (snapshot?.auditLogs ?? []).filter((entry) =>
     `${entry.action} ${entry.entityType} ${entry.actorId}`.toLowerCase().includes(auditQuery.toLowerCase().trim()),
   );
@@ -76,129 +75,162 @@ export function DashboardScreen() {
   const queueFailed = snapshot ? metricValue(snapshot.metricsText, "schedule_queue_events_total", 'event="FAILED"') : 0;
   const solverRuns = snapshot ? metricValue(snapshot.metricsText, "schedule_solver_runs_total") : 0;
   const importAudits = filteredAuditLogs.filter((entry) => entry.action === "IMPORT").length;
-
   return (
-    <>
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Tổng quan không gian làm việc"
-        title="Bảng điều khiển quản trị trường và vận hành."
-        description="Theo dõi dữ liệu và trạng thái vận hành theo trường đã cấu hình."
+        title="Bảng điều khiển quản trị trường và vận hành"
+        description="Theo dõi dữ liệu, tác vụ và phiên bản theo trường và năm học đã chọn."
         action={
-          <button type="button" onClick={() => navigateTo("imports")}>
-            + Nhập dữ liệu
-          </button>
+          <Button onClick={() => navigateTo("imports")}>
+            <FileSpreadsheet /> Nhập dữ liệu
+          </Button>
         }
       />
-      <section className="dashboard-grid" aria-label="Tổng quan không gian làm việc">
-        <article className="stat-card featured-card">
-          <div className="card-kicker">Phạm vi trường</div>
-          <h2>{frontendConfig.schoolId || "Chưa cấu hình"}</h2>
-          <p>Dữ liệu được đọc từ API theo phạm vi trường hiện tại.</p>
-          <button type="button" onClick={() => navigateTo("imports")}>
-            Tải lên và xem trước <span aria-hidden="true">→</span>
-          </button>
-          <button
-            className="button-secondary dashboard-secondary-action"
-            type="button"
-            onClick={() => navigateTo("master-data")}
-          >
-            Nhập dữ liệu danh mục
-          </button>
-        </article>
-        <article className="stat-card">
-          <div className="stat-icon blue" aria-hidden="true">
-            01
-          </div>
-          <span className="card-kicker">Nhập dữ liệu / nhật ký</span>
-          <strong>{isLoading ? "Đang tải…" : `${importAudits} sự kiện`}</strong>
-          <small>Nhật ký trong cửa sổ hiện tại</small>
-        </article>
-        <article className="stat-card">
-          <div className="stat-icon amber" aria-hidden="true">
-            02
-          </div>
-          <span className="card-kicker">Lần tối ưu gần nhất</span>
-          <strong>{isLoading ? "Đang tải…" : `${solverRuns} lần chạy`}</strong>
-          <small>Chỉ số bộ tối ưu trong tiến trình</small>
-        </article>
-        <article className="stat-card">
-          <div className="stat-icon green" aria-hidden="true">
-            03
-          </div>
-          <span className="card-kicker">Sức khỏe hàng đợi</span>
-          <strong>{isLoading ? "Đang tải…" : `${queueCompleted} hoàn tất`}</strong>
-          <small>{queueFailed} lỗi · làm mới khi mở bảng điều khiển</small>
-        </article>
+      {error ? (
+        <Alert variant="destructive">
+          <Server />
+          <AlertTitle>Chưa thể tải toàn bộ dữ liệu</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      <section
+        className="grid gap-4 xl:grid-cols-[1.35fr_repeat(3,minmax(0,1fr))]"
+        aria-label="Tổng quan không gian làm việc"
+      >
+        <Card className="border-primary/20 bg-primary/[0.04] xl:row-span-2">
+          <CardHeader>
+            <Badge className="w-fit">Phạm vi trường</Badge>
+            <CardTitle className="text-2xl">{frontendConfig.schoolId || "Chưa cấu hình"}</CardTitle>
+            <CardDescription>Dữ liệu được đọc từ API theo trường và năm học đã chọn.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button onClick={() => navigateTo("imports")}>
+              <FileSpreadsheet /> Tải lên và xem trước
+            </Button>
+            <Button variant="outline" onClick={() => navigateTo("master-data")}>
+              Dữ liệu danh mục
+            </Button>
+          </CardContent>
+        </Card>
+        <MetricCard
+          icon={<FileSpreadsheet />}
+          label="Nhập dữ liệu / nhật ký"
+          value={isLoading ? null : `${importAudits} sự kiện`}
+          hint="Trong cửa sổ hiện tại"
+        />
+        <MetricCard
+          icon={<Activity />}
+          label="Lần tối ưu gần nhất"
+          value={isLoading ? null : `${solverRuns} lần chạy`}
+          hint="Theo dữ liệu vận hành"
+        />
+        <MetricCard
+          icon={<ListChecks />}
+          label="Sức khỏe hàng đợi"
+          value={isLoading ? null : `${queueCompleted} hoàn tất`}
+          hint={`${queueFailed} lỗi`}
+        />
       </section>
-      <section className="content-grid" aria-label="Vận hành và nhật ký gần đây">
-        <article className="panel">
-          <div className="panel-heading">
+      <section className="grid gap-4 lg:grid-cols-2" aria-label="Vận hành và nhật ký gần đây">
+        <Card>
+          <CardHeader className="flex-row items-start justify-between space-y-0">
             <div>
-              <p className="eyebrow">Vận hành</p>
-              <h2>Sức khỏe và độ mới dữ liệu</h2>
+              <CardDescription>Vận hành</CardDescription>
+              <CardTitle>Sức khỏe và độ mới dữ liệu</CardTitle>
             </div>
-            <span className="health-chip">
-              {isLoading ? "Đang tải" : snapshot?.readiness.status === "ready" ? "Sẵn sàng" : "Kiểm tra lại"}
-            </span>
-          </div>
-          {error ? (
-            <div className="alert alert-error" role="alert">
-              {error}
-            </div>
-          ) : null}
-          <div className="ops-grid">
-            <div className="ops-card">
-              <span>PostgreSQL</span>
-              <strong>{snapshot?.readiness.dependencies?.postgres ?? "—"}</strong>
-            </div>
-            <div className="ops-card">
-              <span>Redis</span>
-              <strong>{snapshot?.readiness.dependencies?.redis ?? "—"}</strong>
-            </div>
-            <div className="ops-card">
-              <span>Người thực hiện / vai trò</span>
-              <strong>{frontendConfig.actorRole}</strong>
-            </div>
-            <div className="ops-card">
-              <span>Độ mới dữ liệu</span>
-              <strong>{snapshot ? new Date(snapshot.fetchedAt).toLocaleTimeString("vi-VN") : "—"}</strong>
-            </div>
-          </div>
-        </article>
-        <article className="panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Nhật ký theo phạm vi</p>
-              <h2>Nhật ký gần đây</h2>
-            </div>
-            <label className="audit-search">
-              <span className="sr-only">Tìm nhật ký</span>
-              <input
-                value={auditQuery}
-                onChange={(event) => setAuditQuery(event.target.value)}
-                placeholder="Tìm hành động / người thực hiện"
-              />
-            </label>
-          </div>
-          <div className="audit-list">
+            <Badge variant={snapshot?.readiness.status === "ready" ? "default" : "secondary"}>
+              {isLoading ? "Đang tải…" : snapshot?.readiness.status === "ready" ? "Sẵn sàng" : "Chưa kiểm tra"}
+            </Badge>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            <StatusCell
+              icon={<Database />}
+              label="PostgreSQL"
+              value={snapshot?.readiness.dependencies?.postgres ?? "—"}
+            />
+            <StatusCell icon={<Server />} label="Redis" value={snapshot?.readiness.dependencies?.redis ?? "—"} />
+            <StatusCell icon={<ShieldIcon />} label="Vai trò" value={frontendConfig.actorRole} />
+            <StatusCell
+              icon={<RefreshCw />}
+              label="Cập nhật lúc"
+              value={snapshot ? new Date(snapshot.fetchedAt).toLocaleTimeString("vi-VN") : "—"}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardDescription>Nhật ký theo phạm vi</CardDescription>
+            <CardTitle>Nhật ký gần đây</CardTitle>
+            <Input
+              aria-label="Tìm nhật ký"
+              value={auditQuery}
+              onChange={(event) => setAuditQuery(event.target.value)}
+              placeholder="Tìm hành động hoặc người thực hiện…"
+            />
+          </CardHeader>
+          <CardContent>
             {filteredAuditLogs.length === 0 ? (
-              <p className="small-note">Chưa có nhật ký phù hợp.</p>
+              <p className="text-sm text-muted-foreground">Chưa có nhật ký phù hợp.</p>
             ) : (
-              filteredAuditLogs.slice(0, 8).map((entry) => (
-                <div className="audit-row" key={entry.id}>
-                  <div>
-                    <strong>{auditActionLabel(entry.action)}</strong>
-                    <span>
-                      {entry.entityType.toLowerCase()} · {entry.actorId}
-                    </span>
+              <div className="divide-y">
+                {filteredAuditLogs.slice(0, 8).map((entry) => (
+                  <div className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0" key={entry.id}>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{auditActionLabel(entry.action)}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {entry.entityType.toLowerCase()} · {entry.actorId}
+                      </p>
+                    </div>
+                    <time className="shrink-0 text-xs text-muted-foreground" dateTime={entry.createdAt}>
+                      {new Date(entry.createdAt).toLocaleString("vi-VN")}
+                    </time>
                   </div>
-                  <time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString("vi-VN")}</time>
-                </div>
-              ))
+                ))}
+              </div>
             )}
-          </div>
-        </article>
+          </CardContent>
+        </Card>
       </section>
-    </>
+    </div>
   );
+}
+
+function MetricCard({
+  icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string | null;
+  hint: string;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+        <CardDescription>{label}</CardDescription>
+        <span className="text-muted-foreground">{icon}</span>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-semibold">{value ? value : <Skeleton className="h-8 w-20" />}</div>
+        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+      </CardContent>
+    </Card>
+  );
+}
+function StatusCell({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        {icon}
+        {label}
+      </div>
+      <p className="mt-2 truncate font-semibold">{value}</p>
+    </div>
+  );
+}
+function ShieldIcon() {
+  return <span aria-hidden="true">◈</span>;
 }

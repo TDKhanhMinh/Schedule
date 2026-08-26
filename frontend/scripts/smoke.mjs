@@ -9,12 +9,12 @@ const html = readFileSync(join(dist, "index.html"), "utf8");
 assert.match(html, /<div id="root"><\/div>/, "the Vite root mount is missing");
 
 const assets = readdirSync(join(dist, "assets"));
-const javascript = assets.find((asset) => asset.endsWith(".js"));
+const javascriptAssets = assets.filter((asset) => asset.endsWith(".js"));
 const stylesheet = assets.find((asset) => asset.endsWith(".css"));
-assert.ok(javascript, "the production JavaScript asset is missing");
+assert.ok(javascriptAssets.length > 0, "the production JavaScript asset is missing");
 assert.ok(stylesheet, "the production CSS asset is missing");
 
-const bundle = readFileSync(join(dist, "assets", javascript), "utf8");
+const bundle = javascriptAssets.map((asset) => readFileSync(join(dist, "assets", asset), "utf8")).join("\n");
 for (const marker of [
   "Thời khóa biểu trường học",
   "/master-data",
@@ -22,7 +22,7 @@ for (const marker of [
   "/timetable",
   "Tải lên và xem trước",
   "Tải báo cáo lỗi Excel",
-  "Nhập dữ liệu danh mục",
+  "Chọn trường",
   "Chưa có phân công để hiển thị",
   "Theo dõi và điều khiển tác vụ",
   "Xuất Excel",
@@ -32,5 +32,5 @@ for (const marker of [
 }
 
 console.log(
-  `Frontend smoke passed: ${javascript} + ${stylesheet}; dashboard/master-data/import/timetable markers present.`,
+  `Frontend smoke passed: ${javascriptAssets.join(", ")} + ${stylesheet}; dashboard/master-data/import/timetable markers present.`,
 );

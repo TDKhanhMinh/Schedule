@@ -26,6 +26,13 @@ import { MasterDataService } from "./master-data.service";
 export class MasterDataController {
   constructor(private readonly masterData: MasterDataService) {}
 
+  @Get("context")
+  getContext(@Req() request: RequestWithAuth) {
+    return this.masterData
+      .getWorkspaceContext(request.auth!.userId, request.auth!.schoolId, request.auth!.tenantId)
+      .then((context) => ({ ...context, role: request.auth!.role }));
+  }
+
   @Get()
   listSchools(@Req() request: RequestWithAuth) {
     return this.masterData.listSchools(request.auth!.schoolId);

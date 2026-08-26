@@ -6,7 +6,13 @@ export const frontendConfig = {
   actorRole: import.meta.env.VITE_USER_ROLE?.trim().toUpperCase() || "VIEWER",
   scheduleVersionId: import.meta.env.VITE_SCHEDULE_VERSION_ID?.trim() || "",
   tenantId: import.meta.env.VITE_TENANT_ID?.trim() || "",
-} as const;
+  academicPeriodId: "",
+};
+
+export function setFrontendContext(context: { schoolId?: string; academicPeriodId?: string }) {
+  if (context.schoolId !== undefined) frontendConfig.schoolId = context.schoolId;
+  if (context.academicPeriodId !== undefined) frontendConfig.academicPeriodId = context.academicPeriodId;
+}
 
 export function authHeaders() {
   return {

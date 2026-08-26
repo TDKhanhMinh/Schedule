@@ -5,9 +5,11 @@ import { MasterDataScreen } from "./features/master-data/master-data-screen";
 import { PublicScheduleScreen } from "./features/public-schedule/public-schedule-screen";
 import { TimetableScreen } from "./features/timetable";
 import { useAppRoute } from "./routing";
+import { useWorkspace } from "./app/workspace-provider";
 
 export default function App() {
   const route = useAppRoute();
+  const { schoolId, academicPeriodId } = useWorkspace();
   const apiStatus = useApiStatus();
   const content =
     route === "master-data" ? (
@@ -23,7 +25,7 @@ export default function App() {
     );
   return (
     <AppShell route={route} apiStatus={apiStatus}>
-      {content}
+      <div key={`${schoolId}:${academicPeriodId}`}>{content}</div>
     </AppShell>
   );
 }

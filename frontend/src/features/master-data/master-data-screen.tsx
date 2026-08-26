@@ -1,7 +1,18 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { authHeaders, frontendConfig } from "../../config";
 import { navigateTo } from "../../routing";
+import { useWorkspace } from "../../app/workspace-provider";
 
 type Status = "ACTIVE" | "ARCHIVED";
 type MasterDataEntity = "school" | "period" | "slot" | "teacher" | "class" | "subject" | "room" | "assignment";
@@ -288,6 +299,7 @@ function fieldErrorFromServer(message: string, entity: MasterDataEntity) {
 }
 
 export function MasterDataScreen() {
+  const { academicPeriodId: workspacePeriodId, setAcademicPeriodId } = useWorkspace();
   const [activeEntity, setActiveEntity] = useState<MasterDataEntity>("teacher");
   const [schools, setSchools] = useState<School[]>([]);
   const [periods, setPeriods] = useState<AcademicPeriod[]>([]);
@@ -297,7 +309,7 @@ export function MasterDataScreen() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [assignments, setAssignments] = useState<LessonRequirement[]>([]);
-  const [selectedPeriodId, setSelectedPeriodId] = useState("");
+  const [selectedPeriodId, setSelectedPeriodId] = useState(workspacePeriodId);
   const [query, setQuery] = useState("");
   const [form, setForm] = useState<Record<string, string>>(emptyForm.teacher);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -306,6 +318,7 @@ export function MasterDataScreen() {
   const [notice, setNotice] = useState("");
   const [bulkReport, setBulkReport] = useState("");
   const [saving, setSaving] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<MasterRecord | null>(null);
 
   const canWrite = frontendConfig.actorRole === "ADMIN" || frontendConfig.actorRole === "SCHEDULER";
 
@@ -365,8 +378,16 @@ export function MasterDataScreen() {
     setClasses(classRows);
     setSubjects(subjectRows);
     setRooms(roomRows);
-    setSelectedPeriodId((current) => current || periodRows[0]?.id || "");
-  }, [baseDataQuery.data]);
+    setSelectedPeriodId((current) => {
+      const next = current || workspacePeriodId || periodRows[0]?.id || "";
+      if (next && next !== workspacePeriodId) setAcademicPeriodId(next);
+      return next;
+    });
+  }, [baseDataQuery.data, setAcademicPeriodId, workspacePeriodId]);
+
+  useEffect(() => {
+    if (workspacePeriodId && workspacePeriodId !== selectedPeriodId) setSelectedPeriodId(workspacePeriodId);
+  }, [selectedPeriodId, workspacePeriodId]);
 
   useEffect(() => {
     if (!periodDataQuery.data) return;
@@ -866,6 +887,7 @@ export function MasterDataScreen() {
               value={selectedPeriodId}
               onChange={(event) => {
                 setSelectedPeriodId(event.target.value);
+                setAcademicPeriodId(event.target.value);
                 resetEditor();
               }}
             >
@@ -999,7 +1021,7 @@ export function MasterDataScreen() {
                           <button
                             className="table-action danger"
                             type="button"
-                            onClick={() => void removeRecord(record)}
+                            onClick={() => setPendingDelete(record)}
                             disabled={!canWrite || saving}
                           >
                             Xóa
@@ -1014,6 +1036,34 @@ export function MasterDataScreen() {
           </div>
         </div>
       </section>
+      <AlertDialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa dữ liệu?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? `Thao tác này sẽ lưu trữ hoặc xóa ${entityLabels[activeEntity].toLowerCase()} đang chọn theo hợp đồng API.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingDelete) void removeRecord(pendingDelete);
+                setPendingDelete(null);
+              }}
+            >
+              Xác nhận xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

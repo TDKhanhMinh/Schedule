@@ -3,6 +3,10 @@
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "jsx": "react-jsx",
     "noEmit": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
@@ -10,4 +14,3 @@
   },
   "include": ["src"]
 }
-

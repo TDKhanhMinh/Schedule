@@ -81,6 +81,18 @@ describe("MasterDataService", () => {
     expect(query).toHaveBeenCalledWith(expect.stringContaining("WHERE id = $1"), ["school-001"]);
   });
 
+  it("returns the current workspace context for local identity", async () => {
+    query.mockResolvedValueOnce({ rows: [schoolRow] });
+
+    await expect(service.getWorkspaceContext("user-001", "school-001")).resolves.toMatchObject({
+      userId: "user-001",
+      currentSchoolId: "school-001",
+      canSwitchSchool: false,
+      schools: [expect.objectContaining({ id: "school-001" })],
+    });
+    expect(query).toHaveBeenCalledWith(expect.stringContaining("WHERE id = $1"), ["school-001"]);
+  });
+
   it("creates a school and maps database fields to the API contract", async () => {
     query.mockResolvedValueOnce({ rows: [schoolRow] });
 

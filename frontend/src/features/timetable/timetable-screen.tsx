@@ -8,6 +8,7 @@ import { OptimizationJobPanel } from "./optimization-job-panel";
 import { TimetableGrid } from "./timetable-grid";
 import { loadTimetable } from "./timetable-api";
 import type { TimetableView } from "./timetable-types";
+import { ReleasePanel } from "./release-panel";
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Bản nháp",
@@ -174,6 +175,7 @@ export function TimetableScreen() {
             <p className="small-note history-empty">Chưa có nhật ký phiên bản từ API.</p>
           )}
         </section>
+        {data ? <ReleasePanel versionId={data.snapshot.id} status={data.snapshot.status} /> : null}
       </section>
     </>
   );
