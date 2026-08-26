@@ -1,4 +1,4 @@
-export type TimetableView = "class" | "teacher" | "room";
+export type TimetableView = "school" | "class" | "teacher" | "room";
 export type TimetableState = "loading" | "ready" | "empty" | "error";
 
 export interface ScheduleVersionSnapshot {

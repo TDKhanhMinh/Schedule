@@ -20,7 +20,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export function TimetableScreen() {
-  const [view, setView] = useState<TimetableView>("class");
+  const [view, setView] = useState<TimetableView>("school");
   const [query, setQuery] = useState("");
   const [exportNotice, setExportNotice] = useState("");
   const timetableQuery = useQuery({
@@ -48,13 +48,13 @@ export function TimetableScreen() {
   const exportMutation = useMutation({
     mutationFn: () =>
       apiBlob(
-        `/schools/${frontendConfig.schoolId}/schedule-versions/${frontendConfig.scheduleVersionId}/export.xlsx?view=${view}`,
+        `/schools/${frontendConfig.schoolId}/schedule-versions/${frontendConfig.scheduleVersionId}/export.xlsx?view=${view === "school" ? "all" : view}`,
       ),
     onSuccess: (blob) => {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `thoi-khoa-bieu-${view}.xlsx`;
+      anchor.download = `thoi-khoa-bieu-${view === "school" ? "toan-truong" : view}.xlsx`;
       anchor.click();
       URL.revokeObjectURL(url);
       setExportNotice("Đã xuất tệp Excel từ phiên bản trên máy chủ.");
@@ -68,7 +68,7 @@ export function TimetableScreen() {
       <PageHeader
         eyebrow="Bước 04 · Tối ưu và rà soát"
         title="Thời khóa biểu"
-        description="Dữ liệu được tải từ phiên bản thời khóa biểu trên API; không sử dụng dữ liệu mẫu trong giao diện."
+        description="Xem nhanh toàn bộ lịch học theo lớp hoặc chuyển sang góc nhìn giáo viên, phòng từ cùng một phiên bản API."
         action={
           <button className="button-secondary" type="button" onClick={() => navigateTo("imports")}>
             ← Quay lại nhập dữ liệu
@@ -91,7 +91,7 @@ export function TimetableScreen() {
         </div>
         <div className="timetable-controls" aria-label="Bộ lọc thời khóa biểu">
           <div className="view-switcher" role="tablist" aria-label="Góc nhìn thời khóa biểu">
-            {(["class", "teacher", "room"] as const).map((option) => (
+            {(["school", "class", "teacher", "room"] as const).map((option) => (
               <button
                 key={option}
                 type="button"
@@ -100,7 +100,13 @@ export function TimetableScreen() {
                 className={view === option ? "view-tab active" : "view-tab"}
                 onClick={() => setView(option)}
               >
-                {option === "class" ? "Theo lớp" : option === "teacher" ? "Theo giáo viên" : "Theo phòng"}
+                {option === "school"
+                  ? "Toàn trường"
+                  : option === "class"
+                    ? "Theo lớp"
+                    : option === "teacher"
+                      ? "Theo giáo viên"
+                      : "Theo phòng"}
               </button>
             ))}
           </div>

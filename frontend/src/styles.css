@@ -940,6 +940,63 @@ tr.has-warning td {
 .search-picker input {
   min-width: 190px;
 }
+.school-wide-view {
+  display: grid;
+  gap: 16px;
+}
+.school-wide-summary,
+.school-wide-class-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.school-wide-summary {
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+.school-wide-summary .eyebrow {
+  margin-bottom: 4px;
+}
+.school-wide-summary h3,
+.school-wide-class-heading h3 {
+  margin: 0;
+}
+.school-wide-summary > span,
+.school-wide-class-heading > span {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.school-wide-groups {
+  display: grid;
+  gap: 14px;
+}
+.school-wide-class {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.school-wide-class-heading {
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-soft);
+}
+.school-wide-class-heading h3 {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+.school-wide-table {
+  min-width: 640px;
+}
+.school-wide-table th,
+.school-wide-table td {
+  padding: 9px 11px;
+}
 .heatmap-toggle {
   display: inline-flex;
   align-items: center;
