@@ -51,7 +51,18 @@ export function TimetableGrid({
         classLabel.toLowerCase().includes(normalizedQuery) ||
         visibleAssignments.some((assignment) => assignment.classLabel === classLabel),
     );
-    return <SchoolWideView assignments={visibleAssignments} classLabels={visibleClassLabels} timeSlots={timeSlots} />;
+    return (
+      <SchoolOverviewView assignments={visibleAssignments} classLabels={visibleClassLabels} timeSlots={timeSlots} />
+    );
+  }
+  if (view === "class") {
+    const visibleClassLabels = classLabels.filter(
+      (classLabel) =>
+        !normalizedQuery ||
+        classLabel.toLowerCase().includes(normalizedQuery) ||
+        visibleAssignments.some((assignment) => assignment.classLabel === classLabel),
+    );
+    return <ClassBoardsView assignments={visibleAssignments} classLabels={visibleClassLabels} timeSlots={timeSlots} />;
   }
   return (
     <div className="table-wrap">
@@ -86,7 +97,92 @@ export function TimetableGrid({
   );
 }
 
-function SchoolWideView({
+function SchoolOverviewView({
+  assignments,
+  classLabels,
+  timeSlots,
+}: {
+  assignments: TimetableAssignment[];
+  classLabels: string[];
+  timeSlots: TimeSlot[];
+}) {
+  const days =
+    timeSlots.some((slot) => slot.day === 7) || assignments.some((assignment) => assignment.day === 7)
+      ? [...SCHOOL_DAYS, 7]
+      : SCHOOL_DAYS;
+  const shifts = buildShiftRows(timeSlots, assignments);
+  const rows = shifts.flatMap((shift) =>
+    shift.periods.map((period) => ({
+      key: `${shift.code}-${period}`,
+      label: shifts.length > 1 ? `${shift.label} ${period}` : String(period),
+      shiftCode: shift.code,
+      period,
+    })),
+  );
+  const cells = new Map<string, TimetableAssignment[]>();
+  for (const assignment of assignments) {
+    if (assignment.day === null || assignment.period === null) continue;
+    const key = `${assignment.classLabel}:${assignment.day}:${assignment.shiftCode ?? "MORNING"}:${assignment.period}`;
+    cells.set(key, [...(cells.get(key) ?? []), assignment]);
+  }
+
+  return (
+    <div className="school-wide-view" aria-label="Thời khóa biểu tổng hợp toàn trường">
+      <div className="school-wide-summary">
+        <div>
+          <p className="eyebrow">Tổng quan toàn trường</p>
+          <h3>{classLabels.length} lớp trong phạm vi xem</h3>
+        </div>
+        <span>{assignments.length} tiết phù hợp bộ lọc</span>
+      </div>
+      <div className="table-wrap school-overview-wrap">
+        <table className="school-overview-table">
+          <caption className="sr-only">Thời khóa biểu tổng hợp toàn trường theo lớp</caption>
+          <thead>
+            <tr>
+              <th>Thứ</th>
+              <th>Tiết</th>
+              {classLabels.map((classLabel) => (
+                <th key={classLabel}>{shortLabel(classLabel)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {days.map((day) =>
+              rows.map((row, rowIndex) => (
+                <tr key={`${day}-${row.key}`}>
+                  {rowIndex === 0 ? (
+                    <th className="school-day-cell" rowSpan={rows.length} scope="rowgroup">
+                      {dayLabel(day)}
+                    </th>
+                  ) : null}
+                  <th className="school-period-cell" scope="row">
+                    {row.label}
+                  </th>
+                  {classLabels.map((classLabel) => {
+                    const cellAssignments = cells.get(`${classLabel}:${day}:${row.shiftCode}:${row.period}`) ?? [];
+                    return (
+                      <td className="school-subject-cell" key={classLabel}>
+                        {cellAssignments
+                          .map(
+                            (assignment) =>
+                              `${shortLabel(assignment.subjectLabel)} - ${shortLabel(assignment.teacherLabel)}`,
+                          )
+                          .join(" / ")}
+                      </td>
+                    );
+                  })}
+                </tr>
+              )),
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ClassBoardsView({
   assignments,
   classLabels,
   timeSlots,
@@ -105,53 +201,44 @@ function SchoolWideView({
   const shifts = buildShiftRows(timeSlots, assignments);
 
   return (
-    <div className="school-wide-view" aria-label="Thời khóa biểu toàn trường theo lớp">
-      <div className="school-wide-summary">
-        <div>
-          <p className="eyebrow">Tổng quan toàn trường</p>
-          <h3>{groups.length} lớp trong phạm vi xem</h3>
-        </div>
-        <span>{assignments.length} tiết phù hợp bộ lọc</span>
-      </div>
-      <div className="school-wide-groups">
-        {groups.map(([classLabel, classAssignments], index) => (
-          <section className="school-wide-class" key={classLabel} aria-labelledby={`school-class-${index}`}>
-            <div className="school-wide-class-heading">
-              <h3 id={`school-class-${index}`}>{shortLabel(classLabel)}</h3>
-              <span>{classAssignments.length} tiết có dữ liệu</span>
-            </div>
-            <div className="table-wrap">
-              <table className="school-wide-table">
-                <caption className="sr-only">Thời khóa biểu lớp {classLabel}</caption>
-                <thead>
-                  <tr>
-                    <th>{shifts[0]?.label ?? "Tiết"}</th>
-                    {days.map((day) => (
-                      <th key={day}>{dayLabel(day)}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {shifts.map((shift, shiftIndex) => (
-                    <SchoolWideShiftRows
-                      key={shift.code}
-                      assignments={classAssignments}
-                      days={days}
-                      showShiftLabel={shiftIndex > 0}
-                      shift={shift}
-                    />
+    <div className="school-wide-groups">
+      {groups.map(([classLabel, classAssignments], index) => (
+        <section className="school-wide-class" key={classLabel} aria-labelledby={`school-class-${index}`}>
+          <div className="school-wide-class-heading">
+            <h3 id={`school-class-${index}`}>{shortLabel(classLabel)}</h3>
+            <span>{classAssignments.length} tiết có dữ liệu</span>
+          </div>
+          <div className="table-wrap">
+            <table className="school-wide-table">
+              <caption className="sr-only">Thời khóa biểu lớp {classLabel}</caption>
+              <thead>
+                <tr>
+                  <th>{shifts[0]?.label ?? "Tiết"}</th>
+                  {days.map((day) => (
+                    <th key={day}>{dayLabel(day)}</th>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ))}
-      </div>
+                </tr>
+              </thead>
+              <tbody>
+                {shifts.map((shift, shiftIndex) => (
+                  <ClassShiftRows
+                    key={shift.code}
+                    assignments={classAssignments}
+                    days={days}
+                    showShiftLabel={shiftIndex > 0}
+                    shift={shift}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
 
-function SchoolWideShiftRows({
+function ClassShiftRows({
   assignments,
   days,
   showShiftLabel,

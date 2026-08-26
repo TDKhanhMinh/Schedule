@@ -1033,6 +1033,60 @@ tr.has-warning td {
   color: var(--blue);
   font-weight: 800;
 }
+.school-overview-wrap {
+  overflow-x: auto;
+}
+.school-overview-table {
+  min-width: 860px;
+  table-layout: fixed;
+}
+.school-overview-table th,
+.school-overview-table td {
+  padding: 8px 9px;
+  text-align: center;
+  vertical-align: middle;
+}
+.school-overview-table th {
+  color: var(--ink);
+  font-size: 0.72rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.school-overview-table thead th {
+  background: var(--surface-soft);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+.school-overview-table thead th:first-child,
+.school-overview-table thead th:nth-child(2),
+.school-overview-table .school-day-cell,
+.school-overview-table .school-period-cell {
+  color: var(--blue);
+}
+.school-overview-table thead th:first-child,
+.school-overview-table .school-day-cell {
+  width: 76px;
+}
+.school-overview-table thead th:nth-child(2),
+.school-overview-table .school-period-cell {
+  width: 54px;
+}
+.school-overview-table .school-day-cell {
+  background: var(--surface-soft);
+  font-weight: 900;
+}
+.school-overview-table .school-period-cell {
+  background: var(--surface);
+  font-weight: 800;
+}
+.school-overview-table .school-subject-cell {
+  min-width: 120px;
+  min-height: 42px;
+  color: var(--blue);
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
 .heatmap-toggle {
   display: inline-flex;
   align-items: center;
