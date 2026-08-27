@@ -5074,6 +5074,30 @@ tr.has-warning td {
   color: var(--destructive);
 }
 
+.master-duty-cell {
+  display: grid;
+  min-width: 130px;
+  gap: 2px;
+}
+
+.master-duty-cell strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.master-duty-cell small {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+}
+
+.homeroom-action svg {
+  width: 14px;
+  height: 14px;
+}
+
 .master-loading-state,
 .master-empty-state {
   display: grid;

@@ -11,6 +11,7 @@ import {
   Plus,
   Search,
   Upload,
+  UserRoundPlus,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -67,7 +68,7 @@ import {
   type Teacher,
   type TimeSlot,
 } from "./master-data-types";
-import { HomeroomAssignmentPanel, TeacherLoadSummaryPanel } from "./teacher-duty-panels";
+import { HomeroomAssignmentDialog, TeacherLoadSummaryPanel, type HomeroomAssignment } from "./teacher-duty-panels";
 import { MasterDataImportActions } from "./master-data-import-dialog";
 
 const entityIcons: Record<MasterDataEntity, LucideIcon> = {
@@ -103,6 +104,8 @@ export function MasterDataScreen() {
   const [saving, setSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<MasterRecord | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [homeroomDialogClassId, setHomeroomDialogClassId] = useState<string | null>(null);
+  const homeroomTriggerRef = useRef<HTMLButtonElement | null>(null);
   const editorTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const canWrite = frontendConfig.actorRole === "ADMIN" || frontendConfig.actorRole === "SCHEDULER";
@@ -138,7 +141,20 @@ export function MasterDataScreen() {
     enabled: Boolean(frontendConfig.schoolId && selectedPeriodId),
   });
 
-  const loading = baseDataQuery.isPending || periodDataQuery.isPending;
+  const homeroomAssignmentQuery = useQuery({
+    queryKey: ["homeroom-assignments", frontendConfig.schoolId, selectedPeriodId],
+    queryFn: ({ signal }) =>
+      request<HomeroomAssignment[]>(
+        `/schools/${frontendConfig.schoolId}/academic-periods/${selectedPeriodId}/homeroom-assignments`,
+        { signal },
+      ),
+    enabled: Boolean(frontendConfig.schoolId && selectedPeriodId && activeEntity === "class"),
+  });
+
+  const loading = baseDataQuery.isPending || periodDataQuery.isPending || homeroomAssignmentQuery.isPending;
+  const homeroomAssignments = homeroomAssignmentQuery.data ?? [];
+  const homeroomDialogClass = classes.find((item) => item.id === homeroomDialogClassId);
+  const homeroomDialogAssignment = homeroomAssignments.find((item) => item.classId === homeroomDialogClassId);
 
   const saveMutation = useMutation({
     mutationFn: ({ path, body, method }: { path: string; body: string; method: "POST" | "PATCH" }) =>
@@ -182,13 +198,16 @@ export function MasterDataScreen() {
   }, [periodDataQuery.data]);
 
   useEffect(() => {
-    const queryError = baseDataQuery.error ?? periodDataQuery.error;
+    const queryError = baseDataQuery.error ?? periodDataQuery.error ?? homeroomAssignmentQuery.error;
     if (queryError) setError(queryError instanceof Error ? queryError.message : "Không thể tải dữ liệu danh mục.");
-  }, [baseDataQuery.error, periodDataQuery.error]);
+  }, [baseDataQuery.error, homeroomAssignmentQuery.error, periodDataQuery.error]);
 
   const loadBaseData = useCallback(async () => {
-    await baseDataQuery.refetch();
-  }, [baseDataQuery.refetch]);
+    await Promise.all([
+      baseDataQuery.refetch(),
+      activeEntity === "class" && selectedPeriodId ? homeroomAssignmentQuery.refetch() : Promise.resolve(),
+    ]);
+  }, [activeEntity, baseDataQuery.refetch, homeroomAssignmentQuery.refetch, selectedPeriodId]);
 
   const names = useMemo<NameMaps>(
     () => ({
@@ -577,6 +596,7 @@ export function MasterDataScreen() {
     }
     if (activeEntity === "class") {
       const value = record as SchoolClass;
+      const homeroomAssignment = homeroomAssignments.find((item) => item.classId === value.id);
       return (
         <>
           <td>
@@ -584,6 +604,16 @@ export function MasterDataScreen() {
           </td>
           <td>{value.name}</td>
           <td>Khối {value.grade}</td>
+          <td>
+            {homeroomAssignment ? (
+              <span className="master-duty-cell">
+                <strong>{homeroomAssignment.teacherName}</strong>
+                <small>Giảm {homeroomAssignment.weeklyReductionPeriods} tiết/tuần</small>
+              </span>
+            ) : (
+              <span className="status-tag draft">Chưa gán</span>
+            )}
+          </td>
           <td>
             <span className={`status-tag ${value.status.toLowerCase()}`}>{statusLabel(value.status)}</span>
           </td>
@@ -635,12 +665,33 @@ export function MasterDataScreen() {
     );
   }
 
+  function renderHomeroomAction(record: MasterRecord) {
+    if (activeEntity !== "class" || !selectedPeriodId) return null;
+    const classRecord = record as SchoolClass;
+    const assignment = homeroomAssignments.find((item) => item.classId === classRecord.id);
+    return (
+      <Button
+        className="table-action homeroom-action"
+        variant={assignment ? "secondary" : "outline"}
+        type="button"
+        onClick={(event) => {
+          homeroomTriggerRef.current = event.currentTarget;
+          setHomeroomDialogClassId(classRecord.id);
+        }}
+        disabled={!canWrite || homeroomAssignmentQuery.isPending || classRecord.status === "ARCHIVED"}
+        aria-label={`${assignment ? "Sửa" : "Gán"} giáo viên chủ nhiệm cho ${classRecord.code}`}
+      >
+        <UserRoundPlus /> {assignment ? "Sửa GVCN" : "Gán GVCN"}
+      </Button>
+    );
+  }
+
   const headers: Record<MasterDataEntity, string[]> = {
     school: ["Mã", "Tên", "Múi giờ", "Trạng thái"],
     period: ["Học kỳ", "Tên", "Năm học", "Khoảng ngày", "Trạng thái"],
     slot: ["Ngày", "Tiết", "Buổi", "Thời gian"],
     teacher: ["Mã", "Tên giáo viên", "Trạng thái"],
-    class: ["Mã", "Tên lớp", "Khối", "Trạng thái"],
+    class: ["Mã", "Tên lớp", "Khối", "GVCN", "Trạng thái"],
     subject: ["Mã", "Tên môn", "Trạng thái"],
     room: ["Mã", "Tên phòng", "Loại", "Sức chứa", "Trạng thái"],
     assignment: ["Lớp", "Môn", "Giáo viên", "Phòng", "Số tiết", "Trạng thái"],
@@ -729,15 +780,6 @@ export function MasterDataScreen() {
               ))}
             </select>
           </label>
-        ) : null}
-
-        {activeEntity === "class" && selectedPeriodId ? (
-          <HomeroomAssignmentPanel
-            classes={classes}
-            teachers={teachers}
-            periodId={selectedPeriodId}
-            canWrite={canWrite}
-          />
         ) : null}
 
         <section className="master-relation-imports" aria-labelledby="master-relation-imports-title">
@@ -867,6 +909,7 @@ export function MasterDataScreen() {
                     <tr key={recordId(record)}>
                       {renderRecord(record)}
                       <td className="row-actions">
+                        {renderHomeroomAction(record)}
                         <Button
                           className="table-action"
                           variant="outline"
@@ -903,6 +946,25 @@ export function MasterDataScreen() {
           />
         ) : null}
       </section>
+      {homeroomDialogClass && selectedPeriodId ? (
+        <HomeroomAssignmentDialog
+          classOption={homeroomDialogClass}
+          teachers={teachers}
+          periodId={selectedPeriodId}
+          canWrite={canWrite}
+          assignment={homeroomDialogAssignment}
+          open={Boolean(homeroomDialogClassId)}
+          onOpenChange={(open) => {
+            if (open) return;
+            setHomeroomDialogClassId(null);
+            window.requestAnimationFrame(() => homeroomTriggerRef.current?.focus());
+          }}
+          onSaved={(message) => {
+            setError("");
+            setNotice(message);
+          }}
+        />
+      ) : null}
       <Dialog
         open={editorOpen}
         onOpenChange={(open) => {

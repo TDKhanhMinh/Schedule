@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { UserRoundPlus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,15 +19,17 @@ interface ClassOption {
   id: string;
   code: string;
   name: string;
+  status?: "ACTIVE" | "ARCHIVED";
 }
 
 interface TeacherOption {
   id: string;
   code: string;
   displayName: string;
+  status?: "ACTIVE" | "ARCHIVED";
 }
 
-interface HomeroomAssignment {
+export interface HomeroomAssignment {
   id: string;
   classId: string;
   classCode: string;
@@ -77,198 +78,128 @@ interface TeacherLoadSummary {
 
 const RULE_CODE = "TT_05_2025_D9_1";
 
-export function HomeroomAssignmentPanel({
-  classes,
+export function HomeroomAssignmentDialog({
+  classOption,
   teachers,
   periodId,
   canWrite,
+  assignment,
+  open,
+  onOpenChange,
+  onSaved,
 }: {
-  classes: ClassOption[];
+  classOption: ClassOption;
   teachers: TeacherOption[];
   periodId: string;
   canWrite: boolean;
+  assignment?: HomeroomAssignment;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaved: (message: string) => void;
 }) {
   const queryClient = useQueryClient();
-  const [classId, setClassId] = useState(classes[0]?.id ?? "");
-  const [teacherId, setTeacherId] = useState("");
-  const [notice, setNotice] = useState("");
-  const [assignmentOpen, setAssignmentOpen] = useState(false);
-  const assignmentTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const assignmentQuery = useQuery({
-    queryKey: ["homeroom-assignments", frontendConfig.schoolId, periodId],
-    queryFn: ({ signal }) =>
-      apiRequest<HomeroomAssignment[]>(
-        `/schools/${frontendConfig.schoolId}/academic-periods/${periodId}/homeroom-assignments`,
-        { signal },
-      ),
-    enabled: Boolean(frontendConfig.schoolId && periodId),
-  });
-  const assignments = assignmentQuery.data ?? [];
-  const selectedAssignment = assignments.find((item) => item.classId === classId);
+  const [teacherId, setTeacherId] = useState(assignment?.teacherId ?? "");
   useEffect(() => {
-    if (!classId && classes[0]?.id) setClassId(classes[0].id);
-  }, [classId, classes]);
-  useEffect(() => {
-    setTeacherId(selectedAssignment?.teacherId ?? "");
-  }, [selectedAssignment?.teacherId]);
+    setTeacherId(assignment?.teacherId ?? "");
+  }, [assignment?.teacherId, classOption.id]);
   const saveMutation = useMutation({
     mutationFn: () =>
-      apiRequest(`/schools/${frontendConfig.schoolId}/academic-periods/${periodId}/classes/${classId}/homeroom`, {
-        method: "PUT",
-        body: JSON.stringify({ teacherId, weeklyReductionPeriods: 4, ruleCode: RULE_CODE }),
-      }),
+      apiRequest(
+        `/schools/${frontendConfig.schoolId}/academic-periods/${periodId}/classes/${classOption.id}/homeroom`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ teacherId, weeklyReductionPeriods: 4, ruleCode: RULE_CODE }),
+        },
+      ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["homeroom-assignments", frontendConfig.schoolId, periodId] });
       await queryClient.invalidateQueries({ queryKey: ["teacher-load-summary", frontendConfig.schoolId, periodId] });
-      setNotice("Đã lưu phân công GVCN; bảng tải dạy đã được cập nhật.");
-      closeAssignmentDialog();
+      onSaved("Đã lưu phân công GVCN; bảng tải dạy đã được cập nhật.");
+      onOpenChange(false);
     },
   });
   const removeMutation = useMutation({
     mutationFn: () =>
-      apiRequest(`/schools/${frontendConfig.schoolId}/academic-periods/${periodId}/classes/${classId}/homeroom`, {
-        method: "DELETE",
-      }),
+      apiRequest(
+        `/schools/${frontendConfig.schoolId}/academic-periods/${periodId}/classes/${classOption.id}/homeroom`,
+        {
+          method: "DELETE",
+        },
+      ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["homeroom-assignments", frontendConfig.schoolId, periodId] });
       await queryClient.invalidateQueries({ queryKey: ["teacher-load-summary", frontendConfig.schoolId, periodId] });
       setTeacherId("");
-      setNotice("Đã bỏ phân công GVCN của lớp.");
-      closeAssignmentDialog();
+      onSaved("Đã bỏ phân công GVCN của lớp.");
+      onOpenChange(false);
     },
   });
-  const selectedClass = classes.find((item) => item.id === classId);
-  const error = assignmentQuery.error ?? saveMutation.error ?? removeMutation.error;
-
-  function closeAssignmentDialog() {
-    setAssignmentOpen(false);
-    setNotice("");
-    window.requestAnimationFrame(() => assignmentTriggerRef.current?.focus());
-  }
+  const error = saveMutation.error ?? removeMutation.error;
 
   return (
-    <>
-      <Card className="mb-6 master-duty-card">
-        <CardHeader className="master-duty-header">
-          <div>
-            <CardTitle>Gán giáo viên chủ nhiệm</CardTitle>
-            <CardDescription>
-              Phân công theo từng lớp và năm học. Mặc định giảm 4 tiết/tuần theo Điều 9 khoản 1 Thông tư
-              05/2025/TT-BGDĐT.
-            </CardDescription>
-          </div>
-          <Badge variant={selectedAssignment ? "default" : "secondary"}>
-            {selectedAssignment ? "Đã gán" : "Chưa gán"}
-          </Badge>
-        </CardHeader>
-        <CardContent className="master-duty-summary">
-          <div>
-            <span>Lớp đang chọn</span>
-            <strong>{selectedClass ? `${selectedClass.code} - ${selectedClass.name}` : "Chưa có lớp"}</strong>
-            <small>
-              {selectedAssignment
-                ? `${selectedAssignment.teacherName} - giảm ${selectedAssignment.weeklyReductionPeriods} tiết/tuần`
-                : "Chưa có giáo viên chủ nhiệm"}
-            </small>
-          </div>
-          <Button
-            type="button"
-            onClick={(event) => {
-              assignmentTriggerRef.current = event.currentTarget;
-              setAssignmentOpen(true);
-            }}
-            disabled={!canWrite || !classes.length || !teachers.length}
-          >
-            <UserRoundPlus /> {selectedAssignment ? "Sửa phân công" : "Gán GVCN"}
-          </Button>
-          {notice ? <p className="text-sm text-emerald-700 dark:text-emerald-300">{notice}</p> : null}
-          {error ? (
-            <p className="text-sm text-destructive">
-              {error instanceof Error ? error.message : "Không thể cập nhật GVCN."}
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Dialog
-        open={assignmentOpen}
-        onOpenChange={(open) => {
-          if (open) setAssignmentOpen(true);
-          else closeAssignmentDialog();
-        }}
-      >
-        <DialogContent className="master-duty-dialog">
-          <DialogHeader>
-            <DialogTitle>{selectedAssignment ? "Sửa phân công GVCN" : "Gán giáo viên chủ nhiệm"}</DialogTitle>
-            <DialogDescription>
-              Chọn lớp và giáo viên. Hệ thống sẽ cập nhật bảng tải dạy sau khi lưu thành công.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="master-duty-form">
-            <label>
-              <span>Lớp</span>
-              <select
-                name="homeroomClass"
-                className="master-select"
-                value={classId}
-                onChange={(event) => setClassId(event.target.value)}
-                disabled={!classes.length}
-              >
-                {classes.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.code} · {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Giáo viên chủ nhiệm</span>
-              <select
-                name="homeroomTeacher"
-                className="master-select"
-                value={teacherId}
-                onChange={(event) => setTeacherId(event.target.value)}
-                disabled={!teachers.length}
-              >
-                <option value="">Chưa gán</option>
-                {teachers.map((item) => (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="master-duty-dialog">
+        <DialogHeader>
+          <DialogTitle>{assignment ? "Sửa phân công GVCN" : "Gán giáo viên chủ nhiệm"}</DialogTitle>
+          <DialogDescription>
+            Lớp {classOption.code} - {classOption.name}. Mặc định giảm 4 tiết/tuần theo Điều 9 khoản 1 Thông tư
+            05/2025/TT-BGDĐT.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="master-duty-form">
+          <label>
+            <span>Lớp</span>
+            <input className="master-input" value={`${classOption.code} - ${classOption.name}`} readOnly />
+          </label>
+          <label>
+            <span>Giáo viên chủ nhiệm</span>
+            <select
+              name="homeroomTeacher"
+              className="master-select"
+              value={teacherId}
+              onChange={(event) => setTeacherId(event.target.value)}
+              disabled={!teachers.length}
+            >
+              <option value="">Chưa gán</option>
+              {teachers
+                .filter((item) => item.status !== "ARCHIVED" || item.id === assignment?.teacherId)
+                .map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.code} · {item.displayName}
                   </option>
                 ))}
-              </select>
-            </label>
-          </div>
-          {error ? (
-            <p className="master-dialog-error" role="alert">
-              {error instanceof Error ? error.message : "Không thể cập nhật GVCN."}
-            </p>
-          ) : null}
-          <DialogFooter>
-            {selectedAssignment ? (
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!canWrite || removeMutation.isPending}
-                onClick={() => void removeMutation.mutateAsync()}
-              >
-                Bỏ gán
-              </Button>
-            ) : null}
-            <Button type="button" variant="outline" onClick={closeAssignmentDialog}>
-              Hủy
-            </Button>
+            </select>
+          </label>
+        </div>
+        {error ? (
+          <p className="master-dialog-error" role="alert">
+            {error instanceof Error ? error.message : "Không thể cập nhật GVCN."}
+          </p>
+        ) : null}
+        <DialogFooter>
+          {assignment ? (
             <Button
               type="button"
-              disabled={!canWrite || !classId || !teacherId || saveMutation.isPending}
-              onClick={() => void saveMutation.mutateAsync()}
+              variant="outline"
+              disabled={!canWrite || removeMutation.isPending}
+              onClick={() => void removeMutation.mutateAsync()}
             >
-              {saveMutation.isPending ? "Đang lưu…" : "Lưu GVCN"}
+              Bỏ gán
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          ) : null}
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Hủy
+          </Button>
+          <Button
+            type="button"
+            disabled={!canWrite || !teacherId || saveMutation.isPending}
+            onClick={() => void saveMutation.mutateAsync()}
+          >
+            {saveMutation.isPending ? "Đang lưu…" : "Lưu GVCN"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
