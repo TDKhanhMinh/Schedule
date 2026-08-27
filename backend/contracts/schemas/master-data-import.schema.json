@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schedule.local/contracts/master-data-import.schema.json",
+  "title": "MasterDataImportPreview",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "templateVersion",
+    "entity",
+    "label",
+    "sheetName",
+    "filename",
+    "fileChecksum",
+    "importBatchId",
+    "importToken",
+    "rowCount",
+    "validRowCount",
+    "errorCount",
+    "warningCount",
+    "createCount",
+    "updateCount",
+    "canConfirm",
+    "columns",
+    "columnMappings",
+    "errors",
+    "warnings",
+    "rows"
+  ],
+  "properties": {
+    "contractVersion": { "const": "MASTER-DATA-IMPORT-1.0.0" },
+    "templateVersion": { "const": "1.0" },
+    "entity": { "enum": ["class", "teacher", "subject", "room", "teacherSubjectGrade", "homeroom"] },
+    "label": { "type": "string", "minLength": 1 },
+    "sheetName": { "type": "string", "minLength": 1 },
+    "filename": { "type": "string", "minLength": 1 },
+    "fileChecksum": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "importBatchId": { "type": "string", "minLength": 1 },
+    "importToken": { "type": "string", "minLength": 1 },
+    "rowCount": { "type": "integer", "minimum": 0 },
+    "validRowCount": { "type": "integer", "minimum": 0 },
+    "errorCount": { "type": "integer", "minimum": 0 },
+    "warningCount": { "type": "integer", "minimum": 0 },
+    "createCount": { "type": "integer", "minimum": 0 },
+    "updateCount": { "type": "integer", "minimum": 0 },
+    "canConfirm": { "type": "boolean" },
+    "columns": { "type": "array", "items": { "type": "string" } },
+    "columnMappings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["column", "header", "field", "required"],
+        "properties": {
+          "column": { "type": "string", "minLength": 1 },
+          "header": { "type": "string", "minLength": 1 },
+          "field": { "type": ["string", "null"] },
+          "required": { "type": "boolean" }
+        }
+      }
+    },
+    "errors": { "$ref": "#/$defs/issues" },
+    "warnings": { "$ref": "#/$defs/issues" },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rowNumber", "status", "operation", "values", "normalized", "errors", "warnings"],
+        "properties": {
+          "rowNumber": { "type": "integer", "minimum": 1 },
+          "status": { "enum": ["VALID", "INVALID", "WARNING"] },
+          "operation": { "enum": ["CREATE", "UPDATE", null] },
+          "values": { "type": "object" },
+          "normalized": { "type": ["object", "null"] },
+          "errors": { "$ref": "#/$defs/issues" },
+          "warnings": { "$ref": "#/$defs/issues" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sheet", "row", "column", "cell", "field", "code", "severity", "message", "remediationHint", "value"],
+        "properties": {
+          "sheet": { "type": "string", "minLength": 1 },
+          "row": { "type": "integer", "minimum": 1 },
+          "column": { "type": "string", "minLength": 1 },
+          "cell": { "type": "string", "minLength": 1 },
+          "field": { "type": "string", "minLength": 1 },
+          "code": { "type": "string", "minLength": 1 },
+          "severity": { "enum": ["ERROR", "WARNING"] },
+          "message": { "type": "string", "minLength": 1 },
+          "remediationHint": { "type": "string", "minLength": 1 },
+          "value": { "type": ["string", "number", "null"] }
+        }
+      }
+    }
+  }
+}
