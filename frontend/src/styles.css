@@ -4259,6 +4259,10 @@ tr.has-warning td {
   min-width: 124px;
 }
 
+.timetable-grid-layout-toggle {
+  min-width: 132px;
+}
+
 .timetable-grid-view-expanded {
   position: fixed;
   z-index: 60;
@@ -4343,6 +4347,78 @@ tr.has-warning td {
 .school-overview-table .school-shift-cell,
 .school-overview-table .school-period-cell {
   background: var(--secondary);
+}
+
+.school-overview-table-by-class thead th {
+  height: 40px;
+  white-space: nowrap;
+}
+
+.school-overview-table-by-class thead th:first-child,
+.school-overview-table-by-class .school-class-label-cell {
+  left: 0;
+  z-index: 9;
+  width: 160px;
+  min-width: 160px;
+  background: var(--secondary);
+}
+
+.school-overview-table-by-class thead th:nth-child(2),
+.school-overview-table-by-class .school-homeroom-cell {
+  left: 160px;
+  z-index: 9;
+  width: 180px;
+  min-width: 180px;
+  background: var(--secondary);
+}
+
+.school-overview-table-by-class thead th:nth-child(3),
+.school-overview-table-by-class .school-shift-cell {
+  left: 340px;
+  z-index: 9;
+  width: 72px;
+  min-width: 72px;
+  background: var(--secondary);
+}
+
+.school-overview-table-by-class thead th:nth-child(4),
+.school-overview-table-by-class .school-period-cell {
+  left: 412px;
+  z-index: 9;
+  width: 54px;
+  min-width: 54px;
+  background: var(--secondary);
+}
+
+.school-overview-table-by-class thead th:nth-child(n + 5),
+.school-overview-table-by-class tbody td.school-subject-cell {
+  width: 160px;
+  min-width: 160px;
+}
+
+.school-overview-table-by-class .school-class-label-cell,
+.school-overview-table-by-class .school-homeroom-cell {
+  position: sticky;
+  color: var(--foreground);
+  font-weight: 800;
+  box-shadow: inset -1px 0 0 var(--border);
+}
+
+.school-overview-table-by-class .school-class-label-cell {
+  color: var(--primary);
+}
+
+.school-overview-table-by-class tbody .school-period-cell,
+.school-overview-table-by-class tbody .school-shift-cell {
+  position: sticky;
+}
+
+.school-overview-table-by-class tbody td.school-homeroom-cell {
+  height: 52px;
+}
+
+.school-overview-table-by-class tbody td.school-subject-cell {
+  height: 52px;
 }
 
 .school-wide-table thead th:first-child,
@@ -4543,6 +4619,17 @@ tr.has-warning td {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+  }
+
+  .timetable-grid-summary-actions {
+    align-items: flex-start;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .school-overview-wrap {
+    height: min(62dvh, 560px);
+    max-height: min(62dvh, 560px);
   }
 
   .timetable-action-panel {
@@ -5679,6 +5766,18 @@ tr.has-warning td {
   align-items: flex-start;
 }
 
+.import-panel-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.import-panel-actions .quiet-badge {
+  margin: 0;
+}
+
 .imports-screen .upload-form {
   display: grid;
   gap: 10px;
@@ -5833,6 +5932,15 @@ tr.has-warning td {
 }
 
 @media (max-width: 600px) {
+  .import-panel-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .import-panel-actions > * {
+    width: 100%;
+  }
+
   .imports-screen .upload-controls,
   .preview-actions {
     display: grid;

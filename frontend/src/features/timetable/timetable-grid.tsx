@@ -1,4 +1,4 @@
-import { CalendarDays, Maximize2, Minimize2 } from "lucide-react";
+import { ArrowLeftRight, CalendarDays, Maximize2, Minimize2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { HomeroomAssignment, TimetableAssignment, TimetableView } from "./timetable-types";
@@ -111,6 +111,7 @@ function SchoolOverviewView({
   classLabels: string[];
   homerooms: HomeroomAssignment[];
 }) {
+  const [layout, setLayout] = useState<"by-time" | "by-class">("by-time");
   const [isExpanded, setIsExpanded] = useState(false);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const wasExpandedRef = useRef(false);
@@ -160,6 +161,19 @@ function SchoolOverviewView({
             <span>{assignments.length} tiết phù hợp bộ lọc</span>
           </div>
           <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="timetable-grid-layout-toggle"
+            aria-pressed={layout === "by-class"}
+            aria-label={layout === "by-time" ? "Chuyển sang hiển thị theo lớp" : "Chuyển sang hiển thị theo thời gian"}
+            title={layout === "by-time" ? "Hiển thị các lớp theo từng hàng" : "Hiển thị Thứ, Buổi, Tiết theo từng hàng"}
+            onClick={() => setLayout((current) => (current === "by-time" ? "by-class" : "by-time"))}
+          >
+            <ArrowLeftRight aria-hidden="true" />
+            {layout === "by-time" ? "Theo lớp" : "Theo thời gian"}
+          </Button>
+          <Button
             ref={toggleButtonRef}
             type="button"
             variant="outline"
@@ -181,74 +195,153 @@ function SchoolOverviewView({
         aria-label="Lưới thời khóa biểu toàn trường, có thể cuộn ngang và dọc"
         tabIndex={0}
       >
-        <table className="school-overview-table">
-          <caption className="sr-only">Thời khóa biểu tổng hợp toàn trường theo lớp</caption>
-          <thead>
-            <tr>
-              <th>Thứ</th>
-              <th>Buổi</th>
-              <th>Tiết</th>
-              {classLabels.map((classLabel) => (
-                <th key={classLabel}>{shortLabel(classLabel)}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {days.map((day) =>
-              SCHOOL_SHIFTS.map((shift, shiftIndex) =>
-                SCHOOL_PERIODS.map((period, periodIndex) => (
-                  <tr key={`${day}-${shift.code}-${period}`}>
-                    {shiftIndex === 0 && periodIndex === 0 ? (
-                      <th
-                        className="school-day-cell"
-                        rowSpan={SCHOOL_SHIFTS.length * SCHOOL_PERIODS.length}
-                        scope="rowgroup"
-                      >
-                        {dayLabel(day)}
+        {layout === "by-time" ? (
+          <table className="school-overview-table">
+            <caption className="sr-only">Thời khóa biểu tổng hợp toàn trường theo thời gian</caption>
+            <thead>
+              <tr>
+                <th>Thứ</th>
+                <th>Buổi</th>
+                <th>Tiết</th>
+                {classLabels.map((classLabel) => (
+                  <th key={classLabel}>{shortLabel(classLabel)}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {days.map((day) =>
+                SCHOOL_SHIFTS.map((shift, shiftIndex) =>
+                  SCHOOL_PERIODS.map((period, periodIndex) => (
+                    <tr key={`${day}-${shift.code}-${period}`}>
+                      {shiftIndex === 0 && periodIndex === 0 ? (
+                        <th
+                          className="school-day-cell"
+                          rowSpan={SCHOOL_SHIFTS.length * SCHOOL_PERIODS.length}
+                          scope="rowgroup"
+                        >
+                          {dayLabel(day)}
+                        </th>
+                      ) : null}
+                      {periodIndex === 0 ? (
+                        <th className="school-shift-cell" rowSpan={SCHOOL_PERIODS.length} scope="rowgroup">
+                          {shift.label}
+                        </th>
+                      ) : null}
+                      <th className="school-period-cell" scope="row">
+                        {period}
                       </th>
-                    ) : null}
-                    {periodIndex === 0 ? (
-                      <th className="school-shift-cell" rowSpan={SCHOOL_PERIODS.length} scope="rowgroup">
-                        {shift.label}
-                      </th>
-                    ) : null}
-                    <th className="school-period-cell" scope="row">
-                      {period}
-                    </th>
-                    {classLabels.map((classLabel) => {
-                      const cellAssignments = cells.get(`${classLabel}:${day}:${shift.code}:${period}`) ?? [];
-                      return (
-                        <td className="school-subject-cell" key={classLabel}>
-                          {cellAssignments
-                            .map(
-                              (assignment) =>
-                                `${shortLabel(assignment.subjectLabel)} - ${shortLabel(assignment.teacherLabel)}`,
-                            )
-                            .join(" / ")}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                )),
-              ),
-            )}
-          </tbody>
-          <tfoot>
-            <tr className="school-homeroom-row">
-              <th colSpan={3} scope="row">
-                GVCN
-              </th>
-              {classLabels.map((classLabel) => (
-                <td key={classLabel}>{homeroomTeacherName(classLabel, homerooms)}</td>
-              ))}
-            </tr>
-          </tfoot>
-        </table>
+                      {classLabels.map((classLabel) => {
+                        const cellAssignments = cells.get(`${classLabel}:${day}:${shift.code}:${period}`) ?? [];
+                        return (
+                          <td className="school-subject-cell" key={classLabel}>
+                            {cellAssignments
+                              .map(
+                                (assignment) =>
+                                  `${shortLabel(assignment.subjectLabel)} - ${shortLabel(assignment.teacherLabel)}`,
+                              )
+                              .join(" / ")}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  )),
+                ),
+              )}
+            </tbody>
+            <tfoot>
+              <tr className="school-homeroom-row">
+                <th colSpan={3} scope="row">
+                  GVCN
+                </th>
+                {classLabels.map((classLabel) => (
+                  <td key={classLabel}>{homeroomTeacherName(classLabel, homerooms)}</td>
+                ))}
+              </tr>
+            </tfoot>
+          </table>
+        ) : (
+          <SchoolClassOverviewTable assignments={cells} classLabels={classLabels} homerooms={homerooms} />
+        )}
       </div>
     </div>
   );
 }
 
+function SchoolClassOverviewTable({
+  assignments,
+  classLabels,
+  homerooms,
+}: {
+  assignments: Map<string, TimetableAssignment[]>;
+  classLabels: string[];
+  homerooms: HomeroomAssignment[];
+}) {
+  return (
+    <table className="school-overview-table school-overview-table-by-class">
+      <caption className="sr-only">Thời khóa biểu tổng hợp toàn trường theo lớp</caption>
+      <thead>
+        <tr>
+          <th scope="col">Lớp</th>
+          <th scope="col">GVCN</th>
+          <th scope="col">Buổi</th>
+          <th scope="col">Tiết</th>
+          {SCHOOL_DAYS.map((day) => (
+            <th key={day} scope="col">
+              {dayLabel(day)}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {classLabels.flatMap((classLabel) =>
+          SCHOOL_SHIFTS.flatMap((shift, shiftIndex) =>
+            SCHOOL_PERIODS.map((period, periodIndex) => (
+              <tr key={`${classLabel}-${shift.code}-${period}`}>
+                {shiftIndex === 0 && periodIndex === 0 ? (
+                  <th
+                    className="school-class-label-cell"
+                    rowSpan={SCHOOL_SHIFTS.length * SCHOOL_PERIODS.length}
+                    scope="rowgroup"
+                  >
+                    {shortLabel(classLabel)}
+                  </th>
+                ) : null}
+                {shiftIndex === 0 && periodIndex === 0 ? (
+                  <td className="school-homeroom-cell" rowSpan={SCHOOL_SHIFTS.length * SCHOOL_PERIODS.length}>
+                    {homeroomTeacherName(classLabel, homerooms)}
+                  </td>
+                ) : null}
+                {periodIndex === 0 ? (
+                  <th className="school-shift-cell" rowSpan={SCHOOL_PERIODS.length} scope="rowgroup">
+                    {shift.label}
+                  </th>
+                ) : null}
+                <th className="school-period-cell" scope="row">
+                  {period}
+                </th>
+                {SCHOOL_DAYS.map((day) => {
+                  const cellAssignments = assignments.get(`${classLabel}:${day}:${shift.code}:${period}`) ?? [];
+                  return (
+                    <td className="school-subject-cell" key={day}>
+                      {cellAssignments
+                        .map(
+                          (assignment) =>
+                            `${shortLabel(assignment.subjectLabel)} - ${shortLabel(assignment.teacherLabel)}`,
+                        )
+                        .join(" / ")}
+                    </td>
+                  );
+                })}
+              </tr>
+            )),
+          ),
+        )}
+      </tbody>
+    </table>
+  );
+}
+
+/* Giữ Buổi và Tiết là cột hàng, giống bảng từng lớp và xếp liên tục các lớp. */
 function ClassBoardsView({ assignments, classLabels }: { assignments: TimetableAssignment[]; classLabels: string[] }) {
   const groups = classLabels.map(
     (classLabel) => [classLabel, assignments.filter((assignment) => assignment.classLabel === classLabel)] as const,
