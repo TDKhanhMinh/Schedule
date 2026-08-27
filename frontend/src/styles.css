@@ -1093,11 +1093,16 @@ tr.has-warning td {
   font-weight: 800;
 }
 .school-overview-wrap {
-  overflow-x: auto;
+  height: min(68dvh, 720px);
+  max-height: min(68dvh, 720px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
 }
 .school-overview-table {
-  min-width: 860px;
-  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
 }
 .school-overview-table th,
 .school-overview-table td {
@@ -1105,6 +1110,14 @@ tr.has-warning td {
   border-inline-end: 1px solid var(--line);
   text-align: center;
   vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.school-overview-table thead th:nth-child(n + 4),
+.school-overview-table tbody td,
+.school-overview-table tfoot td {
+  width: 160px;
+  min-width: 160px;
 }
 .school-overview-table th:last-child,
 .school-overview-table td:last-child {
@@ -4232,6 +4245,40 @@ tr.has-warning td {
   font-size: 0.68rem;
   font-weight: 700;
   text-align: right;
+}
+
+.timetable-grid-summary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.timetable-grid-fullscreen-toggle {
+  min-width: 124px;
+}
+
+.timetable-grid-view-expanded {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 100dvh;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  overflow: hidden;
+  background: var(--background);
+}
+
+.timetable-grid-view-expanded .timetable-grid-summary {
+  min-width: 0;
+}
+
+.timetable-grid-view-expanded .school-overview-wrap {
+  min-height: 0;
+  max-height: none;
+  height: 100%;
 }
 
 .timetable-table-frame {

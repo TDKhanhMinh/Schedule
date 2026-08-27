@@ -1,4 +1,6 @@
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Maximize2, Minimize2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { HomeroomAssignment, TimetableAssignment, TimetableView } from "./timetable-types";
 
 const SCHOOL_DAYS = [1, 2, 3, 4, 5, 6];
@@ -109,6 +111,9 @@ function SchoolOverviewView({
   classLabels: string[];
   homerooms: HomeroomAssignment[];
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const toggleButtonRef = useRef<HTMLButtonElement>(null);
+  const wasExpandedRef = useRef(false);
   const days = SCHOOL_DAYS;
   const cells = new Map<string, TimetableAssignment[]>();
   for (const assignment of assignments) {
@@ -117,19 +122,65 @@ function SchoolOverviewView({
     cells.set(key, [...(cells.get(key) ?? []), assignment]);
   }
 
+  useEffect(() => {
+    if (!isExpanded) {
+      if (wasExpandedRef.current) {
+        wasExpandedRef.current = false;
+        window.requestAnimationFrame(() => toggleButtonRef.current?.focus());
+      }
+      return;
+    }
+
+    wasExpandedRef.current = true;
+    const previousBodyOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsExpanded(false);
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isExpanded]);
+
   return (
-    <div className="timetable-grid-view" aria-label="Thời khóa biểu tổng hợp toàn trường">
+    <div
+      className={`timetable-grid-view${isExpanded ? " timetable-grid-view-expanded" : ""}`}
+      aria-label="Thời khóa biểu tổng hợp toàn trường"
+    >
       <div className="timetable-grid-summary">
         <div>
           <span className="timetable-grid-kicker">Tổng quan toàn trường</span>
           <h3>{classLabels.length} lớp trong phạm vi xem</h3>
         </div>
-        <div className="timetable-grid-summary-meta">
-          <span>Thứ 2 - Thứ 7</span>
-          <span>{assignments.length} tiết phù hợp bộ lọc</span>
+        <div className="timetable-grid-summary-actions">
+          <div className="timetable-grid-summary-meta">
+            <span>Thứ 2 - Thứ 7</span>
+            <span>{assignments.length} tiết phù hợp bộ lọc</span>
+          </div>
+          <Button
+            ref={toggleButtonRef}
+            type="button"
+            variant="outline"
+            size="sm"
+            className="timetable-grid-fullscreen-toggle"
+            aria-pressed={isExpanded}
+            aria-label={isExpanded ? "Thu nhỏ thời khóa biểu toàn trường" : "Phóng to thời khóa biểu toàn trường"}
+            title={isExpanded ? "Thu nhỏ (Esc)" : "Phóng to toàn màn hình"}
+            onClick={() => setIsExpanded((expanded) => !expanded)}
+          >
+            {isExpanded ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
+            {isExpanded ? "Thu nhỏ" : "Phóng to"}
+          </Button>
         </div>
       </div>
-      <div className="timetable-table-frame school-overview-wrap">
+      <div
+        className="timetable-table-frame school-overview-wrap"
+        role="region"
+        aria-label="Lưới thời khóa biểu toàn trường, có thể cuộn ngang và dọc"
+        tabIndex={0}
+      >
         <table className="school-overview-table">
           <caption className="sr-only">Thời khóa biểu tổng hợp toàn trường theo lớp</caption>
           <thead>
