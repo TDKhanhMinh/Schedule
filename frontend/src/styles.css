@@ -4458,6 +4458,387 @@ tr.has-warning td {
   }
 }
 
+/* Master Data T04: organize entity navigation, editor and data table as one workspace. */
+.master-data-screen {
+  display: grid;
+  min-width: 0;
+  gap: 20px;
+}
+
+.master-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.master-workspace {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  background: var(--card);
+  box-shadow: 0 10px 28px color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+
+.master-workspace-toolbar {
+  display: grid;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+  padding: 2px 2px 16px;
+}
+
+.master-toolbar-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.master-section-kicker {
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.master-toolbar-heading strong {
+  color: var(--foreground);
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.master-toolbar-heading small {
+  color: var(--muted-foreground);
+  font-size: 0.74rem;
+}
+
+.master-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+.master-tab {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 10px;
+  color: var(--muted-foreground);
+  background: color-mix(in oklch, var(--muted) 3%, var(--card));
+  text-align: left;
+}
+
+.master-tab:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--accent);
+}
+
+.master-tab.active {
+  border-color: color-mix(in oklch, var(--primary) 30%, var(--border));
+  color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 9%, var(--card));
+}
+
+.master-tab svg {
+  width: 16px;
+  height: 16px;
+}
+
+.master-tab > span {
+  min-width: 0;
+  overflow: hidden;
+  color: currentColor;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.master-tab small {
+  display: grid;
+  min-width: 24px;
+  height: 22px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  background: var(--secondary);
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.master-tab.active small {
+  color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 15%, var(--card));
+}
+
+.master-period-picker {
+  display: grid;
+  gap: 7px;
+  width: min(100%, 360px);
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.master-select,
+.master-field select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--input);
+  border-radius: 9px;
+  padding: 8px 10px;
+  color: var(--foreground);
+  background: var(--card);
+  font-size: 0.8rem;
+}
+
+.master-workspace-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.34fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+  min-width: 0;
+}
+
+.master-editor {
+  position: sticky;
+  top: 92px;
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  background: color-mix(in oklch, var(--primary) 4%, var(--card));
+}
+
+.master-editor-header,
+.master-list-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.master-editor-header h2,
+.master-list-header h2 {
+  margin: 5px 0 0;
+  color: var(--foreground);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.master-fields {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.master-field {
+  display: grid;
+  gap: 6px;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.master-field > span {
+  color: var(--foreground);
+}
+
+.master-field input[aria-invalid="true"],
+.master-field select[aria-invalid="true"],
+.master-input-error {
+  border-color: var(--destructive) !important;
+  background: color-mix(in oklch, var(--destructive) 7%, var(--card)) !important;
+}
+
+.master-editor > [data-slot="button"] {
+  width: 100%;
+}
+
+.master-data-list {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+}
+
+.master-list-header {
+  align-items: center;
+}
+
+.master-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.master-search-field {
+  display: grid;
+  gap: 7px;
+  width: min(100%, 460px);
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.master-search-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.master-search-input > svg {
+  position: absolute;
+  left: 10px;
+  z-index: 1;
+  width: 15px;
+  height: 15px;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.master-search-input [data-slot="input"] {
+  width: 100%;
+  padding-left: 32px;
+  background: var(--card);
+}
+
+.master-table-frame {
+  min-width: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  scrollbar-color: color-mix(in oklch, var(--primary) 42%, var(--border)) transparent;
+}
+
+.master-table-frame table {
+  min-width: 620px;
+  margin: 0;
+}
+
+.master-table-frame thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--foreground);
+}
+
+.master-table-frame tbody tr {
+  transition: background-color 140ms ease;
+}
+
+.master-table-frame tbody tr:hover {
+  background: color-mix(in oklch, var(--primary) 5%, var(--card));
+}
+
+.master-table-frame td {
+  vertical-align: middle;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.table-action {
+  min-width: 48px;
+}
+
+.table-action.danger {
+  color: var(--destructive);
+}
+
+.master-loading-state,
+.master-empty-state {
+  display: grid;
+  gap: 8px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.master-empty-state strong {
+  color: var(--foreground);
+  font-size: 0.84rem;
+}
+
+.master-empty-state p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.74rem;
+}
+
+.master-workspace > [data-slot="card"] {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+@media (max-width: 980px) {
+  .master-workspace-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .master-editor {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .master-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .master-list-header,
+  .master-editor-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .master-list-actions {
+    justify-content: flex-start;
+  }
+
+  .master-list-actions > *,
+  .master-search-field {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .master-workspace {
+    padding: 12px;
+  }
+
+  .master-tabs {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .master-table-frame tbody tr {
+    transition: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-nav-link {
     transition: none;

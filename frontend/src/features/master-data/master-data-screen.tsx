@@ -1,6 +1,19 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
+  BookOpen,
+  Building2,
+  CalendarRange,
+  ClipboardList,
+  Clock3,
+  DoorOpen,
+  GraduationCap,
+  Search,
+  Upload,
+  UsersRound,
+  type LucideIcon,
+} from "lucide-react";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -10,6 +23,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "../../app/app-shell";
 import { frontendConfig } from "../../config";
 import { navigateTo } from "../../routing";
 import { useWorkspace } from "../../app/workspace-provider";
@@ -41,6 +59,17 @@ import {
   type TimeSlot,
 } from "./master-data-types";
 import { HomeroomAssignmentPanel, TeacherLoadSummaryPanel } from "./teacher-duty-panels";
+
+const entityIcons: Record<MasterDataEntity, LucideIcon> = {
+  school: Building2,
+  period: CalendarRange,
+  slot: Clock3,
+  teacher: UsersRound,
+  class: GraduationCap,
+  subject: BookOpen,
+  room: DoorOpen,
+  assignment: ClipboardList,
+};
 
 export function MasterDataScreen() {
   const { academicPeriodId: workspacePeriodId, setAcademicPeriodId } = useWorkspace();
@@ -401,6 +430,7 @@ export function MasterDataScreen() {
         </span>
         {selectOptions ? (
           <select
+            className="master-select"
             value={form[field.key] ?? ""}
             onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))}
             aria-invalid={Boolean(errorMessage)}
@@ -432,9 +462,10 @@ export function MasterDataScreen() {
               ))}
           </select>
         ) : (
-          <input
+          <Input
             type={field.type ?? "text"}
             value={form[field.key] ?? ""}
+            className={errorMessage ? "master-input-error" : undefined}
             placeholder={field.placeholder}
             min={
               field.key === "day"
@@ -588,46 +619,72 @@ export function MasterDataScreen() {
   };
 
   return (
-    <>
-      <div className="master-header">
-        <div>
-          <p className="eyebrow">Dữ liệu danh mục</p>
-          <h1>Nhập tay & chỉnh sửa dữ liệu</h1>
-          <p className="lead">
-            Quản lý dữ liệu nguồn trong cùng phạm vi trường. Mọi thay đổi được ghi qua NestJS API và đọc lại từ
-            PostgreSQL trước khi dùng cho xem trước hoặc bộ tối ưu.
-          </p>
-        </div>
-        <div className="master-header-actions">
-          <span className={`permission-chip ${canWrite ? "write" : "read"}`}>
-            {canWrite ? "Có quyền chỉnh sửa" : "Chỉ xem"} · {frontendConfig.actorRole}
-          </span>
-          <button className="button-secondary" type="button" onClick={() => navigateTo("imports")}>
-            Mở nhập dữ liệu →
-          </button>
-        </div>
-      </div>
+    <div className="master-data-screen">
+      <PageHeader
+        eyebrow="Dữ liệu danh mục"
+        title="Nhập tay và chỉnh sửa dữ liệu"
+        description="Quản lý dữ liệu nguồn trong phạm vi trường. Mọi thay đổi được ghi qua NestJS API và đọc lại từ PostgreSQL."
+        action={
+          <div className="master-header-actions">
+            <Badge variant={canWrite ? "default" : "secondary"}>
+              {canWrite ? "Có quyền chỉnh sửa" : "Chỉ xem"} - {frontendConfig.actorRole}
+            </Badge>
+            <Button variant="outline" type="button" onClick={() => navigateTo("imports")}>
+              <Upload /> Mở nhập dữ liệu
+            </Button>
+          </div>
+        }
+      />
 
-      <section className="panel master-panel" aria-labelledby="master-data-title">
-        <div className="master-tabs" role="tablist" aria-label="Loại dữ liệu danh mục">
-          {entityOrder.map((entity) => (
-            <button
-              className={activeEntity === entity ? "master-tab active" : "master-tab"}
-              type="button"
-              role="tab"
-              aria-selected={activeEntity === entity}
-              key={entity}
-              onClick={() => selectEntity(entity)}
-            >
-              {entityLabels[entity]}
-            </button>
-          ))}
+      <section className="master-workspace" aria-labelledby="master-data-title">
+        <h2 id="master-data-title" className="sr-only">
+          Không gian quản lý dữ liệu danh mục
+        </h2>
+        <div className="master-workspace-toolbar">
+          <div className="master-toolbar-heading">
+            <span className="master-section-kicker">Danh mục nguồn</span>
+            <strong>Chọn khu vực dữ liệu</strong>
+            <small>Chuyển giữa các nhóm dữ liệu mà không rời khỏi không gian làm việc.</small>
+          </div>
+          <div className="master-tabs" role="tablist" aria-label="Loại dữ liệu danh mục">
+            {entityOrder.map((entity) => {
+              const Icon = entityIcons[entity];
+              const isActive = activeEntity === entity;
+              return (
+                <Button
+                  className={isActive ? "master-tab active" : "master-tab"}
+                  variant={isActive ? "secondary" : "ghost"}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  key={entity}
+                  onClick={() => selectEntity(entity)}
+                >
+                  <Icon />
+                  <span>{entityLabels[entity]}</span>
+                  <small>
+                    {entityRecordCount(entity, {
+                      schools,
+                      periods,
+                      slots,
+                      teachers,
+                      classes,
+                      subjects,
+                      rooms,
+                      assignments,
+                    })}
+                  </small>
+                </Button>
+              );
+            })}
+          </div>
         </div>
 
         {activeEntity === "slot" || activeEntity === "assignment" || activeEntity === "class" ? (
-          <label className="period-picker">
+          <label className="master-period-picker">
             <span>Năm học/kỳ học</span>
             <select
+              className="master-select"
               value={selectedPeriodId}
               onChange={(event) => {
                 setSelectedPeriodId(event.target.value);
@@ -638,7 +695,7 @@ export function MasterDataScreen() {
               <option value="">Chọn năm học/kỳ học</option>
               {periods.map((period) => (
                 <option key={period.id} value={period.id}>
-                  {period.name} · {period.academicYear}
+                  {period.name} - {period.academicYear}
                 </option>
               ))}
             </select>
@@ -654,11 +711,11 @@ export function MasterDataScreen() {
           />
         ) : null}
 
-        <div className="master-layout">
-          <form className="master-form" onSubmit={save}>
-            <div className="panel-heading">
+        <div className="master-workspace-layout">
+          <form className="master-editor" onSubmit={save}>
+            <div className="master-editor-header">
               <div>
-                <p className="eyebrow">{editingId ? "Chỉnh sửa" : "Tạo mới"}</p>
+                <span className="master-section-kicker">{editingId ? "Chỉnh sửa" : "Tạo mới"}</span>
                 <h2>
                   {editingId
                     ? `Sửa ${entityLabels[activeEntity].toLowerCase()}`
@@ -666,20 +723,20 @@ export function MasterDataScreen() {
                 </h2>
               </div>
               {editingId ? (
-                <button className="button-secondary" type="button" onClick={() => resetEditor()}>
+                <Button variant="outline" size="sm" type="button" onClick={() => resetEditor()}>
                   Hủy sửa
-                </button>
+                </Button>
               ) : null}
             </div>
             <div className="master-fields">{fields[activeEntity].map(renderField)}</div>
-            <button
+            <Button
               type="submit"
               disabled={
                 !canWrite || saving || ((activeEntity === "slot" || activeEntity === "assignment") && !selectedPeriodId)
               }
             >
               {saving ? "Đang lưu..." : editingId ? "Lưu thay đổi" : "Tạo mới"}
-            </button>
+            </Button>
             {!canWrite ? (
               <p className="small-note">
                 Vai trò {frontendConfig.actorRole} chỉ được đọc dữ liệu. API vẫn là nơi thực thi quyền cuối cùng.
@@ -687,40 +744,45 @@ export function MasterDataScreen() {
             ) : null}
           </form>
 
-          <div className="master-list">
-            <div className="panel-heading">
+          <div className="master-data-list">
+            <div className="master-list-header">
               <div>
-                <p className="eyebrow">Danh sách · Lọc · Kiểm tra</p>
+                <span className="master-section-kicker">Danh sách và kiểm tra</span>
                 <h2>
                   {entityLabels[activeEntity]} ({filteredRecords.length}/{records.length})
                 </h2>
               </div>
               <div className="master-list-actions">
-                <button
-                  className="button-secondary"
+                <Button
+                  variant="outline"
+                  size="sm"
                   type="button"
                   onClick={validateBulk}
                   disabled={loading || records.length === 0}
                 >
                   Kiểm tra dữ liệu
-                </button>
-                <button
-                  className="button-secondary"
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   type="button"
                   onClick={() => void loadBaseData()}
                   disabled={loading}
                 >
                   Làm mới
-                </button>
+                </Button>
               </div>
             </div>
-            <label className="master-search">
+            <label className="master-search-field">
               <span>Lọc nhanh</span>
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Mã, tên hoặc giá trị..."
-              />
+              <span className="master-search-input">
+                <Search aria-hidden="true" />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Mã, tên hoặc giá trị..."
+                />
+              </span>
             </label>
             {bulkReport ? (
               <div className="alert alert-success" role="status">
@@ -739,16 +801,17 @@ export function MasterDataScreen() {
               </div>
             ) : null}
             {loading ? (
-              <div className="empty-inline">
-                <strong>Đang tải dữ liệu...</strong>
+              <div className="master-loading-state" role="status">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-3 w-72" />
               </div>
             ) : filteredRecords.length === 0 ? (
-              <div className="empty-inline">
+              <div className="master-empty-state">
                 <strong>Chưa có dữ liệu phù hợp</strong>
                 <p>Thử đổi bộ lọc hoặc tạo dòng đầu tiên bằng form bên trái.</p>
               </div>
             ) : (
-              <div className="table-wrap master-table-wrap">
+              <div className="master-table-frame">
                 <table>
                   <thead>
                     <tr>
@@ -763,22 +826,26 @@ export function MasterDataScreen() {
                       <tr key={recordId(record)}>
                         {renderRecord(record)}
                         <td className="row-actions">
-                          <button
+                          <Button
                             className="table-action"
+                            variant="outline"
+                            size="sm"
                             type="button"
                             onClick={() => editRecord(record)}
                             disabled={!canWrite}
                           >
                             Sửa
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             className="table-action danger"
+                            variant="outline"
+                            size="sm"
                             type="button"
                             onClick={() => setPendingDelete(record)}
                             disabled={!canWrite || saving}
                           >
                             Xóa
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -818,6 +885,29 @@ export function MasterDataScreen() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
+}
+
+function entityRecordCount(
+  entity: MasterDataEntity,
+  data: {
+    schools: School[];
+    periods: AcademicPeriod[];
+    slots: TimeSlot[];
+    teachers: Teacher[];
+    classes: SchoolClass[];
+    subjects: Subject[];
+    rooms: Room[];
+    assignments: LessonRequirement[];
+  },
+) {
+  if (entity === "school") return data.schools.length;
+  if (entity === "period") return data.periods.length;
+  if (entity === "slot") return data.slots.length;
+  if (entity === "teacher") return data.teachers.length;
+  if (entity === "class") return data.classes.length;
+  if (entity === "subject") return data.subjects.length;
+  if (entity === "room") return data.rooms.length;
+  return data.assignments.length;
 }
