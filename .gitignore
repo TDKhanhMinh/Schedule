@@ -11,5 +11,7 @@ __pycache__/
 *.py[cod]
 *.tsbuildinfo
 .backup
+.playwright-mcp/
+.spreadsheet-work/
 outputs/P2.5-T06/*.dump
 .DS_Store
