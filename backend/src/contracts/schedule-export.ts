@@ -12,7 +12,7 @@ export type SchedulePublicView = (typeof SCHEDULE_PUBLIC_VIEWS)[number];
 
 export interface ScheduleExportSheetSummary {
   sheet: string;
-  view: Exclude<ScheduleExportView, "all">;
+  view: ScheduleExportView;
   assignmentCount: number;
 }
 

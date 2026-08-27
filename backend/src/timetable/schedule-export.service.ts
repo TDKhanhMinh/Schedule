@@ -16,6 +16,12 @@ const VIEW_LABELS: Record<Exclude<ScheduleExportView, "all">, string> = {
   teacher: "Theo giáo viên",
   room: "Theo phòng",
 };
+const SCHOOL_DAYS = [1, 2, 3, 4, 5, 6] as const;
+const SCHOOL_PERIODS = [1, 2, 3, 4, 5] as const;
+const SCHOOL_SHIFTS = [
+  { code: "MORNING", label: "Sáng" },
+  { code: "AFTERNOON", label: "Chiều" },
+] as const;
 
 interface ScheduleVersionExportRow {
   id: string;
@@ -50,6 +56,17 @@ interface AssignmentExportRow {
   ends_at: string | null;
 }
 
+interface ClassExportRow {
+  id: string;
+  code: string;
+  name: string;
+}
+
+interface HomeroomExportRow {
+  class_id: string;
+  teacher_name: string;
+}
+
 interface Queryable {
   query: Pool["query"];
 }
@@ -75,17 +92,20 @@ export class ScheduleExportService {
     const version = await this.loadVersion(this.pool, schoolId, versionId);
     this.assertExportPermission(version.status, actorRole);
 
-    const [assignments, requiredLessonSessions] = await Promise.all([
+    const [assignments, requiredLessonSessions, classes, homerooms] = await Promise.all([
       this.listAssignments(this.pool, schoolId, version),
       this.countRequiredLessonSessions(this.pool, schoolId, version.academic_period_id),
+      view === "all" ? this.listClasses(this.pool, schoolId) : Promise.resolve([] as ClassExportRow[]),
+      view === "all"
+        ? this.listHomerooms(this.pool, schoolId, version.academic_period_id)
+        : Promise.resolve([] as HomeroomExportRow[]),
     ]);
     await this.validateSnapshotIntegrity(this.pool, schoolId, version, assignments.length);
 
     const generatedAt = new Date().toISOString();
-    const sheetViews =
-      view === "all" ? (Object.keys(VIEW_LABELS) as Array<Exclude<ScheduleExportView, "all">>) : [view];
+    const sheetViews: ScheduleExportView[] = view === "all" ? ["all", "class", "teacher", "room"] : [view];
     const sheets: ScheduleExportSheetSummary[] = sheetViews.map((sheetView) => ({
-      sheet: VIEW_LABELS[sheetView],
+      sheet: sheetView === "all" ? "Toàn trường" : VIEW_LABELS[sheetView],
       view: sheetView,
       assignmentCount: assignments.length,
     }));
@@ -123,7 +143,10 @@ export class ScheduleExportService {
     workbook.properties.date1904 = false;
 
     this.addSummarySheet(workbook, metadata);
-    for (const sheetView of sheetViews) this.addScheduleSheet(workbook, sheetView, assignments);
+    for (const sheetView of sheetViews) {
+      if (sheetView === "all") this.addSchoolOverviewSheet(workbook, assignments, classes, homerooms);
+      else this.addScheduleSheet(workbook, sheetView, assignments);
+    }
 
     const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
     const safeStatus = version.status.toLowerCase();
@@ -222,6 +245,31 @@ export class ScheduleExportService {
       [schoolId, academicPeriodId],
     );
     return Number(result.rows[0]?.required_sessions ?? 0);
+  }
+
+  private async listClasses(client: Queryable, schoolId: string) {
+    const result = await client.query<ClassExportRow>(
+      `SELECT id::text, code, name
+         FROM classes
+        WHERE school_id = $1
+        ORDER BY code`,
+      [schoolId],
+    );
+    return result.rows;
+  }
+
+  private async listHomerooms(client: Queryable, schoolId: string, academicPeriodId: string) {
+    const result = await client.query<HomeroomExportRow>(
+      `SELECT assignment.class_id::text, teacher.display_name AS teacher_name
+         FROM class_homeroom_assignments assignment
+         JOIN teachers teacher
+           ON teacher.id = assignment.teacher_id
+          AND teacher.school_id = assignment.school_id
+        WHERE assignment.school_id = $1
+          AND assignment.academic_period_id = $2`,
+      [schoolId, academicPeriodId],
+    );
+    return result.rows;
   }
 
   private async validateSnapshotIntegrity(
@@ -428,6 +476,72 @@ export class ScheduleExportService {
     ];
   }
 
+  private addSchoolOverviewSheet(
+    workbook: ExcelJS.Workbook,
+    assignments: AssignmentExportRow[],
+    classes: ClassExportRow[],
+    homerooms: HomeroomExportRow[],
+  ) {
+    const sheet = workbook.addWorksheet("Toàn trường");
+    const lastColumn = 3 + classes.length;
+    const lastColumnLetter = this.columnLetter(lastColumn);
+    sheet.mergeCells(`A1:${lastColumnLetter}1`);
+    sheet.getCell("A1").value = "Toàn trường · thời khóa biểu";
+    this.styleTitle(sheet.getCell("A1"));
+    sheet.addRow([]);
+    const header = sheet.addRow(["Thứ", "Buổi", "Tiết", ...classes.map((item) => this.classLabel(item))]);
+    this.styleHeader(header);
+
+    const cells = new Map<string, string[]>();
+    for (const assignment of assignments) {
+      const shift = assignment.shift_code ?? "MORNING";
+      const key = `${assignment.class_code}:${assignment.day}:${shift}:${assignment.period}`;
+      const value = `${assignment.subject_name} - ${assignment.teacher_name}`;
+      cells.set(key, [...(cells.get(key) ?? []), value]);
+    }
+
+    const firstDataRow = 4;
+    for (const day of SCHOOL_DAYS) {
+      const dayStartRow = firstDataRow + (day - 1) * SCHOOL_SHIFTS.length * SCHOOL_PERIODS.length;
+      const dayEndRow = dayStartRow + SCHOOL_SHIFTS.length * SCHOOL_PERIODS.length - 1;
+      for (const shift of SCHOOL_SHIFTS) {
+        const shiftStartRow = dayStartRow + SCHOOL_SHIFTS.indexOf(shift) * SCHOOL_PERIODS.length;
+        const shiftEndRow = shiftStartRow + SCHOOL_PERIODS.length - 1;
+        for (const period of SCHOOL_PERIODS) {
+          const row = sheet.addRow([
+            period === SCHOOL_PERIODS[0] && shift === SCHOOL_SHIFTS[0] ? this.dayLabel(day) : "",
+            period === SCHOOL_PERIODS[0] ? shift.label : "",
+            period,
+            ...classes.map(
+              (item) =>
+                cells
+                  .get(`${item.code}:${day}:${shift.code}:${period}`)
+                  ?.map((value) => this.safeWorkbookValue(value))
+                  .join(" / ") ?? "",
+            ),
+          ]);
+          this.styleGridRow(row);
+        }
+        sheet.mergeCells(`B${shiftStartRow}:B${shiftEndRow}`);
+      }
+      sheet.mergeCells(`A${dayStartRow}:A${dayEndRow}`);
+    }
+
+    const homeroomByClass = new Map(homerooms.map((item) => [item.class_id, item.teacher_name]));
+    const footer = sheet.addRow([
+      "GVCN",
+      "",
+      "",
+      ...classes.map((item) => this.safeWorkbookValue(homeroomByClass.get(item.id) ?? "Chưa có")),
+    ]);
+    sheet.mergeCells(`A${footer.number}:C${footer.number}`);
+    this.styleFooterRow(footer);
+
+    sheet.autoFilter = { from: "A3", to: `${lastColumnLetter}${footer.number}` };
+    sheet.views = [{ state: "frozen", ySplit: 3, xSplit: 3 }];
+    sheet.columns = [{ width: 14 }, { width: 12 }, { width: 9 }, ...classes.map(() => ({ width: 24 }))];
+  }
+
   private styleTitle(cell: ExcelJS.Cell) {
     cell.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F766E" } };
@@ -438,6 +552,10 @@ export class ScheduleExportService {
     return /^[=+\-@]/.test(value) ? `'${value}` : value;
   }
 
+  private classLabel(item: ClassExportRow) {
+    return this.safeWorkbookValue(item.name || item.code);
+  }
+
   private styleHeader(row: ExcelJS.Row) {
     row.eachCell((cell) => {
       cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
@@ -445,5 +563,41 @@ export class ScheduleExportService {
       cell.alignment = { vertical: "middle", wrapText: true };
       cell.border = { bottom: { style: "thin", color: { argb: "FFCBD5E1" } } };
     });
+  }
+
+  private styleGridRow(row: ExcelJS.Row) {
+    row.eachCell((cell) => {
+      cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFCBD5E1" } },
+        left: { style: "thin", color: { argb: "FFCBD5E1" } },
+        bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
+        right: { style: "thin", color: { argb: "FFCBD5E1" } },
+      };
+    });
+  }
+
+  private styleFooterRow(row: ExcelJS.Row) {
+    row.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FF0F172A" } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE2E8F0" } };
+      cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+      cell.border = { top: { style: "thin", color: { argb: "FF334155" } } };
+    });
+  }
+
+  private dayLabel(day: number) {
+    return `Thứ ${day + 1}`;
+  }
+
+  private columnLetter(column: number) {
+    let value = column;
+    let result = "";
+    while (value > 0) {
+      const remainder = (value - 1) % 26;
+      result = String.fromCharCode(65 + remainder) + result;
+      value = Math.floor((value - 1) / 26);
+    }
+    return result;
   }
 }

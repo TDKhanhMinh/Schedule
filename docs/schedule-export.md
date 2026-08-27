@@ -17,6 +17,9 @@ Sổ làm việc `view=all` mặc định gồm:
 - `Metadata & Summary`: school, academic period, version/status/revision,
   generated-at, actor/role, snapshot row count, required lesson sessions,
   reconciliation and hard-constraint check.
+- `Toàn trường`: ma trận cố định theo đúng giao diện FE, gồm các cột `Thứ`,
+  `Buổi`, `Tiết` và một cột cho mỗi lớp; luôn có Thứ 2–Thứ 7, Sáng/Chiều,
+  mỗi buổi 5 tiết, ô không có dữ liệu để trống và dòng `GVCN` ở cuối.
 - `Theo lớp`, `Theo giáo viên`, `Theo phòng`: Unicode-safe, formatted and
   filterable worksheets with the same assignment snapshot, sorted by the
   selected resource and time slot.

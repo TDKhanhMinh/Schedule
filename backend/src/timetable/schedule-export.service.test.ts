@@ -52,6 +52,13 @@ describe("ScheduleExportService", () => {
       .mockResolvedValueOnce({ rows: [version()] })
       .mockResolvedValueOnce({ rows: [assignment] })
       .mockResolvedValueOnce({ rows: [{ required_sessions: 1 }] })
+      .mockResolvedValueOnce({
+        rows: [
+          { id: "class-001", code: "7A", name: "Lớp 7A" },
+          { id: "class-002", code: "7B", name: "Lớp 7B" },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ class_id: "class-001", teacher_name: "Nguyễn An" }] })
       .mockResolvedValueOnce({ rows: [{ assignment_count: 1 }] })
       .mockResolvedValueOnce({ rows: [] });
 
@@ -70,11 +77,18 @@ describe("ScheduleExportService", () => {
     await workbook.xlsx.load(result.buffer as never);
     expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
       "Metadata & Summary",
+      "Toàn trường",
       "Theo lớp",
       "Theo giáo viên",
       "Theo phòng",
     ]);
     expect(workbook.getWorksheet("Metadata & Summary")?.getCell("B3").value).toBe("SCHEDULE-EXPORT-1.0.0");
+    expect(workbook.getWorksheet("Toàn trường")?.rowCount).toBe(64);
+    expect(workbook.getWorksheet("Toàn trường")?.getRow(3).getCell(4).value).toBe("Lớp 7A");
+    expect(workbook.getWorksheet("Toàn trường")?.getRow(4).getCell(4).value).toBe("Toán - Nguyễn An");
+    expect(workbook.getWorksheet("Toàn trường")?.getRow(4).getCell(5).value).toBe("");
+    expect(workbook.getWorksheet("Toàn trường")?.getRow(64).getCell(1).value).toBe("GVCN");
+    expect(workbook.getWorksheet("Toàn trường")?.getRow(64).getCell(5).value).toBe("Chưa có");
     expect(workbook.getWorksheet("Theo lớp")?.getRow(4).getCell(6).value).toBe("Toán");
     expect(workbook.getWorksheet("Theo giáo viên")?.getRow(4).getCell(9).value).toBe("Nguyễn An");
   });
@@ -106,6 +120,8 @@ describe("ScheduleExportService", () => {
       .mockResolvedValueOnce({ rows: [version()] })
       .mockResolvedValueOnce({ rows: [assignment] })
       .mockResolvedValueOnce({ rows: [{ required_sessions: 1 }] })
+      .mockResolvedValueOnce({ rows: [{ id: "class-001", code: "7A", name: "7A" }] })
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ assignment_count: 1 }] })
       .mockResolvedValueOnce({
         rows: [{ kind: "TEACHER", time_slot_id: "slot-001", resource_id: "teacher-001", occurrences: 2 }],
