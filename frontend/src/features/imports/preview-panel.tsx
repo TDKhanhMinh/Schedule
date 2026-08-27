@@ -15,7 +15,7 @@ export function PreviewPanel({
   onDownloadErrorReport: () => void;
 }) {
   return (
-    <section className="preview-panel" aria-live="polite">
+    <section className="preview-panel import-preview-panel" aria-live="polite">
       <div className="preview-summary">
         <div>
           <p className="eyebrow">Xem trước</p>
@@ -28,7 +28,7 @@ export function PreviewPanel({
           {preview.canConfirm ? "Sẵn sàng xác nhận" : "Cần sửa lỗi"}
         </div>
       </div>
-      <div className="metrics">
+      <div className="preview-metric-strip" aria-label="Tóm tắt kết quả kiểm tra">
         <span>
           <b>{preview.rowCount}</b> dòng
         </span>
@@ -99,7 +99,7 @@ export function PreviewPanel({
           ))}
         </div>
       ) : null}
-      <div className="table-wrap">
+      <div className="preview-table-frame">
         <table>
           <thead>
             <tr>
@@ -138,25 +138,16 @@ export function PreviewPanel({
           </tbody>
         </table>
       </div>
-      <Button
-        className="confirm-button"
-        type="button"
-        disabled={!preview.canConfirm || isConfirming}
-        onClick={onConfirm}
-      >
-        {isConfirming ? "Đang nhập..." : "Xác nhận nhập dữ liệu"}
-      </Button>
-      {preview.errorCount > 0 ? (
-        <Button
-          className="error-report-button"
-          variant="outline"
-          type="button"
-          disabled={isDownloadingErrorReport}
-          onClick={onDownloadErrorReport}
-        >
-          {isDownloadingErrorReport ? "Đang tạo báo cáo..." : "Tải báo cáo lỗi Excel"}
+      <div className="preview-actions">
+        <Button type="button" disabled={!preview.canConfirm || isConfirming} onClick={onConfirm}>
+          {isConfirming ? "Đang nhập..." : "Xác nhận nhập dữ liệu"}
         </Button>
-      ) : null}
+        {preview.errorCount > 0 ? (
+          <Button variant="outline" type="button" disabled={isDownloadingErrorReport} onClick={onDownloadErrorReport}>
+            {isDownloadingErrorReport ? "Đang tạo báo cáo..." : "Tải báo cáo lỗi Excel"}
+          </Button>
+        ) : null}
+      </div>
     </section>
   );
 }

@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { WorkflowStepper, type WorkflowStepKey } from "@/components/workflow-stepper";
 import { apiRequest } from "../../lib/api-client";
 import { frontendConfig } from "../../config";
 
@@ -26,7 +27,6 @@ const statusLabels: Record<WorkflowStatus, string> = {
   PUBLISHED: "Đã công bố",
   ARCHIVED: "Đã lưu trữ",
 };
-const steps: WorkflowStatus[] = ["DRAFT", "IN_REVIEW", "APPROVED", "LOCKED", "PUBLISHED"];
 
 export function ReleasePanel({ versionId, status }: { versionId: string; status: string }) {
   const queryClient = useQueryClient();
@@ -64,7 +64,7 @@ export function ReleasePanel({ versionId, status }: { versionId: string; status:
   });
   const normalizedStatus = status as WorkflowStatus;
   const canPublish = frontendConfig.actorRole === "ADMIN" || frontendConfig.actorRole === "REVIEWER";
-  const currentIndex = steps.indexOf(normalizedStatus);
+  const releaseWorkflow = releaseWorkflowState(normalizedStatus);
   return (
     <>
       <Card className="mt-4">
@@ -78,18 +78,7 @@ export function ReleasePanel({ versionId, status }: { versionId: string; status:
           </Badge>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid gap-2 sm:grid-cols-5" aria-label="Tiến trình phát hành">
-            {steps.map((step, index) => (
-              <div className="flex items-center gap-2" key={step}>
-                <span
-                  className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold ${index <= currentIndex ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-                >
-                  {index < currentIndex ? <CheckCircle2 className="size-4" /> : index + 1}
-                </span>
-                <span className="text-xs text-muted-foreground">{statusLabels[step]}</span>
-              </div>
-            ))}
-          </div>
+          <WorkflowStepper activeStep={releaseWorkflow.activeStep} completedSteps={releaseWorkflow.completedSteps} />
           {normalizedStatus === "PUBLISHED" ? (
             <Alert>
               <ShieldCheck className="size-4" />
@@ -165,4 +154,38 @@ export function ReleasePanel({ versionId, status }: { versionId: string; status:
       </Dialog>
     </>
   );
+}
+
+function releaseWorkflowState(status: WorkflowStatus): {
+  activeStep: WorkflowStepKey;
+  completedSteps: WorkflowStepKey[];
+} {
+  if (status === "PUBLISHED" || status === "ARCHIVED") {
+    return {
+      activeStep: "export",
+      completedSteps: ["upload", "validate", "confirm", "solve", "review", "approve", "lock", "publish"],
+    };
+  }
+  if (status === "LOCKED") {
+    return {
+      activeStep: "publish",
+      completedSteps: ["upload", "validate", "confirm", "solve", "review", "approve", "lock"],
+    };
+  }
+  if (status === "APPROVED") {
+    return {
+      activeStep: "lock",
+      completedSteps: ["upload", "validate", "confirm", "solve", "review", "approve"],
+    };
+  }
+  if (status === "IN_REVIEW") {
+    return {
+      activeStep: "approve",
+      completedSteps: ["upload", "validate", "confirm", "solve", "review"],
+    };
+  }
+  return {
+    activeStep: "review",
+    completedSteps: ["upload", "validate", "confirm", "solve"],
+  };
 }

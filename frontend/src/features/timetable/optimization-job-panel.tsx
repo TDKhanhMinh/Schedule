@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { WorkflowStepper, type WorkflowStepKey } from "@/components/workflow-stepper";
 import { apiRequest } from "../../lib/api-client";
 
 interface OptimizationJobStatus {
@@ -56,6 +57,10 @@ export function OptimizationJobPanel() {
     onError: (error) => setNotice(error instanceof Error ? error.message : "Không thể thực hiện thao tác."),
   });
   const status = statusQuery.data;
+  const solveComplete = status?.state === "OPTIMAL" || status?.state === "FEASIBLE";
+  const completedWorkflowSteps: WorkflowStepKey[] = trackedJobId
+    ? ["upload", "validate", "confirm", ...(solveComplete ? ["solve" as const] : [])]
+    : [];
   function track() {
     const next = jobId.trim();
     if (!next) return setNotice("Nhập mã tác vụ để theo dõi trạng thái.");
@@ -72,6 +77,7 @@ export function OptimizationJobPanel() {
         </div>
         {status ? <span className="solve-status">{stateLabels[status.state] ?? status.state}</span> : null}
       </div>
+      <WorkflowStepper activeStep={solveComplete ? "review" : "solve"} completedSteps={completedWorkflowSteps} />
       <div className="optimization-job-controls">
         <label>
           <span>Mã tác vụ tối ưu</span>

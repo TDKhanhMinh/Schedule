@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { WorkflowStepper, type WorkflowStepKey } from "@/components/workflow-stepper";
 import { PageHeader } from "../../app/app-shell";
 import { frontendConfig } from "../../config";
 import { apiBlob, apiRequest } from "../../lib/api-client";
@@ -32,6 +33,12 @@ export function ImportScreen() {
   });
   const preview = previewMutation.data ?? null;
   const confirmation = confirmMutation.data ?? null;
+  const activeWorkflowStep = confirmation ? "solve" : preview ? "validate" : "upload";
+  const completedWorkflowSteps: WorkflowStepKey[] = confirmation
+    ? ["upload", "validate", "confirm"]
+    : preview
+      ? ["upload"]
+      : [];
 
   async function handlePreview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -72,27 +79,14 @@ export function ImportScreen() {
   }
 
   return (
-    <>
+    <div className="imports-screen">
       <PageHeader
         eyebrow="Dữ liệu đầu vào"
         title="Tải lên và kiểm tra dữ liệu"
         description="Xem trước, sửa lỗi theo dòng và chỉ xác nhận khi dữ liệu đạt chuẩn hợp đồng MVP."
         action={<span className="contract-pill">TC-IMP · TC-VAL · TC-CFM</span>}
       />
-      <div className="stepper" aria-label="Tiến trình workflow">
-        <span className="step active">
-          <b>01</b> Nhập dữ liệu
-        </span>
-        <span className="step">
-          <b>02</b> Kiểm tra
-        </span>
-        <span className="step">
-          <b>03</b> Xác nhận
-        </span>
-        <span className="step">
-          <b>04</b> Tối ưu
-        </span>
-      </div>
+      <WorkflowStepper activeStep={activeWorkflowStep} completedSteps={completedWorkflowSteps} />
       <section className="panel import-panel" aria-labelledby="import-form-title">
         <div className="panel-heading">
           <div>
@@ -147,6 +141,6 @@ export function ImportScreen() {
           </div>
         ) : null}
       </section>
-    </>
+    </div>
   );
 }

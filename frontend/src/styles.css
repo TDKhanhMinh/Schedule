@@ -4839,6 +4839,303 @@ tr.has-warning td {
   }
 }
 
+/* Workflow T05: one status rail shared by import, solve and release. */
+.workflow-stepper {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(104px, 1fr));
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 7px;
+  background: color-mix(in oklch, var(--muted) 4%, var(--card));
+  list-style: none;
+}
+
+.workflow-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  min-width: 104px;
+  padding: 8px 9px;
+}
+
+.workflow-step:not(:last-child)::after {
+  position: absolute;
+  top: 21px;
+  right: -1px;
+  width: 12px;
+  height: 1px;
+  background: var(--border);
+  content: "";
+}
+
+.workflow-step-marker {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  background: var(--card);
+  font-size: 0.7rem;
+}
+
+.workflow-step-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.workflow-step-copy strong,
+.workflow-step-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-step-copy strong {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.workflow-step-copy small {
+  color: var(--muted-foreground);
+  font-size: 0.6rem;
+}
+
+.workflow-step.is-current {
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--primary) 10%, var(--card));
+}
+
+.workflow-step.is-current .workflow-step-marker,
+.workflow-step.is-complete .workflow-step-marker {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.workflow-step.is-current .workflow-step-copy strong,
+.workflow-step.is-complete .workflow-step-copy strong {
+  color: var(--foreground);
+}
+
+.workflow-step.is-complete .workflow-step-copy small {
+  color: var(--primary);
+}
+
+.imports-screen {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
+.imports-screen .import-panel {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 10px 28px color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+
+.imports-screen .panel-heading,
+.import-preview-panel .preview-summary {
+  align-items: flex-start;
+}
+
+.imports-screen .upload-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 0;
+  border-color: color-mix(in oklch, var(--primary) 32%, var(--border));
+  border-radius: 14px;
+  background: color-mix(in oklch, var(--primary) 4%, var(--card));
+}
+
+.imports-screen .upload-form > label {
+  margin: 0;
+  color: var(--foreground);
+}
+
+.imports-screen .upload-controls {
+  align-items: stretch;
+}
+
+.imports-screen .upload-controls [data-slot="input"] {
+  min-width: 0;
+  flex: 1;
+  background: var(--card);
+}
+
+.imports-screen .alert {
+  margin-top: 0;
+}
+
+.import-preview-panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.import-preview-panel .preview-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.import-preview-panel .preview-summary h2 {
+  margin-top: 5px;
+  color: var(--foreground);
+  font-size: 1.1rem;
+}
+
+.preview-metric-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+}
+
+.preview-metric-strip > span {
+  display: grid;
+  gap: 4px;
+  border-right: 1px solid var(--border);
+  padding: 12px 14px;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+}
+
+.preview-metric-strip > span:last-child {
+  border-right: 0;
+}
+
+.preview-metric-strip b {
+  color: var(--foreground);
+  font-size: 1.1rem;
+}
+
+.import-preview-panel .preview-meta-card {
+  border-color: var(--border);
+  border-radius: 12px;
+  background: color-mix(in oklch, var(--muted) 3%, var(--card));
+}
+
+.import-preview-panel .preview-meta-card h3 {
+  color: var(--foreground);
+}
+
+.import-preview-panel .preview-table-frame {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.import-preview-panel .preview-table-frame table {
+  margin: 0;
+}
+
+.import-preview-panel .preview-table-frame thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--secondary);
+  color: var(--foreground);
+}
+
+.preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.timetable-screen .workflow-stepper,
+.imports-screen .workflow-stepper {
+  width: 100%;
+}
+
+.timetable-screen .optimization-job-panel {
+  gap: 16px;
+}
+
+.timetable-screen .optimization-job-panel .workflow-stepper {
+  margin-top: 2px;
+}
+
+.timetable-screen > [data-slot="card"] .workflow-stepper {
+  margin-bottom: 2px;
+}
+
+@media (max-width: 900px) {
+  .workflow-stepper {
+    overflow-x: auto;
+  }
+
+  .workflow-step {
+    min-width: 116px;
+  }
+
+  .import-preview-panel .preview-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .preview-metric-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .preview-metric-strip > span:nth-child(2) {
+    border-right: 0;
+  }
+
+  .preview-metric-strip > span:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 600px) {
+  .imports-screen .upload-controls,
+  .preview-actions {
+    display: grid;
+  }
+
+  .imports-screen .upload-controls > *,
+  .preview-actions > * {
+    width: 100%;
+  }
+
+  .preview-metric-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-metric-strip > span,
+  .preview-metric-strip > span:nth-child(2) {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .preview-metric-strip > span:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workflow-stepper,
+  .preview-metric-strip > span {
+    scroll-behavior: auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-nav-link {
     transition: none;
