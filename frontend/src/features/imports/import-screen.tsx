@@ -1,5 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { PageHeader } from "../../app/app-shell";
 import { frontendConfig } from "../../config";
 import { apiBlob, apiRequest } from "../../lib/api-client";
@@ -72,7 +74,7 @@ export function ImportScreen() {
   return (
     <>
       <PageHeader
-        eyebrow="Bước 01 · Dữ liệu đầu vào"
+        eyebrow="Dữ liệu đầu vào"
         title="Tải lên và kiểm tra dữ liệu"
         description="Xem trước, sửa lỗi theo dòng và chỉ xác nhận khi dữ liệu đạt chuẩn hợp đồng MVP."
         action={<span className="contract-pill">TC-IMP · TC-VAL · TC-CFM</span>}
@@ -102,7 +104,7 @@ export function ImportScreen() {
         <form className="upload-form" onSubmit={handlePreview}>
           <label htmlFor="excel-file">Tệp Excel theo mẫu MVP</label>
           <div className="upload-controls">
-            <input
+            <Input
               id="excel-file"
               type="file"
               accept=".xlsx,.xlsm"
@@ -113,9 +115,9 @@ export function ImportScreen() {
                 setError("");
               }}
             />
-            <button type="submit" disabled={previewMutation.isPending || !file}>
+            <Button type="submit" disabled={previewMutation.isPending || !file}>
               {previewMutation.isPending ? "Đang đọc tệp..." : "Tải lên và xem trước"}
-            </button>
+            </Button>
           </div>
           <p className="hint">Bắt buộc: Mã lớp, Mã môn, Mã giáo viên, Số tiết. Có thể thêm Mã phòng.</p>
         </form>
@@ -139,9 +141,9 @@ export function ImportScreen() {
             <strong>{confirmation.message}</strong>
             <span>{confirmation.validRowCount} dòng đã được ghi nhận.</span>
             {confirmation.auditLog ? <span>{confirmation.auditLog.message}</span> : null}
-            <button className="button-secondary success-action" type="button" onClick={() => navigateTo("timetable")}>
+            <Button className="success-action" variant="outline" type="button" onClick={() => navigateTo("timetable")}>
               Mở khung thời khóa biểu →
-            </button>
+            </Button>
           </div>
         ) : null}
       </section>

@@ -56,7 +56,9 @@ export function AppShell({
             className="mobile-menu-button"
             variant="outline"
             size="icon"
-            aria-label="Mở điều hướng"
+            aria-label={mobileNavOpen ? "Đóng điều hướng" : "Mở điều hướng"}
+            aria-expanded={mobileNavOpen}
+            aria-controls="primary-navigation"
             onClick={() => setMobileNavOpen((open) => !open)}
           >
             {mobileNavOpen ? <X /> : <Menu />}
@@ -122,7 +124,16 @@ export function AppShell({
       </header>
 
       <div className="mx-auto flex max-w-[1440px]">
+        {mobileNavOpen ? (
+          <button
+            className="mobile-nav-backdrop"
+            type="button"
+            aria-label="Đóng điều hướng"
+            onClick={() => setMobileNavOpen(false)}
+          />
+        ) : null}
         <aside
+          id="primary-navigation"
           className={`fixed inset-x-3 top-[118px] z-20 hidden max-h-[calc(100vh-130px)] w-auto shrink-0 overflow-y-auto rounded-2xl border bg-background p-3 shadow-xl md:sticky md:inset-auto md:top-20 md:z-0 md:block md:h-[calc(100vh-5rem)] md:w-60 md:overflow-visible md:rounded-none md:border-0 md:border-r md:bg-transparent md:p-5 md:shadow-none${mobileNavOpen ? " !block" : ""}`}
           aria-label="Điều hướng chính"
         >
@@ -160,6 +171,22 @@ export function AppShell({
         </aside>
 
         <main className="min-w-0 flex-1 px-4 py-8 lg:px-8 lg:py-10" id="main-content">
+          <nav className="mb-5 hidden items-center gap-2 text-xs text-muted-foreground lg:flex" aria-label="Đường dẫn">
+            <a
+              className="transition-colors hover:text-foreground"
+              href="/"
+              onClick={(event) => {
+                event.preventDefault();
+                navigateTo("dashboard");
+              }}
+            >
+              Không gian làm việc
+            </a>
+            <span aria-hidden="true">/</span>
+            <span className="font-medium text-foreground">
+              {navigation.find((item) => item.route === route)?.label}
+            </span>
+          </nav>
           {children}
         </main>
       </div>

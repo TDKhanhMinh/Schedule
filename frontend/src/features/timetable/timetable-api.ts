@@ -62,7 +62,7 @@ export async function loadTimetable(signal?: AbortSignal) {
       shiftCode: slot?.shiftCode ?? "MORNING",
       day: slot?.day ?? null,
       period: slot?.period ?? null,
-      timeLabel: slot?.startsAt && slot.endsAt ? `${slot.startsAt}–${slot.endsAt}` : "—",
+      timeLabel: slot?.startsAt && slot.endsAt ? `${slot.startsAt} - ${slot.endsAt}` : "Chưa có",
     };
   });
   return {

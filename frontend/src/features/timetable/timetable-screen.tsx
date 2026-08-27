@@ -66,7 +66,7 @@ export function TimetableScreen() {
   return (
     <>
       <PageHeader
-        eyebrow="Bước 04 · Tối ưu và rà soát"
+        eyebrow="Tối ưu và rà soát"
         title="Thời khóa biểu"
         description="Xem nhanh toàn bộ lịch học theo lớp hoặc chuyển sang góc nhìn giáo viên, phòng từ cùng một phiên bản API."
         action={
@@ -178,7 +178,7 @@ export function TimetableScreen() {
                   <span className="history-kind">{entry.action ?? "Thay đổi"}</span>
                   <div>
                     <strong>{entry.actorId ?? "Người thực hiện không xác định"}</strong>
-                    <p>{entry.createdAt ? new Date(entry.createdAt).toLocaleString("vi-VN") : "—"}</p>
+                    <p>{entry.createdAt ? new Date(entry.createdAt).toLocaleString("vi-VN") : "Chưa có"}</p>
                   </div>
                 </li>
               ))}

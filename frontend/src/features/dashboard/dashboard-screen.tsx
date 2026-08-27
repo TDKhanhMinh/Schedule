@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Database, FileSpreadsheet, ListChecks, RefreshCw, Server } from "lucide-react";
+import { Activity, Database, FileSpreadsheet, ListChecks, RefreshCw, Server, ShieldCheck } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { PageHeader } from "../../app/app-shell";
 import { frontendConfig } from "../../config";
 import { apiRequest, apiText } from "../../lib/api-client";
 import { navigateTo } from "../../routing";
+import { useWorkspace } from "../../app/workspace-provider";
 
 interface DashboardAuditEntry {
   id: string;
@@ -53,7 +54,9 @@ async function fetchDashboard(signal: AbortSignal): Promise<DashboardSnapshot> {
 }
 
 export function DashboardScreen() {
+  const { context, schoolId } = useWorkspace();
   const [auditQuery, setAuditQuery] = useState("");
+  const canImport = frontendConfig.actorRole === "ADMIN" || frontendConfig.actorRole === "SCHEDULER";
   const dashboardQuery = useQuery({
     queryKey: ["dashboard", frontendConfig.schoolId],
     queryFn: ({ signal }) => fetchDashboard(signal),
@@ -82,7 +85,7 @@ export function DashboardScreen() {
         title="Bảng điều khiển quản trị trường và vận hành"
         description="Theo dõi dữ liệu, tác vụ và phiên bản theo trường và năm học đã chọn."
         action={
-          <Button onClick={() => navigateTo("imports")}>
+          <Button onClick={() => navigateTo("imports")} disabled={!canImport}>
             <FileSpreadsheet /> Nhập dữ liệu
           </Button>
         }
@@ -101,11 +104,13 @@ export function DashboardScreen() {
         <Card className="border-primary/20 bg-primary/[0.04] xl:row-span-2">
           <CardHeader>
             <Badge className="w-fit">Phạm vi trường</Badge>
-            <CardTitle className="text-2xl">{frontendConfig.schoolId || "Chưa cấu hình"}</CardTitle>
+            <CardTitle className="text-2xl">
+              {(context?.schools.find((school) => school.id === schoolId)?.name ?? schoolId) || "Chưa cấu hình"}
+            </CardTitle>
             <CardDescription>Dữ liệu được đọc từ API theo trường và năm học đã chọn.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            <Button onClick={() => navigateTo("imports")}>
+            <Button onClick={() => navigateTo("imports")} disabled={!canImport}>
               <FileSpreadsheet /> Tải lên và xem trước
             </Button>
             <Button variant="outline" onClick={() => navigateTo("master-data")}>
@@ -147,14 +152,14 @@ export function DashboardScreen() {
             <StatusCell
               icon={<Database />}
               label="PostgreSQL"
-              value={snapshot?.readiness.dependencies?.postgres ?? "—"}
+              value={snapshot?.readiness.dependencies?.postgres ?? "Chưa có"}
             />
-            <StatusCell icon={<Server />} label="Redis" value={snapshot?.readiness.dependencies?.redis ?? "—"} />
-            <StatusCell icon={<ShieldIcon />} label="Vai trò" value={frontendConfig.actorRole} />
+            <StatusCell icon={<Server />} label="Redis" value={snapshot?.readiness.dependencies?.redis ?? "Chưa có"} />
+            <StatusCell icon={<ShieldCheck />} label="Vai trò" value={frontendConfig.actorRole} />
             <StatusCell
               icon={<RefreshCw />}
               label="Cập nhật lúc"
-              value={snapshot ? new Date(snapshot.fetchedAt).toLocaleTimeString("vi-VN") : "—"}
+              value={snapshot ? new Date(snapshot.fetchedAt).toLocaleTimeString("vi-VN") : "Chưa có"}
             />
           </CardContent>
         </Card>
@@ -230,7 +235,4 @@ function StatusCell({ icon, label, value }: { icon: ReactNode; label: string; va
       <p className="mt-2 truncate font-semibold">{value}</p>
     </div>
   );
-}
-function ShieldIcon() {
-  return <span aria-hidden="true">◈</span>;
 }

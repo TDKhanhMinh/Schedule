@@ -85,8 +85,8 @@ export function TimetableGrid({
           {visibleAssignments.map((assignment) => (
             <tr key={assignment.id}>
               <td>{viewValue(assignment, view)}</td>
-              <td>{assignment.day ? dayLabel(assignment.day) : "—"}</td>
-              <td>{assignment.period ?? "—"}</td>
+              <td>{assignment.day ? dayLabel(assignment.day) : "Chưa có"}</td>
+              <td>{assignment.period ?? "Chưa có"}</td>
               <td>{assignment.timeLabel}</td>
               <td>{assignment.subjectLabel}</td>
               <td>{assignment.teacherLabel}</td>
@@ -282,7 +282,7 @@ function shortLabel(value: string) {
 
 function homeroomTeacherName(classLabel: string, assignments: HomeroomAssignment[]) {
   const assignment = assignments.find((item) => `${item.classCode} · ${item.className}` === classLabel);
-  return assignment?.teacherName ?? "—";
+  return assignment?.teacherName ?? "Chưa có";
 }
 
 function dayLabel(day: number) {

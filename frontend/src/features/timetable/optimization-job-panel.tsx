@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { apiRequest } from "../../lib/api-client";
 
 interface OptimizationJobStatus {
@@ -73,19 +75,14 @@ export function OptimizationJobPanel() {
       <div className="optimization-job-controls">
         <label>
           <span>Mã tác vụ tối ưu</span>
-          <input value={jobId} onChange={(event) => setJobId(event.target.value)} placeholder="Nhập mã tác vụ" />
+          <Input value={jobId} onChange={(event) => setJobId(event.target.value)} placeholder="Nhập mã tác vụ" />
         </label>
-        <button type="button" onClick={track}>
+        <Button type="button" onClick={track}>
           Theo dõi tác vụ
-        </button>
-        <button
-          className="button-secondary"
-          type="button"
-          onClick={() => void statusQuery.refetch()}
-          disabled={!trackedJobId}
-        >
+        </Button>
+        <Button variant="outline" type="button" onClick={() => void statusQuery.refetch()} disabled={!trackedJobId}>
           Làm mới
-        </button>
+        </Button>
       </div>
       {notice || statusQuery.error ? (
         <p className="optimization-job-notice">
@@ -107,7 +104,11 @@ export function OptimizationJobPanel() {
             </span>
             <span>
               Nhịp hoạt động{" "}
-              <b>{status.progress.heartbeatAt ? new Date(status.progress.heartbeatAt).toLocaleString("vi-VN") : "—"}</b>
+              <b>
+                {status.progress.heartbeatAt
+                  ? new Date(status.progress.heartbeatAt).toLocaleString("vi-VN")
+                  : "Chưa có"}
+              </b>
             </span>
             <span>
               Hợp đồng <b>{status.statusContractVersion}</b>
@@ -124,21 +125,21 @@ export function OptimizationJobPanel() {
           ) : null}
           {status.failedReason ? <p className="optimization-job-error">{status.failedReason}</p> : null}
           <div className="optimization-job-actions">
-            <button
+            <Button
               type="button"
               onClick={() => void jobMutation.mutateAsync({ action: "cancel", status })}
               disabled={jobMutation.isPending || !status.canCancel}
             >
               Hủy tối ưu
-            </button>
-            <button
-              className="button-secondary"
+            </Button>
+            <Button
+              variant="outline"
               type="button"
               onClick={() => void jobMutation.mutateAsync({ action: "retry", status })}
               disabled={jobMutation.isPending || !status.canRetry}
             >
               Thử lại tác vụ
-            </button>
+            </Button>
           </div>
         </>
       ) : null}

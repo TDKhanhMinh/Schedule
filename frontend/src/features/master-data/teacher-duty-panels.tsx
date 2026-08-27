@@ -238,7 +238,9 @@ export function TeacherLoadSummaryPanel({ periodId }: { periodId: string }) {
                       <span className="block text-xs text-muted-foreground">{row.teacherCode}</span>
                     </td>
                     <td className="px-3 py-3">
-                      {row.duties.length ? row.duties.map((duty) => `${duty.label} (${duty.count})`).join(", ") : "—"}
+                      {row.duties.length
+                        ? row.duties.map((duty) => `${duty.label} (${duty.count})`).join(", ")
+                        : "Chưa có"}
                     </td>
                     <td className="px-3 py-3 tabular-nums">{row.teachingPeriods}</td>
                     <td className="px-3 py-3 tabular-nums">{row.standardWeeklyPeriods}</td>

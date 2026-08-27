@@ -1,4 +1,5 @@
 import type { PreviewResponse } from "./import-types";
+import { Button } from "@/components/ui/button";
 
 export function PreviewPanel({
   preview,
@@ -118,12 +119,14 @@ export function PreviewPanel({
                 key={row.rowNumber}
               >
                 <td>{row.rowNumber}</td>
-                <td>{row.values.classCode ?? "—"}</td>
-                <td>{row.values.subjectCode ?? "—"}</td>
-                <td>{row.values.teacherCode ?? "—"}</td>
-                <td>{row.values.requiredSessions ?? "—"}</td>
+                <td>{row.values.classCode ?? "Chưa có"}</td>
+                <td>{row.values.subjectCode ?? "Chưa có"}</td>
+                <td>{row.values.teacherCode ?? "Chưa có"}</td>
+                <td>{row.values.requiredSessions ?? "Chưa có"}</td>
                 <td>
-                  <code className="normalized-values">{row.normalized ? JSON.stringify(row.normalized) : "—"}</code>
+                  <code className="normalized-values">
+                    {row.normalized ? JSON.stringify(row.normalized) : "Chưa có"}
+                  </code>
                 </td>
                 <td>
                   <span className={`validation-status ${row.status.toLowerCase()}`}>
@@ -135,23 +138,24 @@ export function PreviewPanel({
           </tbody>
         </table>
       </div>
-      <button
+      <Button
         className="confirm-button"
         type="button"
         disabled={!preview.canConfirm || isConfirming}
         onClick={onConfirm}
       >
         {isConfirming ? "Đang nhập..." : "Xác nhận nhập dữ liệu"}
-      </button>
+      </Button>
       {preview.errorCount > 0 ? (
-        <button
-          className="button-secondary error-report-button"
+        <Button
+          className="error-report-button"
+          variant="outline"
           type="button"
           disabled={isDownloadingErrorReport}
           onClick={onDownloadErrorReport}
         >
           {isDownloadingErrorReport ? "Đang tạo báo cáo..." : "Tải báo cáo lỗi Excel"}
-        </button>
+        </Button>
       ) : null}
     </section>
   );
