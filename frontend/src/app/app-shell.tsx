@@ -1,20 +1,40 @@
 import { useQuery } from "@tanstack/react-query";
+import {
+  CalendarDays,
+  CheckCircle2,
+  CircleAlert,
+  ChevronRight,
+  Database,
+  FileSpreadsheet,
+  LayoutDashboard,
+  Menu,
+  School,
+  Table2,
+  UsersRound,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "../lib/api-client";
+import { cn } from "../lib/utils";
 import { navigateTo, type AppRoute } from "../routing";
 import { ModeToggle } from "./mode-toggle";
 import { useWorkspace } from "./workspace-provider";
 
 export type ApiStatus = "checking" | "online" | "offline";
 
-const navigation: Array<{ route: AppRoute; label: string; shortLabel: string }> = [
-  { route: "dashboard", label: "Tổng quan", shortLabel: "Trang chủ" },
-  { route: "master-data", label: "Dữ liệu danh mục", shortLabel: "Dữ liệu" },
-  { route: "imports", label: "Nhập dữ liệu", shortLabel: "Nhập" },
-  { route: "timetable", label: "Thời khóa biểu", shortLabel: "Lịch học" },
+const navigation: Array<{
+  route: AppRoute;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+}> = [
+  { route: "dashboard", label: "Tổng quan", description: "Trạng thái vận hành", icon: LayoutDashboard },
+  { route: "master-data", label: "Dữ liệu danh mục", description: "Lớp, giáo viên, phòng", icon: Database },
+  { route: "imports", label: "Nhập dữ liệu", description: "Upload và kiểm tra Excel", icon: FileSpreadsheet },
+  { route: "timetable", label: "Thời khóa biểu", description: "Xem và chỉnh lịch học", icon: CalendarDays },
 ];
 
 export function useApiStatus() {
@@ -34,6 +54,11 @@ function apiStatusLabel(apiStatus: ApiStatus) {
   return "chưa kết nối";
 }
 
+function ApiStatusIcon({ apiStatus }: { apiStatus: ApiStatus }) {
+  if (apiStatus === "offline") return <CircleAlert aria-hidden="true" />;
+  return <CheckCircle2 aria-hidden="true" />;
+}
+
 export function AppShell({
   route,
   apiStatus,
@@ -45,85 +70,103 @@ export function AppShell({
 }) {
   const { context, periods, schoolId, academicPeriodId, setSchoolId, setAcademicPeriodId } = useWorkspace();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const selectedSchool = context?.schools.find((school) => school.id === schoolId);
+  const selectedPeriod = periods.find((period) => period.id === academicPeriodId);
+  const currentNavigation = navigation.find((item) => item.route === route);
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="app-shell min-h-screen bg-background text-foreground">
       <a className="skip-link" href="#main-content">
         Bỏ qua đến nội dung chính
       </a>
-      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="mx-auto flex min-h-16 max-w-[1440px] flex-wrap items-center gap-3 px-4 py-2 lg:px-6">
-          <Button
-            className="mobile-menu-button"
-            variant="outline"
-            size="icon"
-            aria-label={mobileNavOpen ? "Đóng điều hướng" : "Mở điều hướng"}
-            aria-expanded={mobileNavOpen}
-            aria-controls="primary-navigation"
-            onClick={() => setMobileNavOpen((open) => !open)}
-          >
-            {mobileNavOpen ? <X /> : <Menu />}
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-auto shrink-0 gap-3 px-0 text-left hover:bg-transparent"
-            onClick={() => navigateTo("dashboard")}
-            aria-label="Về tổng quan"
-          >
-            <span
-              className="grid size-9 place-items-center rounded-xl bg-primary text-sm font-black text-primary-foreground"
-              aria-hidden="true"
+
+      <header className="app-header">
+        <div className="app-header-main">
+          <div className="app-brand-area">
+            <Button
+              className="mobile-menu-button app-mobile-menu"
+              variant="outline"
+              size="icon"
+              aria-label={mobileNavOpen ? "Đóng điều hướng" : "Mở điều hướng"}
+              aria-expanded={mobileNavOpen}
+              aria-controls="primary-navigation"
+              onClick={() => setMobileNavOpen((open) => !open)}
             >
-              ST
-            </span>
-            <span className="hidden min-[480px]:grid">
-              <strong className="text-sm font-semibold leading-tight">Thời khóa biểu trường học</strong>
-              <small className="text-xs text-muted-foreground">Bộ tối ưu · MVP-0.1.0</small>
-            </span>
-          </Button>
-          <div
-            className="workspace-controls flex min-w-0 flex-1 items-center justify-end gap-2"
-            aria-label="Ngữ cảnh làm việc"
-          >
-            <Select value={schoolId} onValueChange={setSchoolId} disabled={!context?.schools.length}>
-              <SelectTrigger aria-label="Chọn trường">
-                <SelectValue placeholder="Chọn trường" />
-              </SelectTrigger>
-              <SelectContent>
-                {context?.schools.map((school) => (
-                  <SelectItem key={school.id} value={school.id}>
-                    {school.code} · {school.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={academicPeriodId} onValueChange={setAcademicPeriodId} disabled={!periods.length}>
-              <SelectTrigger aria-label="Chọn năm học">
-                <SelectValue placeholder="Chọn năm học" />
-              </SelectTrigger>
-              <SelectContent>
-                {periods.map((period) => (
-                  <SelectItem key={period.id} value={period.id}>
-                    {period.name} · {period.academicYear}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {mobileNavOpen ? <X /> : <Menu />}
+            </Button>
+            <Button
+              variant="ghost"
+              className="app-brand h-auto shrink-0 gap-3 px-0 text-left hover:bg-transparent"
+              onClick={() => navigateTo("dashboard")}
+              aria-label="Về tổng quan"
+            >
+              <span className="app-brand-mark" aria-hidden="true">
+                ST
+              </span>
+              <span className="app-brand-copy">
+                <strong>Thời khóa biểu trường học</strong>
+                <small>Bộ tối ưu - MVP-0.1.0</small>
+              </span>
+            </Button>
           </div>
-          <div className="topbar-meta flex items-center gap-2">
+
+          <div className="workspace-context" role="group" aria-label="Ngữ cảnh làm việc">
+            <div className="workspace-field">
+              <span className="workspace-field-label">
+                <School aria-hidden="true" /> Trường
+              </span>
+              <Select value={schoolId} onValueChange={setSchoolId} disabled={!context?.schools.length}>
+                <SelectTrigger aria-label="Chọn trường">
+                  <SelectValue placeholder="Chọn trường" />
+                </SelectTrigger>
+                <SelectContent>
+                  {context?.schools.map((school) => (
+                    <SelectItem key={school.id} value={school.id}>
+                      {school.code} - {school.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="workspace-field">
+              <span className="workspace-field-label">
+                <Table2 aria-hidden="true" /> Năm học
+              </span>
+              <Select value={academicPeriodId} onValueChange={setAcademicPeriodId} disabled={!periods.length}>
+                <SelectTrigger aria-label="Chọn năm học">
+                  <SelectValue placeholder="Chọn năm học" />
+                </SelectTrigger>
+                <SelectContent>
+                  {periods.map((period) => (
+                    <SelectItem key={period.id} value={period.id}>
+                      {period.name} - {period.academicYear}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="app-header-actions">
             <span
-              className={`hidden items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium sm:inline-flex ${apiStatus === "online" ? "text-emerald-700 dark:text-emerald-300" : apiStatus === "offline" ? "text-destructive" : "text-muted-foreground"}`}
+              className={cn(
+                "app-api-status",
+                apiStatus === "online" && "is-online",
+                apiStatus === "offline" && "is-offline",
+              )}
+              role="status"
+              aria-live="polite"
             >
-              <span className="size-2 rounded-full bg-current" aria-hidden="true" /> API {apiStatusLabel(apiStatus)}
+              <ApiStatusIcon apiStatus={apiStatus} />
+              <span>API {apiStatusLabel(apiStatus)}</span>
             </span>
-            <span className="hidden rounded-full border px-3 py-2 text-xs font-medium text-muted-foreground lg:inline-flex">
-              {context?.role ?? "VIEWER"}
-            </span>
+            <span className="app-role-badge">{context?.role ?? "VIEWER"}</span>
             <ModeToggle />
           </div>
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-[1440px]">
+      <div className="app-shell-body">
         {mobileNavOpen ? (
           <button
             className="mobile-nav-backdrop"
@@ -132,62 +175,76 @@ export function AppShell({
             onClick={() => setMobileNavOpen(false)}
           />
         ) : null}
+
         <aside
           id="primary-navigation"
-          className={`fixed inset-x-3 top-[118px] z-20 hidden max-h-[calc(100vh-130px)] w-auto shrink-0 overflow-y-auto rounded-2xl border bg-background p-3 shadow-xl md:sticky md:inset-auto md:top-20 md:z-0 md:block md:h-[calc(100vh-5rem)] md:w-60 md:overflow-visible md:rounded-none md:border-0 md:border-r md:bg-transparent md:p-5 md:shadow-none${mobileNavOpen ? " !block" : ""}`}
+          className={cn("app-sidebar", mobileNavOpen && "mobile-open")}
           aria-label="Điều hướng chính"
         >
-          <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-            Không gian làm việc
-          </p>
-          <nav className="grid gap-1">
-            {navigation.map((item) => (
-              <a
-                className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground${route === item.route ? " bg-primary/10 text-primary" : " text-muted-foreground"}`}
-                href={item.route === "dashboard" ? "/" : `/${item.route}`}
-                aria-current={route === item.route ? "page" : undefined}
-                key={item.route}
-                onClick={(event) => {
-                  event.preventDefault();
-                  navigateTo(item.route);
-                  setMobileNavOpen(false);
-                }}
-              >
-                <span
-                  className="grid size-7 place-items-center rounded-md bg-primary/10 text-xs font-bold text-primary"
-                  aria-hidden="true"
+          <div className="app-sidebar-heading">
+            <span className="app-sidebar-kicker">Điều hướng</span>
+            <strong>{selectedSchool?.name ?? "Không gian làm việc"}</strong>
+            <small>{selectedPeriod?.name ?? "Chọn trường và năm học để bắt đầu"}</small>
+          </div>
+
+          <nav className="app-nav" aria-label="Các khu vực chính">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              const isActive = route === item.route;
+              return (
+                <a
+                  className={cn("app-nav-link", isActive && "is-active")}
+                  href={item.route === "dashboard" ? "/" : `/${item.route}`}
+                  aria-current={isActive ? "page" : undefined}
+                  key={item.route}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    navigateTo(item.route);
+                    setMobileNavOpen(false);
+                  }}
                 >
-                  {item.shortLabel.slice(0, 1)}
-                </span>
-                {item.label}
-              </a>
-            ))}
+                  <span className="app-nav-icon" aria-hidden="true">
+                    <Icon />
+                  </span>
+                  <span className="app-nav-copy">
+                    <strong>{item.label}</strong>
+                    <small>{item.description}</small>
+                  </span>
+                  {isActive ? <ChevronRight className="app-nav-chevron" aria-hidden="true" /> : null}
+                </a>
+              );
+            })}
           </nav>
-          <div className="mt-auto hidden gap-1 rounded-xl border bg-card p-4 md:grid">
-            <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Phạm vi</span>
-            <strong className="text-sm">THCS / THPT</strong>
-            <small className="text-xs leading-relaxed text-muted-foreground">Ưu tiên web · cấu hình theo trường</small>
+
+          <div className="app-sidebar-footer">
+            <span className="app-sidebar-footer-icon" aria-hidden="true">
+              <UsersRound />
+            </span>
+            <span className="app-sidebar-footer-copy">
+              <span>Phạm vi dữ liệu</span>
+              <strong>THCS / THPT</strong>
+              <small>Đang xem theo trường và năm học đã chọn</small>
+            </span>
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 px-4 py-8 lg:px-8 lg:py-10" id="main-content">
-          <nav className="mb-5 hidden items-center gap-2 text-xs text-muted-foreground lg:flex" aria-label="Đường dẫn">
-            <a
-              className="transition-colors hover:text-foreground"
-              href="/"
-              onClick={(event) => {
-                event.preventDefault();
-                navigateTo("dashboard");
-              }}
-            >
-              Không gian làm việc
-            </a>
-            <span aria-hidden="true">/</span>
-            <span className="font-medium text-foreground">
-              {navigation.find((item) => item.route === route)?.label}
-            </span>
-          </nav>
-          {children}
+        <main className="app-main" id="main-content">
+          <div className="app-main-inner">
+            <nav className="app-breadcrumb" aria-label="Đường dẫn">
+              <a
+                href="/"
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigateTo("dashboard");
+                }}
+              >
+                Không gian làm việc
+              </a>
+              <ChevronRight aria-hidden="true" />
+              <span>{currentNavigation?.label ?? "Tổng quan"}</span>
+            </nav>
+            <div className="app-page-content">{children}</div>
+          </div>
         </main>
       </div>
     </div>
@@ -206,13 +263,13 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-      <div className="min-w-0">
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-primary">{eyebrow}</p>
-        <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-foreground md:text-4xl">{title}</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">{description}</p>
+    <div className="app-page-header">
+      <div className="app-page-heading">
+        <p className="app-page-eyebrow">{eyebrow}</p>
+        <h1>{title}</h1>
+        <p className="app-page-description">{description}</p>
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? <div className="app-page-action">{action}</div> : null}
     </div>
   );
 }
