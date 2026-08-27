@@ -394,7 +394,7 @@ function ActionItemView({ item }: { item: DashboardAction }) {
         <span>{item.description}</span>
       </div>
       {item.action ? (
-        <Button size="sm" variant="outline" onClick={item.action.onClick} disabled={item.action.disabled}>
+        <Button variant="outline" onClick={item.action.onClick} disabled={item.action.disabled}>
           {item.action.label}
         </Button>
       ) : null}

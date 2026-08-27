@@ -758,16 +758,10 @@ export function MasterDataScreen() {
               >
                 <Plus /> Thêm mới
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                type="button"
-                onClick={validateBulk}
-                disabled={loading || records.length === 0}
-              >
+              <Button variant="outline" type="button" onClick={validateBulk} disabled={loading || records.length === 0}>
                 Kiểm tra dữ liệu
               </Button>
-              <Button variant="outline" size="sm" type="button" onClick={() => void loadBaseData()} disabled={loading}>
+              <Button variant="outline" type="button" onClick={() => void loadBaseData()} disabled={loading}>
                 Làm mới
               </Button>
             </div>
@@ -830,7 +824,6 @@ export function MasterDataScreen() {
                         <Button
                           className="table-action"
                           variant="outline"
-                          size="sm"
                           type="button"
                           onClick={(event) => {
                             editorTriggerRef.current = event.currentTarget;
@@ -843,7 +836,6 @@ export function MasterDataScreen() {
                         <Button
                           className="table-action danger"
                           variant="outline"
-                          size="sm"
                           type="button"
                           onClick={() => setPendingDelete(record)}
                           disabled={!canWrite || saving}

@@ -35,6 +35,10 @@
   --amber: #a15c00;
   --amber-soft: #fff5df;
   --shadow: 0 18px 50px rgb(24 39 75 / 7%);
+  --control-height: 36px;
+  --control-height-compact: 32px;
+  --control-height-large: 40px;
+  --control-radius: 10px;
   --background: oklch(0.985 0.006 250);
   --foreground: oklch(0.24 0.04 250);
   --card: oklch(1 0 0);
@@ -313,28 +317,53 @@ p {
   line-height: 1.55;
 }
 
-button {
-  border: 0;
-  border-radius: 9px;
-  padding: 11px 15px;
+.native-button,
+.button-secondary {
+  display: inline-flex;
+  min-height: var(--control-height);
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--control-radius);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+.native-button {
   color: #fff;
   background: var(--blue);
-  font-weight: 800;
-  cursor: pointer;
 }
-button:hover:not(:disabled) {
+.native-button:hover:not(:disabled) {
   background: var(--blue-dark);
 }
-button:disabled {
+.native-button:disabled,
+.button-secondary:disabled,
+.view-tab:disabled {
   cursor: not-allowed;
   opacity: 0.48;
 }
+.native-button:active:not(:disabled),
+.button-secondary:active {
+  transform: translateY(1px);
+}
 .button-secondary {
   color: var(--blue);
-  border: 1px solid #cbd7ff;
+  border-color: #cbd7ff;
   background: var(--blue-soft);
 }
-.button-secondary:hover:not(:disabled) {
+.button-secondary:hover {
   color: var(--blue-dark);
   background: #e1e8ff;
 }
@@ -892,15 +921,34 @@ tr.has-warning td {
   background: #e9eef8;
 }
 .view-tab {
-  padding: 8px 11px;
+  display: inline-flex;
+  min-height: var(--control-height);
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border-radius: 8px;
   color: var(--muted);
   border: 1px solid transparent;
   background: transparent;
   font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
 }
 .view-tab:hover:not(:disabled) {
   color: var(--ink);
   background: #fff;
+}
+.view-tab:active:not(:disabled) {
+  transform: translateY(1px);
 }
 .view-tab.active {
   color: var(--blue);
@@ -2551,10 +2599,6 @@ tr.has-warning td {
   justify-content: flex-end;
   gap: 7px;
 }
-.master-list-actions button {
-  padding: 8px 10px;
-  font-size: 0.7rem;
-}
 .master-table-wrap table {
   min-width: 620px;
 }
@@ -2567,11 +2611,12 @@ tr.has-warning td {
   white-space: nowrap;
 }
 .table-action {
-  padding: 6px 8px;
+  min-height: var(--control-height);
+  padding-inline: 10px;
   color: var(--blue);
   border: 1px solid #cbd7ff;
   background: var(--blue-soft);
-  font-size: 0.68rem;
+  font-size: 0.8rem;
 }
 .table-action:hover:not(:disabled) {
   color: var(--blue-dark);
@@ -4047,8 +4092,8 @@ tr.has-warning td {
 }
 
 .timetable-view-tabs [data-slot="tabs-trigger"] {
-  min-height: 34px;
-  padding-inline: 11px;
+  min-height: calc(var(--control-height) - 1px);
+  padding-inline: 12px;
   color: var(--muted-foreground);
   font-size: 0.74rem;
 }
@@ -4532,10 +4577,10 @@ tr.has-warning td {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  min-height: 48px;
+  min-height: var(--control-height);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 8px 10px;
+  padding: 0 10px;
   color: var(--muted-foreground);
   background: color-mix(in oklch, var(--muted) 3%, var(--card));
   text-align: left;
@@ -5301,8 +5346,12 @@ body {
   z-index: 19;
   inset: 0;
   display: none;
+  padding: 0;
   border: 0;
+  border-radius: 0;
+  color: inherit;
   background: rgb(15 23 42 / 24%);
+  cursor: default;
 }
 
 .dark .topbar,

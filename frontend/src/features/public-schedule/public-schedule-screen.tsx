@@ -83,7 +83,7 @@ export function PublicScheduleScreen() {
           <a className="button-secondary" href={pdfUrl} target="_blank" rel="noreferrer">
             Mở bản PDF
           </a>
-          <button type="button" onClick={() => window.print()}>
+          <button className="native-button" type="button" onClick={() => window.print()}>
             In trang này
           </button>
         </div>
