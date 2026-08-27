@@ -179,7 +179,7 @@ export function MasterDataImportActions({
                 <FileSpreadsheet /> {errorReportMutation.isPending ? "Đang tạo báo cáo…" : "Tải báo cáo lỗi"}
               </Button>
             ) : null}
-            <Button variant="outline" type="button" onClick={closeDialog}>
+            <Button className="dialog-cancel" variant="outline" type="button" onClick={closeDialog}>
               Hủy
             </Button>
             {!preview ? (

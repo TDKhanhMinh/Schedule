@@ -68,7 +68,14 @@ import {
   type Teacher,
   type TimeSlot,
 } from "./master-data-types";
-import { HomeroomAssignmentDialog, TeacherLoadSummaryPanel, type HomeroomAssignment } from "./teacher-duty-panels";
+import {
+  HomeroomAssignmentDialog,
+  TeacherHomeroomAssignmentDialog,
+  TeacherLoadSummaryPanel,
+  TeacherProfessionalAssignmentDialog,
+  type HomeroomAssignment,
+  type TeacherSubjectGradeAssignment,
+} from "./teacher-duty-panels";
 import { MasterDataImportActions } from "./master-data-import-dialog";
 
 const entityIcons: Record<MasterDataEntity, LucideIcon> = {
@@ -105,7 +112,12 @@ export function MasterDataScreen() {
   const [pendingDelete, setPendingDelete] = useState<MasterRecord | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [homeroomDialogClassId, setHomeroomDialogClassId] = useState<string | null>(null);
+  const [teacherAssignmentDialog, setTeacherAssignmentDialog] = useState<{
+    teacherId: string;
+    kind: "homeroom" | "professional";
+  } | null>(null);
   const homeroomTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const teacherAssignmentTriggerRef = useRef<HTMLButtonElement | null>(null);
   const editorTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const canWrite = frontendConfig.actorRole === "ADMIN" || frontendConfig.actorRole === "SCHEDULER";
@@ -148,13 +160,31 @@ export function MasterDataScreen() {
         `/schools/${frontendConfig.schoolId}/academic-periods/${selectedPeriodId}/homeroom-assignments`,
         { signal },
       ),
-    enabled: Boolean(frontendConfig.schoolId && selectedPeriodId && activeEntity === "class"),
+    enabled: Boolean(
+      frontendConfig.schoolId && selectedPeriodId && (activeEntity === "class" || activeEntity === "teacher"),
+    ),
   });
 
-  const loading = baseDataQuery.isPending || periodDataQuery.isPending || homeroomAssignmentQuery.isPending;
+  const teacherSubjectGradeAssignmentQuery = useQuery({
+    queryKey: ["teacher-subject-grade-assignments", frontendConfig.schoolId, selectedPeriodId],
+    queryFn: ({ signal }) =>
+      request<TeacherSubjectGradeAssignment[]>(
+        `/schools/${frontendConfig.schoolId}/academic-periods/${selectedPeriodId}/teacher-subject-grade-assignments`,
+        { signal },
+      ),
+    enabled: Boolean(frontendConfig.schoolId && selectedPeriodId && activeEntity === "teacher"),
+  });
+
+  const loading =
+    baseDataQuery.isPending ||
+    periodDataQuery.isPending ||
+    homeroomAssignmentQuery.isPending ||
+    teacherSubjectGradeAssignmentQuery.isPending;
   const homeroomAssignments = homeroomAssignmentQuery.data ?? [];
+  const teacherSubjectGradeAssignments = teacherSubjectGradeAssignmentQuery.data ?? [];
   const homeroomDialogClass = classes.find((item) => item.id === homeroomDialogClassId);
   const homeroomDialogAssignment = homeroomAssignments.find((item) => item.classId === homeroomDialogClassId);
+  const teacherAssignmentDialogTeacher = teachers.find((item) => item.id === teacherAssignmentDialog?.teacherId);
 
   const saveMutation = useMutation({
     mutationFn: ({ path, body, method }: { path: string; body: string; method: "POST" | "PATCH" }) =>
@@ -198,16 +228,31 @@ export function MasterDataScreen() {
   }, [periodDataQuery.data]);
 
   useEffect(() => {
-    const queryError = baseDataQuery.error ?? periodDataQuery.error ?? homeroomAssignmentQuery.error;
+    const queryError =
+      baseDataQuery.error ??
+      periodDataQuery.error ??
+      homeroomAssignmentQuery.error ??
+      teacherSubjectGradeAssignmentQuery.error;
     if (queryError) setError(queryError instanceof Error ? queryError.message : "Không thể tải dữ liệu danh mục.");
-  }, [baseDataQuery.error, homeroomAssignmentQuery.error, periodDataQuery.error]);
+  }, [
+    baseDataQuery.error,
+    homeroomAssignmentQuery.error,
+    periodDataQuery.error,
+    teacherSubjectGradeAssignmentQuery.error,
+  ]);
 
   const loadBaseData = useCallback(async () => {
     await Promise.all([
       baseDataQuery.refetch(),
-      activeEntity === "class" && selectedPeriodId ? homeroomAssignmentQuery.refetch() : Promise.resolve(),
+      activeEntity === "class" || activeEntity === "teacher" ? homeroomAssignmentQuery.refetch() : Promise.resolve(),
+      activeEntity === "teacher" ? teacherSubjectGradeAssignmentQuery.refetch() : Promise.resolve(),
     ]);
-  }, [activeEntity, baseDataQuery.refetch, homeroomAssignmentQuery.refetch, selectedPeriodId]);
+  }, [
+    activeEntity,
+    baseDataQuery.refetch,
+    homeroomAssignmentQuery.refetch,
+    teacherSubjectGradeAssignmentQuery.refetch,
+  ]);
 
   const names = useMemo<NameMaps>(
     () => ({
@@ -252,6 +297,8 @@ export function MasterDataScreen() {
     setNotice("");
     resetEditor(entity);
     setEditorOpen(false);
+    setHomeroomDialogClassId(null);
+    setTeacherAssignmentDialog(null);
   }
 
   function closeEditor() {
@@ -582,12 +629,45 @@ export function MasterDataScreen() {
     }
     if (activeEntity === "teacher") {
       const value = record as Teacher;
+      const professionalAssignments = teacherSubjectGradeAssignments.filter(
+        (item) => item.teacherId === value.id && item.status === "ACTIVE",
+      );
+      const homeroomAssignmentsForTeacher = homeroomAssignments.filter((item) => item.teacherId === value.id);
       return (
         <>
           <td>
             <strong>{value.code}</strong>
           </td>
           <td>{value.displayName}</td>
+          <td>
+            {professionalAssignments.length ? (
+              <span className="master-assignment-cell">
+                <strong>{professionalAssignments.length} phân công</strong>
+                <small>
+                  {professionalAssignments
+                    .slice(0, 2)
+                    .map(
+                      (item) =>
+                        `${subjects.find((subject) => subject.id === item.subjectId)?.code ?? item.subjectId} · Khối ${item.grade}`,
+                    )
+                    .join(", ")}
+                  {professionalAssignments.length > 2 ? " và thêm" : ""}
+                </small>
+              </span>
+            ) : (
+              <span className="status-tag draft">Chưa có</span>
+            )}
+          </td>
+          <td>
+            {homeroomAssignmentsForTeacher.length ? (
+              <span className="master-assignment-cell">
+                <strong>{homeroomAssignmentsForTeacher.length} lớp</strong>
+                <small>{homeroomAssignmentsForTeacher.map((item) => item.classCode).join(", ")}</small>
+              </span>
+            ) : (
+              <span className="status-tag draft">Chưa gán</span>
+            )}
+          </td>
           <td>
             <span className={`status-tag ${value.status.toLowerCase()}`}>{statusLabel(value.status)}</span>
           </td>
@@ -686,11 +766,51 @@ export function MasterDataScreen() {
     );
   }
 
+  function renderTeacherAssignmentActions(record: MasterRecord) {
+    if (activeEntity !== "teacher" || !selectedPeriodId) return null;
+    const teacher = record as Teacher;
+    const disabled =
+      !canWrite ||
+      teacher.status === "ARCHIVED" ||
+      homeroomAssignmentQuery.isPending ||
+      teacherSubjectGradeAssignmentQuery.isPending;
+    return (
+      <>
+        <Button
+          className="table-action teacher-assignment-action"
+          variant="outline"
+          type="button"
+          onClick={(event) => {
+            teacherAssignmentTriggerRef.current = event.currentTarget;
+            setTeacherAssignmentDialog({ teacherId: teacher.id, kind: "professional" });
+          }}
+          disabled={disabled}
+          aria-label={`Phân công chuyên môn cho ${teacher.code}`}
+        >
+          <Plus /> Chuyên môn
+        </Button>
+        <Button
+          className="table-action teacher-assignment-action"
+          variant="outline"
+          type="button"
+          onClick={(event) => {
+            teacherAssignmentTriggerRef.current = event.currentTarget;
+            setTeacherAssignmentDialog({ teacherId: teacher.id, kind: "homeroom" });
+          }}
+          disabled={disabled}
+          aria-label={`Phân công chủ nhiệm cho ${teacher.code}`}
+        >
+          <UserRoundPlus /> GVCN
+        </Button>
+      </>
+    );
+  }
+
   const headers: Record<MasterDataEntity, string[]> = {
     school: ["Mã", "Tên", "Múi giờ", "Trạng thái"],
     period: ["Học kỳ", "Tên", "Năm học", "Khoảng ngày", "Trạng thái"],
     slot: ["Ngày", "Tiết", "Buổi", "Thời gian"],
-    teacher: ["Mã", "Tên giáo viên", "Trạng thái"],
+    teacher: ["Mã", "Tên giáo viên", "Phân công chuyên môn", "Lớp chủ nhiệm", "Trạng thái"],
     class: ["Mã", "Tên lớp", "Khối", "GVCN", "Trạng thái"],
     subject: ["Mã", "Tên môn", "Trạng thái"],
     room: ["Mã", "Tên phòng", "Loại", "Sức chứa", "Trạng thái"],
@@ -909,6 +1029,7 @@ export function MasterDataScreen() {
                     <tr key={recordId(record)}>
                       {renderRecord(record)}
                       <td className="row-actions">
+                        {renderTeacherAssignmentActions(record)}
                         {renderHomeroomAction(record)}
                         <Button
                           className="table-action"
@@ -965,6 +1086,45 @@ export function MasterDataScreen() {
           }}
         />
       ) : null}
+      {teacherAssignmentDialog && teacherAssignmentDialogTeacher && selectedPeriodId ? (
+        teacherAssignmentDialog.kind === "professional" ? (
+          <TeacherProfessionalAssignmentDialog
+            teacher={teacherAssignmentDialogTeacher}
+            subjects={subjects}
+            assignments={teacherSubjectGradeAssignments}
+            periodId={selectedPeriodId}
+            canWrite={canWrite}
+            open
+            onOpenChange={(open) => {
+              if (open) return;
+              setTeacherAssignmentDialog(null);
+              window.requestAnimationFrame(() => teacherAssignmentTriggerRef.current?.focus());
+            }}
+            onSaved={(message) => {
+              setError("");
+              setNotice(message);
+            }}
+          />
+        ) : (
+          <TeacherHomeroomAssignmentDialog
+            teacher={teacherAssignmentDialogTeacher}
+            classes={classes}
+            assignments={homeroomAssignments}
+            periodId={selectedPeriodId}
+            canWrite={canWrite}
+            open
+            onOpenChange={(open) => {
+              if (open) return;
+              setTeacherAssignmentDialog(null);
+              window.requestAnimationFrame(() => teacherAssignmentTriggerRef.current?.focus());
+            }}
+            onSaved={(message) => {
+              setError("");
+              setNotice(message);
+            }}
+          />
+        )
+      ) : null}
       <Dialog
         open={editorOpen}
         onOpenChange={(open) => {
@@ -998,7 +1158,7 @@ export function MasterDataScreen() {
               </p>
             ) : null}
             <DialogFooter>
-              <Button variant="outline" type="button" onClick={closeEditor}>
+              <Button className="dialog-cancel" variant="outline" type="button" onClick={closeEditor}>
                 Hủy
               </Button>
               <Button

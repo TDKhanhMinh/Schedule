@@ -119,6 +119,79 @@ describe("MasterDataService", () => {
     ]);
   });
 
+  it("creates a professional assignment for an active teacher and subject", async () => {
+    query
+      .mockResolvedValueOnce({ rows: [periodRow] })
+      .mockResolvedValueOnce({ rows: [{ id: "teacher-001", status: "ACTIVE" }] })
+      .mockResolvedValueOnce({ rows: [{ id: "subject-001", status: "ACTIVE" }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            id: "assignment-001",
+            school_id: "school-001",
+            academic_period_id: "period-001",
+            teacher_id: "teacher-001",
+            subject_id: "subject-001",
+            grade: 9,
+            status: "ACTIVE",
+            source_ref: "MANUAL_UI",
+            created_at: timestamp,
+            updated_at: timestamp,
+          },
+        ],
+      });
+
+    await expect(
+      service.assignTeacherSubjectGrade("school-001", "period-001", {
+        teacherId: "teacher-001",
+        subjectId: "subject-001",
+        grade: 9,
+      }),
+    ).resolves.toMatchObject({
+      id: "assignment-001",
+      teacherId: "teacher-001",
+      subjectId: "subject-001",
+      grade: 9,
+      status: "ACTIVE",
+    });
+    expect(query).toHaveBeenLastCalledWith(expect.stringContaining("INSERT INTO teacher_subject_grade_assignments"), [
+      "school-001",
+      "period-001",
+      "teacher-001",
+      "subject-001",
+      9,
+    ]);
+  });
+
+  it("archives a professional assignment without deleting its history", async () => {
+    query.mockResolvedValueOnce({ rows: [periodRow] }).mockResolvedValueOnce({
+      rows: [
+        {
+          id: "assignment-001",
+          school_id: "school-001",
+          academic_period_id: "period-001",
+          teacher_id: "teacher-001",
+          subject_id: "subject-001",
+          grade: 9,
+          status: "ARCHIVED",
+          source_ref: "MANUAL_UI",
+          created_at: timestamp,
+          updated_at: timestamp,
+        },
+      ],
+    });
+
+    await expect(service.archiveTeacherSubjectGrade("school-001", "period-001", "assignment-001")).resolves.toEqual(
+      expect.objectContaining({ id: "assignment-001", status: "ARCHIVED" }),
+    );
+    expect(query).toHaveBeenLastCalledWith(expect.stringContaining("UPDATE teacher_subject_grade_assignments"), [
+      "assignment-001",
+      "school-001",
+      "period-001",
+    ]);
+  });
+
   it("calculates the teacher load after the homeroom reduction", async () => {
     query
       .mockResolvedValueOnce({ rows: [periodRow] })

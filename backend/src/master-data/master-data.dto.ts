@@ -197,6 +197,21 @@ export class AssignHomeroomTeacherDto {
   ruleCode?: string;
 }
 
+export class AssignTeacherSubjectGradeDto {
+  @IsString()
+  @IsNotEmpty()
+  teacherId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  subjectId!: string;
+
+  @IsInt()
+  @Min(6)
+  @Max(12)
+  grade!: number;
+}
+
 export class CreateSubjectDto {
   @IsString()
   @IsNotEmpty()

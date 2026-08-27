@@ -69,6 +69,8 @@ export class AuditInterceptor implements NestInterceptor {
   private entityTypeFor(path: string) {
     const lowerPath = path.toLowerCase();
     const mappings: Array<[string, string]> = [
+      ["/teacher-subject-grade-assignments", "teacher_subject_grade_assignment"],
+      ["/homeroom", "homeroom_assignment"],
       ["/lesson-requirements", "lesson_requirement"],
       ["/time-slots", "time_slot"],
       ["/academic-periods", "academic_period"],

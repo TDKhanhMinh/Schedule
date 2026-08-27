@@ -5093,6 +5093,31 @@ tr.has-warning td {
   font-size: 0.68rem;
 }
 
+.master-assignment-cell {
+  display: grid;
+  min-width: 150px;
+  gap: 2px;
+}
+
+.master-assignment-cell strong {
+  color: var(--foreground);
+  font-size: 0.76rem;
+}
+
+.master-assignment-cell small {
+  max-width: 210px;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-assignment-action svg {
+  width: 14px;
+  height: 14px;
+}
+
 .homeroom-action svg {
   width: 14px;
   height: 14px;
@@ -5186,6 +5211,111 @@ tr.has-warning td {
 
 .master-duty-dialog {
   max-width: 540px;
+}
+
+.teacher-assignment-dialog {
+  max-width: 640px;
+}
+
+.teacher-assignment-dialog [data-slot="dialog-header"] {
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.teacher-assignment-dialog [data-slot="dialog-title"] {
+  font-size: 1.2rem;
+  letter-spacing: -0.025em;
+}
+
+.teacher-assignment-current,
+.teacher-assignment-form {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  background: color-mix(in oklch, var(--muted) 22%, var(--card));
+}
+
+.teacher-assignment-form {
+  grid-template-columns: minmax(0, 1.2fr) minmax(120px, 0.8fr);
+}
+
+.teacher-assignment-section-heading {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.teacher-assignment-section-heading strong {
+  color: var(--foreground);
+  font-size: 0.84rem;
+}
+
+.teacher-assignment-section-heading span {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  text-align: right;
+}
+
+.teacher-assignment-list {
+  display: grid;
+  gap: 0;
+}
+
+.teacher-assignment-list-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding: 10px 0 0;
+}
+
+.teacher-assignment-list-item + .teacher-assignment-list-item {
+  margin-top: 10px;
+}
+
+.teacher-assignment-list-item > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.teacher-assignment-list-item strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-assignment-list-item small {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-assignment-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.teacher-assignment-form .master-select {
+  width: 100%;
+}
+
+.teacher-assignment-empty {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
 }
 
 .master-editor-form,
@@ -5361,6 +5491,33 @@ tr.has-warning td {
 
   .teacher-load-result-count {
     align-self: start;
+  }
+
+  .teacher-assignment-dialog {
+    max-width: calc(100% - 2rem);
+  }
+
+  .teacher-assignment-form {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-assignment-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .teacher-assignment-section-heading span {
+    text-align: left;
+  }
+
+  .teacher-assignment-list-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .teacher-assignment-list-item [data-slot="button"] {
+    justify-self: start;
   }
 }
 
@@ -5904,4 +6061,113 @@ td,
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Configuration dialogs use a neutral surface with semantic action colors. */
+.config-dialog-surface {
+  --dialog-surface: #ffffff;
+  --dialog-surface-soft: #f4f4f5;
+  --dialog-ink: #171717;
+  --dialog-muted: #525252;
+  --dialog-line: #d4d4d4;
+  --dialog-primary: #2563eb;
+  --dialog-primary-hover: #1d4ed8;
+  --dialog-danger: #dc2626;
+  --dialog-danger-hover: #b91c1c;
+  background: var(--dialog-surface) !important;
+  color: var(--dialog-ink);
+}
+
+.dark .config-dialog-surface {
+  --dialog-surface: #171717;
+  --dialog-surface-soft: #262626;
+  --dialog-ink: #f5f5f5;
+  --dialog-muted: #a3a3a3;
+  --dialog-line: #404040;
+}
+
+.config-dialog-surface [data-slot="dialog-title"],
+.config-dialog-surface [data-slot="alert-dialog-title"] {
+  color: var(--dialog-ink);
+}
+
+.config-dialog-surface [data-slot="dialog-description"],
+.config-dialog-surface [data-slot="alert-dialog-description"] {
+  color: var(--dialog-muted);
+}
+
+.config-dialog-surface input,
+.config-dialog-surface select,
+.config-dialog-surface textarea {
+  border-color: var(--dialog-line);
+  background: var(--dialog-surface) !important;
+  color: var(--dialog-ink);
+}
+
+.config-dialog-surface input::placeholder,
+.config-dialog-surface textarea::placeholder {
+  color: var(--dialog-muted);
+}
+
+.config-dialog-surface [data-slot="dialog-close"] {
+  color: var(--dialog-ink);
+}
+
+.config-dialog-surface [data-slot="dialog-footer"],
+.config-dialog-surface [data-slot="alert-dialog-footer"] {
+  border-color: var(--dialog-line);
+  background: var(--dialog-surface-soft) !important;
+}
+
+.config-dialog-surface [data-slot="dialog-footer"] [data-slot="button"][data-variant="outline"],
+.config-dialog-surface [data-slot="alert-dialog-footer"] [data-slot="button"][data-variant="outline"] {
+  border-color: var(--dialog-line);
+  background: var(--dialog-surface);
+  color: var(--dialog-ink);
+}
+
+.config-dialog-surface [data-slot="dialog-footer"] [data-slot="button"][data-variant="default"],
+.config-dialog-surface [data-slot="alert-dialog-action"] {
+  border-color: var(--dialog-primary);
+  background: var(--dialog-primary);
+  color: #ffffff;
+}
+
+.config-dialog-surface [data-slot="dialog-footer"] [data-slot="button"][data-variant="default"]:hover:not(:disabled),
+.config-dialog-surface [data-slot="alert-dialog-action"]:hover:not(:disabled) {
+  background: var(--dialog-primary-hover);
+}
+
+.config-dialog-surface [data-slot="dialog-footer"] .dialog-cancel,
+.config-dialog-surface [data-slot="alert-dialog-cancel"] {
+  border-color: var(--dialog-danger) !important;
+  background: var(--dialog-danger) !important;
+  color: #ffffff !important;
+}
+
+.config-dialog-surface [data-slot="dialog-footer"] .dialog-cancel:hover:not(:disabled),
+.config-dialog-surface [data-slot="alert-dialog-cancel"]:hover:not(:disabled) {
+  border-color: var(--dialog-danger-hover) !important;
+  background: var(--dialog-danger-hover) !important;
+  color: #ffffff !important;
+}
+
+.config-dialog-surface .teacher-assignment-current,
+.config-dialog-surface .teacher-assignment-form,
+.config-dialog-surface .master-import-metrics,
+.config-dialog-surface .master-import-preview {
+  border-color: var(--dialog-line);
+  background: var(--dialog-surface-soft);
+}
+
+.config-dialog-surface .teacher-assignment-section-heading strong,
+.config-dialog-surface .teacher-assignment-list-item strong,
+.config-dialog-surface .teacher-assignment-form label,
+.config-dialog-surface .teacher-assignment-list-item small,
+.config-dialog-surface .teacher-assignment-section-heading span {
+  color: var(--dialog-ink);
+}
+
+.config-dialog-surface .teacher-assignment-list-item {
+  border-color: var(--dialog-line);
 }

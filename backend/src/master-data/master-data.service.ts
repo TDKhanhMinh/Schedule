@@ -3,6 +3,7 @@ import type { Pool, QueryResultRow } from "pg";
 import { PG_POOL } from "../database/database.module";
 import {
   AssignHomeroomTeacherDto,
+  AssignTeacherSubjectGradeDto,
   CreateAcademicPeriodDto,
   CreateClassDto,
   CreateLessonRequirementDto,
@@ -664,18 +665,76 @@ export class MasterDataService {
         ORDER BY teacher_id, subject_id, grade`,
       [schoolId, academicPeriodId],
     );
-    return result.rows.map((row) => ({
-      id: row.id,
-      schoolId: row.school_id,
-      academicPeriodId: row.academic_period_id,
-      teacherId: row.teacher_id,
-      subjectId: row.subject_id,
-      grade: row.grade,
-      status: row.status,
-      sourceRef: row.source_ref,
-      createdAt: new Date(row.created_at).toISOString(),
-      updatedAt: new Date(row.updated_at).toISOString(),
-    }));
+    return result.rows.map((row) => this.toTeacherSubjectGradeAssignment(row));
+  }
+
+  async assignTeacherSubjectGrade(schoolId: string, academicPeriodId: string, dto: AssignTeacherSubjectGradeDto) {
+    await this.ensureAcademicPeriod(schoolId, academicPeriodId);
+    await this.ensureActiveReference(
+      "teachers",
+      dto.teacherId,
+      schoolId,
+      "TEACHER_NOT_FOUND",
+      "TEACHER_ARCHIVED",
+      "Giáo viên",
+    );
+    await this.ensureActiveReference(
+      "subjects",
+      dto.subjectId,
+      schoolId,
+      "SUBJECT_NOT_FOUND",
+      "SUBJECT_ARCHIVED",
+      "Môn học",
+    );
+    const existing = await this.pool.query<{ id: string; status: "ACTIVE" | "ARCHIVED" }>(
+      `SELECT id::text, status
+         FROM teacher_subject_grade_assignments
+        WHERE school_id = $1
+          AND academic_period_id = $2
+          AND teacher_id = $3
+          AND subject_id = $4
+          AND grade = $5`,
+      [schoolId, academicPeriodId, dto.teacherId, dto.subjectId, dto.grade],
+    );
+    if (existing.rows[0]?.status === "ARCHIVED") {
+      throw new ConflictException({
+        code: "ARCHIVED_ASSIGNMENT",
+        message: "Không thể tự động khôi phục phân công chuyên môn đã lưu trữ.",
+      });
+    }
+    const result = await this.pool.query<TeacherSubjectGradeAssignmentRow>(
+      `INSERT INTO teacher_subject_grade_assignments
+        (tenant_id, school_id, academic_period_id, teacher_id, subject_id, grade, status, source_ref)
+       SELECT school.tenant_id, $1, $2, $3, $4, $5, 'ACTIVE', 'MANUAL_UI'
+         FROM schools school
+        WHERE school.id = $1
+       ON CONFLICT (tenant_id, school_id, academic_period_id, teacher_id, subject_id, grade)
+       DO UPDATE SET source_ref = EXCLUDED.source_ref, updated_at = now()
+       RETURNING id::text, school_id::text, academic_period_id::text,
+                 teacher_id::text, subject_id::text, grade, status, source_ref,
+                 created_at, updated_at`,
+      [schoolId, academicPeriodId, dto.teacherId, dto.subjectId, dto.grade],
+    );
+    const assignment = result.rows[0];
+    if (!assignment) throw this.notFound("ASSIGNMENT_NOT_FOUND", "Không thể lưu phân công chuyên môn.");
+    return this.toTeacherSubjectGradeAssignment(assignment);
+  }
+
+  async archiveTeacherSubjectGrade(schoolId: string, academicPeriodId: string, assignmentId: string) {
+    await this.ensureAcademicPeriod(schoolId, academicPeriodId);
+    const result = await this.pool.query<TeacherSubjectGradeAssignmentRow>(
+      `UPDATE teacher_subject_grade_assignments
+          SET status = 'ARCHIVED', updated_at = now()
+        WHERE id = $1 AND school_id = $2 AND academic_period_id = $3 AND status = 'ACTIVE'
+      RETURNING id::text, school_id::text, academic_period_id::text,
+                teacher_id::text, subject_id::text, grade, status, source_ref,
+                created_at, updated_at`,
+      [assignmentId, schoolId, academicPeriodId],
+    );
+    const assignment = result.rows[0];
+    if (!assignment)
+      throw this.notFound("ASSIGNMENT_NOT_FOUND", "Phân công chuyên môn không tồn tại hoặc đã được lưu trữ.");
+    return this.toTeacherSubjectGradeAssignment(assignment);
   }
 
   async getTeacherSubjectGradeCoverage(schoolId: string, academicPeriodId: string) {
@@ -1566,6 +1625,21 @@ export class MasterDataService {
       teacherName: row.teacher_name,
       weeklyReductionPeriods: row.weekly_reduction_periods,
       ruleCode: row.rule_code,
+      createdAt: new Date(row.created_at).toISOString(),
+      updatedAt: new Date(row.updated_at).toISOString(),
+    };
+  }
+
+  private toTeacherSubjectGradeAssignment(row: TeacherSubjectGradeAssignmentRow) {
+    return {
+      id: row.id,
+      schoolId: row.school_id,
+      academicPeriodId: row.academic_period_id,
+      teacherId: row.teacher_id,
+      subjectId: row.subject_id,
+      grade: row.grade,
+      status: row.status,
+      sourceRef: row.source_ref,
       createdAt: new Date(row.created_at).toISOString(),
       updatedAt: new Date(row.updated_at).toISOString(),
     };

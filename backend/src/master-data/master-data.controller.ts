@@ -3,6 +3,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import type { RequestWithAuth } from "../auth/auth.types";
 import {
   AssignHomeroomTeacherDto,
+  AssignTeacherSubjectGradeDto,
   CreateAcademicPeriodDto,
   CreateClassDto,
   CreateLessonRequirementDto,
@@ -104,6 +105,24 @@ export class MasterDataController {
     @Param("academicPeriodId") academicPeriodId: string,
   ) {
     return this.masterData.listTeacherSubjectGradeAssignments(schoolId, academicPeriodId);
+  }
+
+  @Post(":schoolId/academic-periods/:academicPeriodId/teacher-subject-grade-assignments")
+  assignTeacherSubjectGrade(
+    @Param("schoolId") schoolId: string,
+    @Param("academicPeriodId") academicPeriodId: string,
+    @Body() dto: AssignTeacherSubjectGradeDto,
+  ) {
+    return this.masterData.assignTeacherSubjectGrade(schoolId, academicPeriodId, dto);
+  }
+
+  @Delete(":schoolId/academic-periods/:academicPeriodId/teacher-subject-grade-assignments/:assignmentId")
+  archiveTeacherSubjectGrade(
+    @Param("schoolId") schoolId: string,
+    @Param("academicPeriodId") academicPeriodId: string,
+    @Param("assignmentId") assignmentId: string,
+  ) {
+    return this.masterData.archiveTeacherSubjectGrade(schoolId, academicPeriodId, assignmentId);
   }
 
   @Get(":schoolId/academic-periods/:academicPeriodId/teacher-subject-grade-coverage")

@@ -140,7 +140,7 @@ export function ReleasePanel({ versionId, status }: { versionId: string; status:
             placeholder="Nhập lý do…"
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTarget(null)}>
+            <Button className="dialog-cancel" variant="outline" onClick={() => setTarget(null)}>
               Hủy
             </Button>
             <Button
