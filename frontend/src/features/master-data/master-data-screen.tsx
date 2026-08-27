@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   BookOpen,
   Building2,
@@ -8,6 +8,7 @@ import {
   Clock3,
   DoorOpen,
   GraduationCap,
+  Plus,
   Search,
   Upload,
   UsersRound,
@@ -25,6 +26,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "../../app/app-shell";
@@ -92,6 +101,8 @@ export function MasterDataScreen() {
   const [bulkReport, setBulkReport] = useState("");
   const [saving, setSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<MasterRecord | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const editorTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const canWrite = frontendConfig.actorRole === "ADMIN" || frontendConfig.actorRole === "SCHEDULER";
 
@@ -220,6 +231,14 @@ export function MasterDataScreen() {
     setError("");
     setNotice("");
     resetEditor(entity);
+    setEditorOpen(false);
+  }
+
+  function closeEditor() {
+    setEditorOpen(false);
+    resetEditor();
+    setError("");
+    window.requestAnimationFrame(() => editorTriggerRef.current?.focus());
   }
 
   function editRecord(record: MasterRecord) {
@@ -274,7 +293,7 @@ export function MasterDataScreen() {
     }
     setFieldErrors({});
     setError("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setEditorOpen(true);
   }
 
   function formBody() {
@@ -329,7 +348,7 @@ export function MasterDataScreen() {
       if (activeEntity === "assignment")
         path = `/schools/${frontendConfig.schoolId}/academic-periods/${selectedPeriodId}/lesson-requirements${editingId ? `/${editingId}` : ""}`;
       await saveMutation.mutateAsync({ path, method: editingId ? "PATCH" : "POST", body: JSON.stringify(body) });
-      resetEditor();
+      closeEditor();
       setNotice(
         `${entityLabels[activeEntity]} đã được ${editingId ? "cập nhật" : "tạo mới"}; dữ liệu đã được đọc lại từ API và sẵn sàng cho xem trước hoặc đầu vào bộ tối ưu.`,
       );
@@ -715,154 +734,182 @@ export function MasterDataScreen() {
           />
         ) : null}
 
-        <div className="master-workspace-layout">
-          <form className="master-editor" onSubmit={save}>
-            <div className="master-editor-header">
-              <div>
-                <span className="master-section-kicker">{editingId ? "Chỉnh sửa" : "Tạo mới"}</span>
-                <h2>
-                  {editingId
-                    ? `Sửa ${entityLabels[activeEntity].toLowerCase()}`
-                    : `Thêm ${entityLabels[activeEntity].toLowerCase()}`}
-                </h2>
-              </div>
-              {editingId ? (
-                <Button variant="outline" size="sm" type="button" onClick={() => resetEditor()}>
-                  Hủy sửa
-                </Button>
-              ) : null}
+        <div className="master-data-list">
+          <div className="master-list-header">
+            <div>
+              <span className="master-section-kicker">Danh sách và kiểm tra</span>
+              <h2>
+                {entityLabels[activeEntity]} ({filteredRecords.length}/{records.length})
+              </h2>
             </div>
+            <div className="master-list-actions">
+              <Button
+                type="button"
+                onClick={(event) => {
+                  editorTriggerRef.current = event.currentTarget;
+                  resetEditor();
+                  setError("");
+                  setNotice("");
+                  setEditorOpen(true);
+                }}
+                disabled={
+                  !canWrite || ((activeEntity === "slot" || activeEntity === "assignment") && !selectedPeriodId)
+                }
+              >
+                <Plus /> Thêm mới
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={validateBulk}
+                disabled={loading || records.length === 0}
+              >
+                Kiểm tra dữ liệu
+              </Button>
+              <Button variant="outline" size="sm" type="button" onClick={() => void loadBaseData()} disabled={loading}>
+                Làm mới
+              </Button>
+            </div>
+          </div>
+          <label className="master-search-field">
+            <span>Lọc nhanh</span>
+            <span className="master-search-input">
+              <Search aria-hidden="true" />
+              <Input
+                name="masterDataSearch"
+                autoComplete="off"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Mã, tên hoặc giá trị…"
+              />
+            </span>
+          </label>
+          {bulkReport ? (
+            <div className="alert alert-success" role="status">
+              {bulkReport}
+            </div>
+          ) : null}
+          {error ? (
+            <div className="alert alert-error" role="alert">
+              <strong>Không thể cập nhật</strong>
+              <span>{error}</span>
+            </div>
+          ) : null}
+          {notice ? (
+            <div className="alert alert-success" role="status">
+              {notice}
+            </div>
+          ) : null}
+          {loading ? (
+            <div className="master-loading-state" role="status">
+              <Skeleton className="h-5 w-48" />
+              <Skeleton className="h-3 w-72" />
+            </div>
+          ) : filteredRecords.length === 0 ? (
+            <div className="master-empty-state">
+              <strong>Chưa có dữ liệu phù hợp</strong>
+              <p>Thử đổi bộ lọc hoặc bấm Thêm mới để tạo dòng đầu tiên.</p>
+            </div>
+          ) : (
+            <div className="master-table-frame">
+              <table>
+                <thead>
+                  <tr>
+                    {headers[activeEntity].map((header) => (
+                      <th key={header}>{header}</th>
+                    ))}
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRecords.map((record) => (
+                    <tr key={recordId(record)}>
+                      {renderRecord(record)}
+                      <td className="row-actions">
+                        <Button
+                          className="table-action"
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          onClick={(event) => {
+                            editorTriggerRef.current = event.currentTarget;
+                            editRecord(record);
+                          }}
+                          disabled={!canWrite}
+                        >
+                          Sửa
+                        </Button>
+                        <Button
+                          className="table-action danger"
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          onClick={() => setPendingDelete(record)}
+                          disabled={!canWrite || saving}
+                        >
+                          Xóa
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        {selectedPeriodId ? <TeacherLoadSummaryPanel periodId={selectedPeriodId} /> : null}
+      </section>
+      <Dialog
+        open={editorOpen}
+        onOpenChange={(open) => {
+          if (open) setEditorOpen(true);
+          else closeEditor();
+        }}
+      >
+        <DialogContent className="master-editor-dialog" aria-describedby="master-editor-description">
+          <DialogHeader>
+            <span className="master-section-kicker">{editingId ? "Chỉnh sửa" : "Tạo mới"}</span>
+            <DialogTitle>
+              {editingId
+                ? `Sửa ${entityLabels[activeEntity].toLowerCase()}`
+                : `Thêm ${entityLabels[activeEntity].toLowerCase()}`}
+            </DialogTitle>
+            <DialogDescription id="master-editor-description">
+              Nhập thông tin và lưu qua API. Dữ liệu sau đó sẽ được đọc lại từ PostgreSQL.
+            </DialogDescription>
+          </DialogHeader>
+          <form className="master-editor-form" autoComplete="off" onSubmit={save}>
             <div className="master-fields">{fields[activeEntity].map(renderField)}</div>
-            <Button
-              type="submit"
-              disabled={
-                !canWrite || saving || ((activeEntity === "slot" || activeEntity === "assignment") && !selectedPeriodId)
-              }
-            >
-              {saving ? "Đang lưu…" : editingId ? "Lưu thay đổi" : "Tạo mới"}
-            </Button>
+            {error ? (
+              <div className="alert alert-error master-dialog-alert" role="alert">
+                <strong>Không thể lưu dữ liệu</strong>
+                <span>{error}</span>
+              </div>
+            ) : null}
             {!canWrite ? (
               <p className="small-note">
                 Vai trò {frontendConfig.actorRole} chỉ được đọc dữ liệu. API vẫn là nơi thực thi quyền cuối cùng.
               </p>
             ) : null}
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={closeEditor}>
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  !canWrite ||
+                  saving ||
+                  ((activeEntity === "slot" || activeEntity === "assignment") && !selectedPeriodId)
+                }
+              >
+                {saving ? "Đang lưu…" : editingId ? "Lưu thay đổi" : "Tạo mới"}
+              </Button>
+            </DialogFooter>
           </form>
-
-          <div className="master-data-list">
-            <div className="master-list-header">
-              <div>
-                <span className="master-section-kicker">Danh sách và kiểm tra</span>
-                <h2>
-                  {entityLabels[activeEntity]} ({filteredRecords.length}/{records.length})
-                </h2>
-              </div>
-              <div className="master-list-actions">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  onClick={validateBulk}
-                  disabled={loading || records.length === 0}
-                >
-                  Kiểm tra dữ liệu
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  onClick={() => void loadBaseData()}
-                  disabled={loading}
-                >
-                  Làm mới
-                </Button>
-              </div>
-            </div>
-            <label className="master-search-field">
-              <span>Lọc nhanh</span>
-              <span className="master-search-input">
-                <Search aria-hidden="true" />
-                <Input
-                  name="masterDataSearch"
-                  autoComplete="off"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Mã, tên hoặc giá trị…"
-                />
-              </span>
-            </label>
-            {bulkReport ? (
-              <div className="alert alert-success" role="status">
-                {bulkReport}
-              </div>
-            ) : null}
-            {error ? (
-              <div className="alert alert-error" role="alert">
-                <strong>Không thể cập nhật</strong>
-                <span>{error}</span>
-              </div>
-            ) : null}
-            {notice ? (
-              <div className="alert alert-success" role="status">
-                {notice}
-              </div>
-            ) : null}
-            {loading ? (
-              <div className="master-loading-state" role="status">
-                <Skeleton className="h-5 w-48" />
-                <Skeleton className="h-3 w-72" />
-              </div>
-            ) : filteredRecords.length === 0 ? (
-              <div className="master-empty-state">
-                <strong>Chưa có dữ liệu phù hợp</strong>
-                <p>Thử đổi bộ lọc hoặc tạo dòng đầu tiên bằng form bên trái.</p>
-              </div>
-            ) : (
-              <div className="master-table-frame">
-                <table>
-                  <thead>
-                    <tr>
-                      {headers[activeEntity].map((header) => (
-                        <th key={header}>{header}</th>
-                      ))}
-                      <th>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRecords.map((record) => (
-                      <tr key={recordId(record)}>
-                        {renderRecord(record)}
-                        <td className="row-actions">
-                          <Button
-                            className="table-action"
-                            variant="outline"
-                            size="sm"
-                            type="button"
-                            onClick={() => editRecord(record)}
-                            disabled={!canWrite}
-                          >
-                            Sửa
-                          </Button>
-                          <Button
-                            className="table-action danger"
-                            variant="outline"
-                            size="sm"
-                            type="button"
-                            onClick={() => setPendingDelete(record)}
-                            disabled={!canWrite || saving}
-                          >
-                            Xóa
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-        {selectedPeriodId ? <TeacherLoadSummaryPanel periodId={selectedPeriodId} /> : null}
-      </section>
+        </DialogContent>
+      </Dialog>
       <AlertDialog
         open={Boolean(pendingDelete)}
         onOpenChange={(open) => {
