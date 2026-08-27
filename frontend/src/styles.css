@@ -3927,6 +3927,537 @@ tr.has-warning td {
   }
 }
 
+/* Timetable T03: a focused workspace for switching views and reading dense grids. */
+.timetable-screen {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
+.timetable-screen .optimization-job-panel {
+  margin-bottom: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 10px 28px color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+
+.timetable-workspace {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  background: var(--card);
+  box-shadow: 0 10px 28px color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+
+.timetable-workspace-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  min-width: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 2px 2px 16px;
+}
+
+.timetable-workspace-title {
+  min-width: 0;
+}
+
+.timetable-section-kicker,
+.timetable-control-label {
+  display: block;
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.timetable-workspace-title h2 {
+  margin: 6px 0 0;
+  color: var(--foreground);
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.timetable-workspace-title p {
+  max-width: 760px;
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.timetable-workspace-status {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.timetable-workspace-status > span {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.timetable-control-surface {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: color-mix(in oklch, var(--muted) 4%, var(--card));
+}
+
+.timetable-view-row,
+.timetable-filter-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+}
+
+.timetable-view-row {
+  align-items: center;
+}
+
+.timetable-view-row > div:first-child {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  min-width: 0;
+}
+
+.timetable-view-tabs {
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  background: var(--secondary);
+}
+
+.timetable-view-tabs [data-slot="tabs-trigger"] {
+  min-height: 34px;
+  padding-inline: 11px;
+  color: var(--muted-foreground);
+  font-size: 0.74rem;
+}
+
+.timetable-view-tabs [data-slot="tabs-trigger"] svg {
+  width: 14px;
+  height: 14px;
+}
+
+.timetable-view-tabs [data-slot="tabs-trigger"][data-state="active"] {
+  color: var(--primary);
+  background: var(--card);
+}
+
+.timetable-toolbar-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.timetable-toolbar-note-icon {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 11%, var(--card));
+}
+
+.timetable-toolbar-note-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.timetable-filter-row {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.timetable-search-field {
+  display: grid;
+  gap: 7px;
+  width: min(100%, 420px);
+}
+
+.timetable-search-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.timetable-search-input > svg {
+  position: absolute;
+  left: 10px;
+  z-index: 1;
+  width: 15px;
+  height: 15px;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.timetable-search-input [data-slot="input"] {
+  width: 100%;
+  padding-left: 32px;
+  background: var(--card);
+}
+
+.timetable-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.timetable-inline-alert {
+  margin: 0;
+}
+
+.timetable-grid-content {
+  min-width: 0;
+  width: 100%;
+}
+
+.timetable-grid-view,
+.timetable-class-groups {
+  display: grid;
+  gap: 14px;
+}
+
+.timetable-grid-summary,
+.timetable-class-heading,
+.timetable-history-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.timetable-grid-summary {
+  border-left: 3px solid var(--primary);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: color-mix(in oklch, var(--primary) 6%, var(--card));
+}
+
+.timetable-grid-summary h3,
+.timetable-class-heading h3,
+.timetable-history-heading h3 {
+  margin: 4px 0 0;
+  color: var(--foreground);
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.timetable-grid-kicker {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.timetable-grid-summary-meta {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.timetable-table-frame {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  scrollbar-color: color-mix(in oklch, var(--primary) 42%, var(--border)) transparent;
+}
+
+.timetable-table-frame table {
+  margin: 0;
+}
+
+.timetable-table-frame th,
+.timetable-table-frame td {
+  border-color: var(--border);
+}
+
+.timetable-table-frame thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--secondary);
+  color: var(--foreground);
+  box-shadow: inset 0 -1px 0 var(--border);
+}
+
+.school-overview-table thead th:first-child,
+.school-overview-table thead th:nth-child(2),
+.school-overview-table thead th:nth-child(3) {
+  z-index: 7;
+}
+
+.school-overview-table thead th:first-child,
+.school-overview-table .school-day-cell {
+  left: 0;
+}
+
+.school-overview-table thead th:nth-child(2),
+.school-overview-table .school-shift-cell {
+  left: 76px;
+}
+
+.school-overview-table thead th:nth-child(3),
+.school-overview-table .school-period-cell {
+  left: 148px;
+}
+
+.school-overview-table .school-day-cell,
+.school-overview-table .school-shift-cell,
+.school-overview-table .school-period-cell,
+.school-wide-table .school-shift-cell,
+.school-wide-table .school-period-cell {
+  position: sticky;
+  z-index: 4;
+  background: var(--card);
+  box-shadow: inset -1px 0 0 var(--border);
+}
+
+.school-overview-table .school-day-cell,
+.school-overview-table .school-shift-cell,
+.school-overview-table .school-period-cell {
+  background: var(--secondary);
+}
+
+.school-wide-table thead th:first-child,
+.school-wide-table .school-shift-cell {
+  left: 0;
+}
+
+.school-wide-table thead th:nth-child(2),
+.school-wide-table .school-period-cell {
+  left: 78px;
+}
+
+.school-wide-table thead th:first-child,
+.school-wide-table thead th:nth-child(2) {
+  z-index: 7;
+}
+
+.school-wide-table .school-subject-cell,
+.school-overview-table .school-subject-cell {
+  transition: background-color 140ms ease;
+}
+
+.school-wide-table .school-subject-cell:hover,
+.school-overview-table .school-subject-cell:hover {
+  background: color-mix(in oklch, var(--primary) 8%, var(--card));
+}
+
+.school-overview-table .school-homeroom-row th,
+.school-overview-table .school-homeroom-row td {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  border-top: 2px solid var(--primary);
+  background: var(--secondary);
+  color: var(--foreground);
+}
+
+.timetable-class-card {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.timetable-class-heading {
+  padding: 12px 14px;
+  background: color-mix(in oklch, var(--primary) 5%, var(--card));
+}
+
+.timetable-class-heading h3 {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.timetable-class-heading > span {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.timetable-class-card .timetable-table-frame {
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+}
+
+.timetable-class-card .school-wide-table thead th:first-child,
+.timetable-class-card .school-wide-table .school-shift-cell {
+  left: 0;
+}
+
+.timetable-class-card .school-wide-table thead th:nth-child(2),
+.timetable-class-card .school-wide-table .school-period-cell {
+  left: 78px;
+}
+
+.timetable-history-panel {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding: 16px 2px 0;
+}
+
+.timetable-history-heading {
+  align-items: flex-start;
+}
+
+.timetable-history-empty {
+  margin: 0;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.timetable-state {
+  min-height: 260px;
+  border-color: var(--border);
+  background: color-mix(in oklch, var(--muted) 3%, var(--card));
+}
+
+.timetable-state-icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: 15px;
+  color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 11%, var(--card));
+}
+
+.timetable-state-icon svg {
+  width: 23px;
+  height: 23px;
+}
+
+.timetable-error-state .timetable-state-icon {
+  color: var(--destructive);
+  background: color-mix(in oklch, var(--destructive) 11%, var(--card));
+}
+
+.timetable-error-state h3 {
+  color: var(--destructive);
+}
+
+.timetable-screen > [data-slot="card"] {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 10px 28px color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+
+@media (max-width: 900px) {
+  .timetable-view-row,
+  .timetable-filter-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .timetable-view-tabs {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .timetable-view-row > div:first-child {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .timetable-view-row > div:first-child > [data-slot="tabs"] {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .timetable-view-tabs [data-slot="tabs-trigger"] {
+    flex: 0 0 auto;
+  }
+
+  .timetable-toolbar-note {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .timetable-search-field {
+    width: 100%;
+  }
+
+  .timetable-toolbar-actions {
+    width: 100%;
+  }
+
+  .timetable-toolbar-actions > * {
+    flex: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .timetable-workspace {
+    padding: 12px;
+  }
+
+  .timetable-workspace-heading,
+  .timetable-grid-summary,
+  .timetable-history-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .timetable-workspace-status,
+  .timetable-grid-summary-meta {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .timetable-grid-summary-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .timetable-action-panel {
+    padding-inline: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .school-wide-table .school-subject-cell,
+  .school-overview-table .school-subject-cell {
+    transition: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-nav-link {
     transition: none;

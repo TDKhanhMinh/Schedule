@@ -1,3 +1,4 @@
+import { CalendarDays } from "lucide-react";
 import type { HomeroomAssignment, TimetableAssignment, TimetableView } from "./timetable-types";
 
 const SCHOOL_DAYS = [1, 2, 3, 4, 5, 6];
@@ -39,9 +40,9 @@ export function TimetableGrid({
   if (visibleAssignments.length === 0 && !isGridView)
     return (
       <div className="timetable-state" role="status">
-        <div className="state-icon empty-icon" aria-hidden="true">
-          ▦
-        </div>
+        <span className="timetable-state-icon" aria-hidden="true">
+          <CalendarDays />
+        </span>
         <h3>Chưa có phân công để hiển thị</h3>
         <p>Hãy tạo hoặc chọn phiên bản thời khóa biểu có dữ liệu từ API.</p>
       </div>
@@ -67,7 +68,7 @@ export function TimetableGrid({
     return <ClassBoardsView assignments={visibleAssignments} classLabels={visibleClassLabels} />;
   }
   return (
-    <div className="table-wrap">
+    <div className="timetable-table-frame timetable-resource-frame">
       <table>
         <caption className="sr-only">Thời khóa biểu theo {viewLabel(view).toLowerCase()}</caption>
         <thead>
@@ -117,15 +118,18 @@ function SchoolOverviewView({
   }
 
   return (
-    <div className="school-wide-view" aria-label="Thời khóa biểu tổng hợp toàn trường">
-      <div className="school-wide-summary">
+    <div className="timetable-grid-view" aria-label="Thời khóa biểu tổng hợp toàn trường">
+      <div className="timetable-grid-summary">
         <div>
-          <p className="eyebrow">Tổng quan toàn trường</p>
+          <span className="timetable-grid-kicker">Tổng quan toàn trường</span>
           <h3>{classLabels.length} lớp trong phạm vi xem</h3>
         </div>
-        <span>{assignments.length} tiết phù hợp bộ lọc</span>
+        <div className="timetable-grid-summary-meta">
+          <span>Thứ 2 - Thứ 7</span>
+          <span>{assignments.length} tiết phù hợp bộ lọc</span>
+        </div>
       </div>
-      <div className="table-wrap school-overview-wrap">
+      <div className="timetable-table-frame school-overview-wrap">
         <table className="school-overview-table">
           <caption className="sr-only">Thời khóa biểu tổng hợp toàn trường theo lớp</caption>
           <thead>
@@ -201,14 +205,14 @@ function ClassBoardsView({ assignments, classLabels }: { assignments: TimetableA
   const days = SCHOOL_DAYS;
 
   return (
-    <div className="school-wide-groups">
+    <div className="timetable-class-groups">
       {groups.map(([classLabel, classAssignments], index) => (
-        <section className="school-wide-class" key={classLabel} aria-labelledby={`school-class-${index}`}>
-          <div className="school-wide-class-heading">
+        <section className="timetable-class-card" key={classLabel} aria-labelledby={`school-class-${index}`}>
+          <div className="timetable-class-heading">
             <h3 id={`school-class-${index}`}>{shortLabel(classLabel)}</h3>
             <span>{classAssignments.length} tiết có dữ liệu</span>
           </div>
-          <div className="table-wrap">
+          <div className="timetable-table-frame">
             <table className="school-wide-table">
               <caption className="sr-only">Thời khóa biểu lớp {classLabel}</caption>
               <thead>
@@ -252,7 +256,7 @@ function ClassShiftRows({
   return (
     <>
       {SCHOOL_PERIODS.map((period) => (
-        <tr key={`${shift.code}-${period}`}>
+        <tr className="timetable-shift-row" key={`${shift.code}-${period}`}>
           {period === SCHOOL_PERIODS[0] ? (
             <th className="school-shift-cell" rowSpan={SCHOOL_PERIODS.length} scope="rowgroup">
               {shift.label}

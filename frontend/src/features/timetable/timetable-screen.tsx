@@ -1,14 +1,20 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { CalendarDays, ChevronLeft, Download, RefreshCw, Search, ServerCrash, Table2, UsersRound } from "lucide-react";
+import { useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "../../app/app-shell";
 import { frontendConfig } from "../../config";
 import { apiBlob } from "../../lib/api-client";
 import { navigateTo } from "../../routing";
 import { OptimizationJobPanel } from "./optimization-job-panel";
-import { TimetableGrid } from "./timetable-grid";
-import { loadTimetable } from "./timetable-api";
-import type { TimetableView } from "./timetable-types";
 import { ReleasePanel } from "./release-panel";
+import { loadTimetable } from "./timetable-api";
+import { TimetableGrid } from "./timetable-grid";
+import type { TimetableView } from "./timetable-types";
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Bản nháp",
@@ -18,6 +24,13 @@ const statusLabels: Record<string, string> = {
   PUBLISHED: "Đã công bố",
   ARCHIVED: "Đã lưu trữ",
 };
+
+const viewOptions: Array<{ value: TimetableView; label: string; icon: typeof Table2 }> = [
+  { value: "school", label: "Toàn trường", icon: Table2 },
+  { value: "class", label: "Theo lớp", icon: CalendarDays },
+  { value: "teacher", label: "Theo giáo viên", icon: UsersRound },
+  { value: "room", label: "Theo phòng", icon: Table2 },
+];
 
 export function TimetableScreen() {
   const [view, setView] = useState<TimetableView>("school");
@@ -61,115 +74,146 @@ export function TimetableScreen() {
     },
     onError: (error) => setExportNotice(error instanceof Error ? error.message : "Không thể xuất tệp Excel."),
   });
-  const filtered = useMemo(() => data?.assignments ?? [], [data]);
+  const filtered = data?.assignments ?? [];
 
   return (
-    <>
+    <div className="timetable-screen">
       <PageHeader
         eyebrow="Tối ưu và rà soát"
         title="Thời khóa biểu"
-        description="Xem nhanh toàn bộ lịch học theo lớp hoặc chuyển sang góc nhìn giáo viên, phòng từ cùng một phiên bản API."
+        description="Xem lịch học theo lớp, giáo viên, phòng hoặc toàn trường trong cùng một phiên bản dữ liệu."
         action={
-          <button className="button-secondary" type="button" onClick={() => navigateTo("imports")}>
-            ← Quay lại nhập dữ liệu
-          </button>
+          <Button variant="outline" type="button" onClick={() => navigateTo("imports")}>
+            <ChevronLeft /> Nhập dữ liệu
+          </Button>
         }
       />
+
       <OptimizationJobPanel />
-      <section className="panel timetable-shell" aria-labelledby="timetable-title">
-        <div className="timetable-toolbar">
-          <div>
-            <p className="eyebrow">Phiên bản thời khóa biểu</p>
+
+      <section className="timetable-workspace" aria-labelledby="timetable-title">
+        <div className="timetable-workspace-heading">
+          <div className="timetable-workspace-title">
+            <span className="timetable-section-kicker">Phiên bản thời khóa biểu</span>
             <h2 id="timetable-title">Rà soát phân công theo tài nguyên</h2>
-            <p className="small-note">
+            <p>
               {data
-                ? `Phiên bản ${data.snapshot.id} · revision ${data.snapshot.revision} · ${statusLabels[data.snapshot.status] ?? data.snapshot.status}`
-                : "Chưa có phiên bản được tải."}
+                ? `Phiên bản ${data.snapshot.id} - revision ${data.snapshot.revision} - ${statusLabels[data.snapshot.status] ?? data.snapshot.status}`
+                : "Chưa có phiên bản được tải từ API."}
             </p>
           </div>
-          <span className="solve-status">{data ? `${data.assignments.length} phân công` : "Chưa có dữ liệu"}</span>
+          <div className="timetable-workspace-status">
+            <Badge variant={data ? "default" : "secondary"}>
+              {data ? (statusLabels[data.snapshot.status] ?? data.snapshot.status) : "Chưa có dữ liệu"}
+            </Badge>
+            <span>{data ? `${data.assignments.length} phân công` : "Đang chờ dữ liệu"}</span>
+          </div>
         </div>
-        <div className="timetable-controls" aria-label="Bộ lọc thời khóa biểu">
-          <div className="view-switcher" role="tablist" aria-label="Góc nhìn thời khóa biểu">
-            {(["school", "class", "teacher", "room"] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                role="tab"
-                aria-selected={view === option}
-                className={view === option ? "view-tab active" : "view-tab"}
-                onClick={() => setView(option)}
+
+        <div className="timetable-control-surface">
+          <div className="timetable-view-row">
+            <div>
+              <span className="timetable-control-label">Góc nhìn</span>
+              <Tabs
+                value={view}
+                onValueChange={(next) => {
+                  if (isTimetableView(next)) setView(next);
+                }}
               >
-                {option === "school"
-                  ? "Toàn trường"
-                  : option === "class"
-                    ? "Theo lớp"
-                    : option === "teacher"
-                      ? "Theo giáo viên"
-                      : "Theo phòng"}
-              </button>
-            ))}
-          </div>
-          <label className="search-picker">
-            <span>Tìm trong thời khóa biểu</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Môn, lớp, giáo viên, phòng"
-            />
-          </label>
-          <button className="button-secondary" type="button" onClick={() => void timetableQuery.refetch()}>
-            Làm mới
-          </button>
-          <button
-            type="button"
-            onClick={() => void exportMutation.mutateAsync()}
-            disabled={exportMutation.isPending || !data}
-          >
-            {exportMutation.isPending ? "Đang xuất..." : "Xuất Excel"}
-          </button>
-        </div>
-        {notice ? (
-          <div className="alert alert-error" role="alert">
-            {notice}
-          </div>
-        ) : null}
-        {state === "loading" ? (
-          <div className="timetable-state" role="status">
-            <div className="state-icon loading-icon" aria-hidden="true">
-              …
+                <TabsList className="timetable-view-tabs" aria-label="Góc nhìn thời khóa biểu">
+                  {viewOptions.map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <TabsTrigger value={option.value} key={option.value}>
+                        <Icon />
+                        {option.label}
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </Tabs>
             </div>
+            <div className="timetable-toolbar-note">
+              <span className="timetable-toolbar-note-icon" aria-hidden="true">
+                <Table2 />
+              </span>
+              <span>Buổi và tiết được hiển thị riêng trong lưới.</span>
+            </div>
+          </div>
+
+          <div className="timetable-filter-row">
+            <label className="timetable-search-field">
+              <span className="timetable-control-label">Tìm trong thời khóa biểu</span>
+              <span className="timetable-search-input">
+                <Search aria-hidden="true" />
+                <Input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Môn, lớp, giáo viên, phòng"
+                />
+              </span>
+            </label>
+            <div className="timetable-toolbar-actions">
+              <Button variant="outline" type="button" onClick={() => void timetableQuery.refetch()}>
+                <RefreshCw className={timetableQuery.isFetching ? "animate-spin" : undefined} /> Làm mới
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void exportMutation.mutateAsync()}
+                disabled={exportMutation.isPending || !data}
+              >
+                <Download /> {exportMutation.isPending ? "Đang xuất..." : "Xuất Excel"}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {notice ? (
+          <Alert className="timetable-inline-alert" variant={timetableQuery.isError ? "destructive" : "default"}>
+            <ServerCrash />
+            <AlertDescription>{notice}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {state === "loading" ? (
+          <div className="timetable-state timetable-loading-state" role="status">
+            <span className="timetable-state-icon" aria-hidden="true">
+              <RefreshCw />
+            </span>
             <h3>Đang tải dữ liệu</h3>
             <p>Đang đọc phiên bản thời khóa biểu từ API.</p>
           </div>
         ) : state === "error" ? (
-          <div className="timetable-state error-state" role="alert">
-            <div className="state-icon error-icon" aria-hidden="true">
-              !
-            </div>
+          <div className="timetable-state timetable-error-state" role="alert">
+            <span className="timetable-state-icon" aria-hidden="true">
+              <ServerCrash />
+            </span>
             <h3>Không thể tải thời khóa biểu</h3>
             <p>Kiểm tra API, mã trường và phiên bản thời khóa biểu.</p>
-            <button className="button-secondary" type="button" onClick={() => void timetableQuery.refetch()}>
+            <Button variant="outline" type="button" onClick={() => void timetableQuery.refetch()}>
               Thử lại
-            </button>
+            </Button>
           </div>
         ) : (
-          <TimetableGrid
-            assignments={filtered}
-            classLabels={data?.classLabels ?? []}
-            homerooms={data?.homerooms ?? []}
-            view={view}
-            query={query}
-          />
+          <div className="timetable-grid-content">
+            <TimetableGrid
+              assignments={filtered}
+              classLabels={data?.classLabels ?? []}
+              homerooms={data?.homerooms ?? []}
+              view={view}
+              query={query}
+            />
+          </div>
         )}
-        <section className="history-panel" aria-labelledby="history-panel-title">
-          <div className="history-heading">
+
+        <section className="timetable-history-panel" aria-labelledby="history-panel-title">
+          <div className="timetable-history-heading">
             <div>
-              <p className="eyebrow">Nhật ký thao tác</p>
+              <span className="timetable-section-kicker">Nhật ký thao tác</span>
               <h3 id="history-panel-title">Lịch sử phiên bản</h3>
             </div>
-            <span className="history-count">{data?.history.length ?? 0} sự kiện</span>
+            <Badge variant="outline">{data?.history.length ?? 0} sự kiện</Badge>
           </div>
           {data?.history.length ? (
             <ol className="history-list" aria-label="Lịch sử phiên bản">
@@ -184,11 +228,15 @@ export function TimetableScreen() {
               ))}
             </ol>
           ) : (
-            <p className="small-note history-empty">Chưa có nhật ký phiên bản từ API.</p>
+            <p className="timetable-history-empty">Chưa có nhật ký phiên bản từ API.</p>
           )}
         </section>
-        {data ? <ReleasePanel versionId={data.snapshot.id} status={data.snapshot.status} /> : null}
       </section>
-    </>
+      {data ? <ReleasePanel versionId={data.snapshot.id} status={data.snapshot.status} /> : null}
+    </div>
   );
+}
+
+function isTimetableView(value: string): value is TimetableView {
+  return value === "school" || value === "class" || value === "teacher" || value === "room";
 }
