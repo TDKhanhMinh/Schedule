@@ -95,11 +95,12 @@ export function ImportScreen() {
           </div>
           <span className="quiet-badge">Kiểm thử trước khi ghi dữ liệu nghiệp vụ</span>
         </div>
-        <form className="upload-form" onSubmit={handlePreview}>
+        <form className="upload-form" autoComplete="off" onSubmit={handlePreview}>
           <label htmlFor="excel-file">Tệp Excel theo mẫu MVP</label>
           <div className="upload-controls">
             <Input
               id="excel-file"
+              name="excelFile"
               type="file"
               accept=".xlsx,.xlsm"
               onChange={(event) => {
@@ -110,7 +111,7 @@ export function ImportScreen() {
               }}
             />
             <Button type="submit" disabled={previewMutation.isPending || !file}>
-              {previewMutation.isPending ? "Đang đọc tệp..." : "Tải lên và xem trước"}
+              {previewMutation.isPending ? "Đang đọc tệp…" : "Tải lên và xem trước"}
             </Button>
           </div>
           <p className="hint">Bắt buộc: Mã lớp, Mã môn, Mã giáo viên, Số tiết. Có thể thêm Mã phòng.</p>

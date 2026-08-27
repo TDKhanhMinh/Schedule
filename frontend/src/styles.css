@@ -6,6 +6,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  color-scheme: light;
   font-family:
     Geist,
     "Geist Fallback",
@@ -2904,6 +2905,7 @@ tr.has-warning td {
 }
 
 .dark {
+  color-scheme: dark;
   --background: oklch(0.17 0.025 250);
   --foreground: oklch(0.94 0.015 250);
   --card: oklch(0.215 0.03 250);
@@ -5130,6 +5132,15 @@ tr.has-warning td {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
   .workflow-stepper,
   .preview-metric-strip > span {
     scroll-behavior: auto;

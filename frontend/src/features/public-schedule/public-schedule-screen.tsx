@@ -53,7 +53,7 @@ export function PublicScheduleScreen() {
   const pdfUrl = `${frontendConfig.apiBaseUrl}/public/schedules/${encodeURIComponent(token)}.pdf?${pdfParams.toString()}`;
 
   if (state === "loading") {
-    return <main className="public-view-shell public-view-state">Đang tải thời khóa biểu công khai...</main>;
+    return <main className="public-view-shell public-view-state">Đang tải thời khóa biểu công khai…</main>;
   }
   if (state === "error" || !snapshot) {
     return (
@@ -115,7 +115,12 @@ export function PublicScheduleScreen() {
           {view !== "all" ? (
             <label className="public-resource-picker">
               <span>Lọc tài nguyên</span>
-              <select value={resource} onChange={(event) => setResource(event.target.value)}>
+              <select
+                name="publicScheduleResource"
+                aria-label="Lọc tài nguyên"
+                value={resource}
+                onChange={(event) => setResource(event.target.value)}
+              >
                 <option value="">Tất cả</option>
                 {resourceOptions.map((option) => (
                   <option value={option} key={option}>

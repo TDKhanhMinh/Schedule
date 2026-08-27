@@ -125,6 +125,7 @@ export function HomeroomAssignmentPanel({
           <label className="grid gap-2 text-sm font-medium">
             Lớp
             <select
+              name="homeroomClass"
               className="h-10 rounded-md border bg-background px-3 text-sm"
               value={classId}
               onChange={(event) => setClassId(event.target.value)}
@@ -140,6 +141,7 @@ export function HomeroomAssignmentPanel({
           <label className="grid gap-2 text-sm font-medium">
             Giáo viên chủ nhiệm
             <select
+              name="homeroomTeacher"
               className="h-10 rounded-md border bg-background px-3 text-sm"
               value={teacherId}
               onChange={(event) => setTeacherId(event.target.value)}
@@ -158,7 +160,7 @@ export function HomeroomAssignmentPanel({
             disabled={!canWrite || !classId || !teacherId || saveMutation.isPending}
             onClick={() => void saveMutation.mutateAsync()}
           >
-            {saveMutation.isPending ? "Đang lưu..." : "Lưu GVCN"}
+            {saveMutation.isPending ? "Đang lưu…" : "Lưu GVCN"}
           </Button>
           <Button
             type="button"
@@ -208,7 +210,7 @@ export function TeacherLoadSummaryPanel({ periodId }: { periodId: string }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {summaryQuery.isPending ? <p className="text-sm text-muted-foreground">Đang tổng hợp...</p> : null}
+        {summaryQuery.isPending ? <p className="text-sm text-muted-foreground">Đang tổng hợp…</p> : null}
         {summaryQuery.error ? (
           <p className="text-sm text-destructive">
             {summaryQuery.error instanceof Error ? summaryQuery.error.message : "Không thể tổng hợp tải dạy."}

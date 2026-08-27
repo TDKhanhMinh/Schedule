@@ -133,6 +133,8 @@ export function ReleasePanel({ versionId, status }: { versionId: string; status:
           </DialogHeader>
           <Input
             aria-label="Lý do"
+            name="transitionReason"
+            autoComplete="off"
             value={reason}
             onChange={(event) => setReason(event.target.value)}
             placeholder="Nhập lý do…"

@@ -81,7 +81,14 @@ export function OptimizationJobPanel() {
       <div className="optimization-job-controls">
         <label>
           <span>Mã tác vụ tối ưu</span>
-          <Input value={jobId} onChange={(event) => setJobId(event.target.value)} placeholder="Nhập mã tác vụ" />
+          <Input
+            name="optimizationJobId"
+            autoComplete="off"
+            spellCheck={false}
+            value={jobId}
+            onChange={(event) => setJobId(event.target.value)}
+            placeholder="Nhập mã tác vụ"
+          />
         </label>
         <Button type="button" onClick={track}>
           Theo dõi tác vụ

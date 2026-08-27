@@ -148,6 +148,8 @@ export function TimetableScreen() {
                 <Search aria-hidden="true" />
                 <Input
                   type="search"
+                  name="timetableSearch"
+                  autoComplete="off"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Môn, lớp, giáo viên, phòng"
@@ -163,7 +165,7 @@ export function TimetableScreen() {
                 onClick={() => void exportMutation.mutateAsync()}
                 disabled={exportMutation.isPending || !data}
               >
-                <Download /> {exportMutation.isPending ? "Đang xuất..." : "Xuất Excel"}
+                <Download /> {exportMutation.isPending ? "Đang xuất…" : "Xuất Excel"}
               </Button>
             </div>
           </div>

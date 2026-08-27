@@ -272,6 +272,8 @@ export function DashboardScreen() {
             <CardTitle>Nhật ký theo phạm vi</CardTitle>
             <Input
               aria-label="Tìm nhật ký"
+              name="auditQuery"
+              autoComplete="off"
               value={auditQuery}
               onChange={(event) => setAuditQuery(event.target.value)}
               placeholder="Tìm hành động hoặc người thực hiện…"

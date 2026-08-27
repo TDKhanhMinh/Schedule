@@ -431,6 +431,7 @@ export function MasterDataScreen() {
         {selectOptions ? (
           <select
             className="master-select"
+            name={field.key}
             value={form[field.key] ?? ""}
             onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))}
             aria-invalid={Boolean(errorMessage)}
@@ -464,6 +465,8 @@ export function MasterDataScreen() {
         ) : (
           <Input
             type={field.type ?? "text"}
+            name={field.key}
+            autoComplete="off"
             value={form[field.key] ?? ""}
             className={errorMessage ? "master-input-error" : undefined}
             placeholder={field.placeholder}
@@ -685,6 +688,7 @@ export function MasterDataScreen() {
             <span>Năm học/kỳ học</span>
             <select
               className="master-select"
+              name="academicPeriod"
               value={selectedPeriodId}
               onChange={(event) => {
                 setSelectedPeriodId(event.target.value);
@@ -735,7 +739,7 @@ export function MasterDataScreen() {
                 !canWrite || saving || ((activeEntity === "slot" || activeEntity === "assignment") && !selectedPeriodId)
               }
             >
-              {saving ? "Đang lưu..." : editingId ? "Lưu thay đổi" : "Tạo mới"}
+              {saving ? "Đang lưu…" : editingId ? "Lưu thay đổi" : "Tạo mới"}
             </Button>
             {!canWrite ? (
               <p className="small-note">
@@ -778,9 +782,11 @@ export function MasterDataScreen() {
               <span className="master-search-input">
                 <Search aria-hidden="true" />
                 <Input
+                  name="masterDataSearch"
+                  autoComplete="off"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Mã, tên hoặc giá trị..."
+                  placeholder="Mã, tên hoặc giá trị…"
                 />
               </span>
             </label>

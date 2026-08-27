@@ -140,11 +140,11 @@ export function PreviewPanel({
       </div>
       <div className="preview-actions">
         <Button type="button" disabled={!preview.canConfirm || isConfirming} onClick={onConfirm}>
-          {isConfirming ? "Đang nhập..." : "Xác nhận nhập dữ liệu"}
+          {isConfirming ? "Đang nhập…" : "Xác nhận nhập dữ liệu"}
         </Button>
         {preview.errorCount > 0 ? (
           <Button variant="outline" type="button" disabled={isDownloadingErrorReport} onClick={onDownloadErrorReport}>
-            {isDownloadingErrorReport ? "Đang tạo báo cáo..." : "Tải báo cáo lỗi Excel"}
+            {isDownloadingErrorReport ? "Đang tạo báo cáo…" : "Tải báo cáo lỗi Excel"}
           </Button>
         ) : null}
       </div>
