@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CalendarDays, ChevronLeft, Download, RefreshCw, Search, ServerCrash, Table2, UsersRound } from "lucide-react";
-import { useState } from "react";
+import type { SolveJobResult } from "@schedule/backend/contracts";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { apiBlob } from "../../lib/api-client";
 import { navigateTo } from "../../routing";
 import { OptimizationJobPanel } from "./optimization-job-panel";
 import { ReleasePanel } from "./release-panel";
-import { loadTimetable } from "./timetable-api";
+import { buildTimetableAssignments, loadTimetable, type TimetableSolveInput } from "./timetable-api";
 import { TimetableGrid } from "./timetable-grid";
 import type { TimetableView } from "./timetable-types";
 
@@ -36,12 +37,51 @@ export function TimetableScreen() {
   const [view, setView] = useState<TimetableView>("school");
   const [query, setQuery] = useState("");
   const [exportNotice, setExportNotice] = useState("");
+  const [solverPreview, setSolverPreview] = useState<SolveJobResult | null>(null);
   const timetableQuery = useQuery({
     queryKey: ["timetable", frontendConfig.schoolId, frontendConfig.scheduleVersionId],
     queryFn: ({ signal }) => loadTimetable(signal),
     enabled: Boolean(frontendConfig.schoolId && frontendConfig.scheduleVersionId),
   });
   const data = timetableQuery.data ?? null;
+  const activeLessonRequirements = data?.lessonRequirements.filter(({ status }) => status !== "ARCHIVED") ?? [];
+  const solveInput: TimetableSolveInput | null =
+    data && frontendConfig.schoolId && data.timeSlots.length > 0 && activeLessonRequirements.length > 0
+      ? {
+          schemaVersion: "1.0",
+          schoolId: frontendConfig.schoolId,
+          academicPeriodId: data.snapshot.academicPeriodId,
+          timeSlots: data.timeSlots.map(({ id, day, period, shiftCode }) => ({
+            id,
+            day,
+            period,
+            ...(shiftCode ? { shiftCode } : {}),
+          })),
+          lessons: activeLessonRequirements.map(({ id, classId, subjectId, teacherId, requiredSessions }) => ({
+            id,
+            classId,
+            subjectId,
+            teacherId,
+            requiredSessions,
+          })),
+        }
+      : null;
+  const solverPreviewAssignments =
+    solverPreview && data
+      ? buildTimetableAssignments(solverPreview.assignments, {
+          lessonRequirements: data.lessonRequirements,
+          timeSlots: data.timeSlots,
+          classes: data.classes,
+          subjects: data.subjects,
+          teachers: data.teachers,
+          rooms: data.rooms,
+        })
+      : null;
+  const displayedAssignments = solverPreviewAssignments ?? data?.assignments ?? [];
+  const handleSolveCompleted = useCallback((result: SolveJobResult) => setSolverPreview(result), []);
+  useEffect(() => {
+    setSolverPreview(null);
+  }, [data?.snapshot.id, data?.snapshot.revision]);
   const state =
     !frontendConfig.schoolId || !frontendConfig.scheduleVersionId
       ? "empty"
@@ -74,8 +114,6 @@ export function TimetableScreen() {
     },
     onError: (error) => setExportNotice(error instanceof Error ? error.message : "Không thể xuất tệp Excel."),
   });
-  const filtered = data?.assignments ?? [];
-
   return (
     <div className="timetable-screen">
       <PageHeader
@@ -89,7 +127,20 @@ export function TimetableScreen() {
         }
       />
 
-      <OptimizationJobPanel />
+      <OptimizationJobPanel solveInput={solveInput} onSolveCompleted={handleSolveCompleted} />
+      {solverPreview ? (
+        <Alert className="timetable-preview-alert">
+          <Table2 />
+          <AlertDescription>
+            Đã tìm được phương án {solverPreview.status === "OPTIMAL" ? "tối ưu" : "khả thi"} với{" "}
+            {solverPreview.assignments.length} phân công. Đang hiển thị tạm thời; phương án này chưa thay thế phiên bản
+            đã lưu.
+            <Button variant="outline" size="sm" type="button" onClick={() => setSolverPreview(null)}>
+              Quay về phiên bản đã lưu
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <section className="timetable-workspace" aria-labelledby="timetable-title">
         <div className="timetable-workspace-heading">
@@ -200,7 +251,7 @@ export function TimetableScreen() {
         ) : (
           <div className="timetable-grid-content">
             <TimetableGrid
-              assignments={filtered}
+              assignments={displayedAssignments}
               classLabels={data?.classLabels ?? []}
               homerooms={data?.homerooms ?? []}
               view={view}

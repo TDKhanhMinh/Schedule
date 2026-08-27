@@ -1835,6 +1835,21 @@ tr.has-warning td {
   color: var(--red);
   background: var(--red-soft);
 }
+.optimization-job-preflight-error {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in oklch, var(--red) 28%, var(--line));
+  border-radius: 8px;
+  color: var(--red);
+  background: var(--red-soft);
+  font-size: 0.76rem;
+}
+.optimization-job-preflight-error ul {
+  display: grid;
+  gap: 4px;
+  margin: 7px 0 0;
+  padding-left: 18px;
+}
 .job-state-optimal,
 .job-state-feasible {
   color: var(--green);
@@ -4193,6 +4208,22 @@ tr.has-warning td {
 
 .timetable-inline-alert {
   margin: 0;
+}
+
+.timetable-preview-alert {
+  align-items: start;
+  margin: 0;
+}
+
+.timetable-preview-alert [data-slot="alert-description"] {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.timetable-preview-alert [data-slot="alert-description"] button {
+  margin-left: auto;
 }
 
 .timetable-grid-content {

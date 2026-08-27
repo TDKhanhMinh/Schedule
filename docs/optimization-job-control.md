@@ -28,6 +28,13 @@ trong URL, hiển thị giai đoạn/lần thử/nhịp hoạt động bền v�
 treo và vô hiệu hóa điều khiển theo phản hồi máy chủ. Giao diện không quyết định
 phân quyền, tính đúng của hủy, thử lại hoặc tính hợp lệ của đầu ra bộ tối ưu.
 
+Khi đã có khung tiết và nhu cầu tiết ACTIVE, nút `Kiểm tra và xếp TKB` gọi
+`POST /optimization-jobs/preflight` trước. Chỉ khi không có lỗi cứng giao diện
+mới gọi `POST /optimization-jobs`, theo dõi job và hiển thị phương án
+`OPTIMAL`/`FEASIBLE` như bản xem trước tạm thời. Phương án xem trước không ghi đè
+`schedule_version`; người dùng vẫn phải review và thực hiện bước phát hành theo
+lifecycle của phiên bản lịch.
+
 ## Ranh giới kiểm chứng
 
 Kiểm thử tự động và kiểm tra thời gian chạy cục bộ bao phủ hợp đồng API/worker,

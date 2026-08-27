@@ -1,5 +1,6 @@
 import { frontendConfig } from "../../config";
 import { apiRequest } from "../../lib/api-client";
+import type { SolveJobRequest } from "@schedule/backend/contracts";
 import type {
   LessonRequirement,
   HomeroomAssignment,
@@ -12,6 +13,34 @@ import type {
 
 async function getJson<T>(path: string, signal?: AbortSignal) {
   return apiRequest<T>(path, { signal });
+}
+
+export type TimetableSolveInput = Omit<SolveJobRequest, "jobId"> & { academicPeriodId: string };
+
+type TimetableAssignmentInput = {
+  id?: string;
+  lessonId: string;
+  sessionIndex: number;
+  timeSlotId?: string;
+  slotId?: string;
+  roomId?: string | null;
+};
+
+export interface TimetableSourceData {
+  lessonRequirements: LessonRequirement[];
+  timeSlots: TimeSlot[];
+  classes: MasterRecord[];
+  subjects: MasterRecord[];
+  teachers: MasterRecord[];
+  rooms: MasterRecord[];
+}
+
+export interface TimetableLoadedData extends TimetableSourceData {
+  snapshot: ScheduleVersionSnapshot;
+  assignments: TimetableAssignment[];
+  history: TimetableHistoryEntry[];
+  classLabels: string[];
+  homerooms: HomeroomAssignment[];
 }
 
 function label(record: MasterRecord | undefined, fallback: string) {
@@ -38,39 +67,62 @@ export async function loadTimetable(signal?: AbortSignal) {
     getJson<TimetableHistoryEntry[]>(`${base}/schedule-versions/${snapshot.id}/history?limit=20`, signal),
     getJson<HomeroomAssignment[]>(`${base}/academic-periods/${snapshot.academicPeriodId}/homeroom-assignments`, signal),
   ]);
-  const classMap = new Map(classes.map((item) => [item.id, item]));
-  const subjectMap = new Map(subjects.map((item) => [item.id, item]));
-  const teacherMap = new Map(teachers.map((item) => [item.id, item]));
-  const roomMap = new Map(rooms.map((item) => [item.id, item]));
-  const slotMap = new Map(periodSlots.map((item) => [item.id, item]));
-  const lessonMap = new Map(lessonRequirements.map((item) => [item.id, item]));
-  const assignments: TimetableAssignment[] = snapshot.assignments.map((assignment) => {
-    const lesson = lessonMap.get(assignment.lessonId);
-    const slot = slotMap.get(assignment.timeSlotId);
-    return {
-      ...assignment,
-      classLabel: label(lesson ? classMap.get(lesson.classId) : undefined, lesson?.classId ?? "Lớp chưa xác định"),
-      subjectLabel: label(
-        lesson ? subjectMap.get(lesson.subjectId) : undefined,
-        lesson?.subjectId ?? "Môn chưa xác định",
-      ),
-      teacherLabel: label(
-        lesson ? teacherMap.get(lesson.teacherId) : undefined,
-        lesson?.teacherId ?? "Giáo viên chưa xác định",
-      ),
-      roomLabel: assignment.roomId ? label(roomMap.get(assignment.roomId), assignment.roomId) : "Chưa chỉ định phòng",
-      shiftCode: slot?.shiftCode ?? "MORNING",
-      day: slot?.day ?? null,
-      period: slot?.period ?? null,
-      timeLabel: slot?.startsAt && slot.endsAt ? `${slot.startsAt} - ${slot.endsAt}` : "Chưa có",
-    };
+  const assignments = buildTimetableAssignments(snapshot.assignments, {
+    lessonRequirements,
+    timeSlots: periodSlots,
+    classes,
+    subjects,
+    teachers,
+    rooms,
   });
   return {
     snapshot,
     assignments,
     history,
     timeSlots: periodSlots,
+    lessonRequirements,
+    classes,
+    subjects,
+    teachers,
+    rooms,
     classLabels: classes.map((item) => label(item, item.id)),
     homerooms,
-  };
+  } satisfies TimetableLoadedData;
+}
+
+export function buildTimetableAssignments(
+  rawAssignments: TimetableAssignmentInput[],
+  source: TimetableSourceData,
+): TimetableAssignment[] {
+  const classMap = new Map(source.classes.map((item) => [item.id, item]));
+  const subjectMap = new Map(source.subjects.map((item) => [item.id, item]));
+  const teacherMap = new Map(source.teachers.map((item) => [item.id, item]));
+  const roomMap = new Map(source.rooms.map((item) => [item.id, item]));
+  const slotMap = new Map(source.timeSlots.map((item) => [item.id, item]));
+  const lessonMap = new Map(source.lessonRequirements.map((item) => [item.id, item]));
+
+  return rawAssignments.flatMap((assignment) => {
+    const timeSlotId = assignment.timeSlotId ?? assignment.slotId;
+    if (!timeSlotId) return [];
+    const lesson = lessonMap.get(assignment.lessonId);
+    const slot = slotMap.get(timeSlotId);
+    if (!lesson || !slot) return [];
+    return [
+      {
+        id: assignment.id ?? `solver-${assignment.lessonId}-${assignment.sessionIndex}-${timeSlotId}`,
+        lessonId: assignment.lessonId,
+        sessionIndex: assignment.sessionIndex,
+        timeSlotId,
+        roomId: assignment.roomId ?? null,
+        classLabel: label(classMap.get(lesson.classId), lesson.classId ?? "Lớp chưa xác định"),
+        subjectLabel: label(subjectMap.get(lesson.subjectId), lesson.subjectId ?? "Môn chưa xác định"),
+        teacherLabel: label(teacherMap.get(lesson.teacherId), lesson.teacherId ?? "Giáo viên chưa xác định"),
+        roomLabel: assignment.roomId ? label(roomMap.get(assignment.roomId), assignment.roomId) : "Chưa chỉ định phòng",
+        shiftCode: slot.shiftCode ?? "MORNING",
+        day: slot.day,
+        period: slot.period,
+        timeLabel: slot.startsAt && slot.endsAt ? `${slot.startsAt} - ${slot.endsAt}` : "Chưa có",
+      },
+    ];
+  });
 }

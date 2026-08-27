@@ -34,6 +34,7 @@ export interface LessonRequirement {
   teacherId: string;
   roomId?: string | null;
   requiredSessions: number;
+  status?: "ACTIVE" | "ARCHIVED";
 }
 
 export interface TimetableAssignment {
