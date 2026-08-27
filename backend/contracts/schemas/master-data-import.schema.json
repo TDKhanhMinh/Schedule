@@ -85,7 +85,18 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["sheet", "row", "column", "cell", "field", "code", "severity", "message", "remediationHint", "value"],
+        "required": [
+          "sheet",
+          "row",
+          "column",
+          "cell",
+          "field",
+          "code",
+          "severity",
+          "message",
+          "remediationHint",
+          "value"
+        ],
         "properties": {
           "sheet": { "type": "string", "minLength": 1 },
           "row": { "type": "integer", "minimum": 1 },

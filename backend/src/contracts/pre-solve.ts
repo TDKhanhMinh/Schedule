@@ -57,6 +57,39 @@ function activeTeacherRules(request: SolveJobRequest): TeacherAvailabilityRule[]
   );
 }
 
+function addTeacherSubjectGradeIssues(issues: PreSolveIssueDraft[], request: SolveJobRequest) {
+  const assignments = request.teacherSubjectGradeAssignments;
+  const classGrades = request.classGrades;
+  if (assignments === undefined || !classGrades || request.teacherSubjectGradeEnforcement === "OFF") return;
+
+  const allowed = new Set(
+    assignments.map((assignment) => `${assignment.teacherId}|${assignment.subjectId}|${assignment.grade}`),
+  );
+  const severity = request.teacherSubjectGradeEnforcement === "HARD" ? "ERROR" : "WARNING";
+  for (const lesson of request.lessons) {
+    const grade = classGrades[lesson.classId];
+    const key = grade === undefined ? "" : `${lesson.teacherId}|${lesson.subjectId}|${grade}`;
+    if (grade !== undefined && allowed.has(key)) continue;
+    issues.push({
+      code: "TEACHER_SUBJECT_GRADE_NOT_ALLOWED",
+      severity,
+      lessonId: lesson.id,
+      resourceId: lesson.teacherId,
+      message:
+        grade === undefined
+          ? `Không xác định được khối của lớp ${lesson.classId} để kiểm tra phân công chuyên môn cho giáo viên ${lesson.teacherId}.`
+          : `Giáo viên ${lesson.teacherId} chưa được phân công dạy môn ${lesson.subjectId} ở khối ${grade}.`,
+      details: {
+        teacherId: lesson.teacherId,
+        subjectId: lesson.subjectId,
+        classId: lesson.classId,
+        grade: grade ?? null,
+        enforcement: request.teacherSubjectGradeEnforcement,
+      },
+    });
+  }
+}
+
 function candidateSlots(request: SolveJobRequest, lesson: LessonRequirement, slotsById: Map<string, TimeSlot>) {
   const issues: PreSolveIssueDraft[] = [];
   const allSlotIds = new Set(slotsById.keys());
@@ -148,6 +181,7 @@ function addResourceCapacityIssues(
 
 export function runPreSolveChecks(request: SolveJobRequest): PreSolveReport {
   const issues: PreSolveIssueDraft[] = [];
+  addTeacherSubjectGradeIssues(issues, request);
   const slotsById = new Map(request.timeSlots.map((slot) => [slot.id, slot]));
   const totalDemandSessions = request.lessons.reduce((sum, lesson) => sum + lesson.requiredSessions, 0);
   const candidates = new Map<string, string[]>();
@@ -244,6 +278,6 @@ export function runPreSolveChecks(request: SolveJobRequest): PreSolveReport {
     totalDemandSessions,
     slotCapacity,
     issues: issues.map(finalizeIssue),
-    warnings: [],
+    warnings: issues.filter((issue) => issue.severity === "WARNING").map((issue) => issue.message),
   };
 }

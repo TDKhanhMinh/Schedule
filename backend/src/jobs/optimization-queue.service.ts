@@ -29,6 +29,7 @@ import { OptimizationRunConflictError, OptimizationRunStore } from "./optimizati
 import { randomUUID } from "node:crypto";
 import { ObservabilityService } from "../observability/observability.service";
 import { TENANT_SCOPE_CONTRACT_VERSION, tenantQueueNamespace } from "../auth/tenant-scope";
+import { MasterDataService } from "../master-data/master-data.service";
 
 const SOLVE_HEARTBEAT_STALE_AFTER_MS = 15_000;
 const QUEUE_HEARTBEAT_STALE_AFTER_MS = 60_000;
@@ -42,10 +43,12 @@ export class OptimizationQueueService implements OnModuleDestroy {
     private readonly preflightService: OptimizationPreflightService,
     private readonly runStore: OptimizationRunStore,
     @Optional() private readonly observability?: ObservabilityService,
+    @Optional() private readonly masterData?: MasterDataService,
   ) {}
 
   async enqueue(payload: SolveJobRequest & OptimizationJobContext, traceId = payload.jobId, tenantId?: string) {
-    const { academicPeriodId, templateVersion, randomSeed, ...request } = payload;
+    const enrichedPayload = await this.enrichTeacherEligibility(payload);
+    const { academicPeriodId, templateVersion, randomSeed, ...request } = enrichedPayload;
     const report = this.preflightService.check(request);
     if (!report.canSolve) {
       this.observability?.recordQueue("PRECHECK_REJECTED", { traceId, jobId: request.jobId, state: "REJECTED" });
@@ -131,8 +134,9 @@ export class OptimizationQueueService implements OnModuleDestroy {
     };
   }
 
-  preflight(payload: SolveJobRequest) {
-    return this.preflightService.check(payload);
+  async preflight(payload: SolveJobRequest) {
+    const enrichedPayload = await this.enrichTeacherEligibility(payload);
+    return this.preflightService.check(enrichedPayload);
   }
 
   async getStatus(jobId: string, schoolId: string) {
@@ -317,6 +321,29 @@ export class OptimizationQueueService implements OnModuleDestroy {
       });
     }
     return request;
+  }
+
+  private async enrichTeacherEligibility<T extends SolveJobRequest>(payload: T): Promise<T> {
+    if (!this.masterData) return payload;
+    const periodId =
+      (payload as SolveJobRequest & { academicPeriodId?: string }).academicPeriodId ??
+      payload.teacherAvailability?.academicPeriodId;
+    if (!periodId) return payload;
+
+    const [eligibility, classes] = await Promise.all([
+      this.masterData.listTeacherSubjectGradeAssignments(payload.schoolId, periodId),
+      this.masterData.listClasses(payload.schoolId),
+    ]);
+    return {
+      ...payload,
+      classGrades: Object.fromEntries(
+        classes.filter((item) => item.status === "ACTIVE").map((item) => [item.id, item.grade]),
+      ),
+      teacherSubjectGradeAssignments: eligibility
+        .filter((item) => item.status === "ACTIVE")
+        .map((item) => ({ teacherId: item.teacherId, subjectId: item.subjectId, grade: item.grade })),
+      teacherSubjectGradeEnforcement: payload.teacherSubjectGradeEnforcement ?? "WARNING",
+    } as T;
   }
 
   private buildRetryPayload(payload: OptimizationSolverPayload, jobId: string, academicPeriodId: string | null) {

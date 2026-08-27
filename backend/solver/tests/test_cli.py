@@ -17,12 +17,14 @@ class SolverCliTest(unittest.TestCase):
     def run_cli(self, payload: str, *args: str) -> subprocess.CompletedProcess[str]:
         environment = os.environ.copy()
         environment["PYTHONPATH"] = str(SOLVER_ROOT / "src")
+        environment["PYTHONIOENCODING"] = "utf-8"
         return subprocess.run(
             [sys.executable, "-m", "timetable_solver.main", *args],
             cwd=SOLVER_ROOT,
             env=environment,
             input=payload,
             text=True,
+            encoding="utf-8",
             capture_output=True,
             check=False,
         )

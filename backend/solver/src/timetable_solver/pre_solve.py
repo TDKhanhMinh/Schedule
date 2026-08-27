@@ -42,6 +42,43 @@ def _decorate_issue(issue: PreSolveIssue) -> PreSolveIssue:
     return issue.model_copy(update=diagnostic.model_dump())
 
 
+def _teacher_subject_grade_issues(request: SolveJobRequest) -> list[PreSolveIssue]:
+    assignments = request.teacherSubjectGradeAssignments
+    class_grades = request.classGrades
+    enforcement = request.teacherSubjectGradeEnforcement or "WARNING"
+    if assignments is None or class_grades is None or enforcement == "OFF":
+        return []
+    allowed = {(item.teacherId, item.subjectId, item.grade) for item in assignments}
+    severity = "ERROR" if enforcement == "HARD" else "WARNING"
+    issues: list[PreSolveIssue] = []
+    for lesson in request.lessons:
+        grade = class_grades.get(lesson.classId)
+        if grade is not None and (lesson.teacherId, lesson.subjectId, grade) in allowed:
+            continue
+        message = (
+            f"Không xác định được khối của lớp {lesson.classId} để kiểm tra phân công chuyên môn cho giáo viên {lesson.teacherId}."
+            if grade is None
+            else f"Giáo viên {lesson.teacherId} chưa được phân công dạy môn {lesson.subjectId} ở khối {grade}."
+        )
+        issues.append(
+            PreSolveIssue(
+                code="TEACHER_SUBJECT_GRADE_NOT_ALLOWED",
+                severity=severity,
+                lessonId=lesson.id,
+                resourceId=lesson.teacherId,
+                message=message,
+                details={
+                    "teacherId": lesson.teacherId,
+                    "subjectId": lesson.subjectId,
+                    "classId": lesson.classId,
+                    "grade": grade,
+                    "enforcement": enforcement,
+                },
+            )
+        )
+    return issues
+
+
 def _candidate_slots(request: SolveJobRequest, lesson, slots_by_id, hard_rules):
     issues: list[PreSolveIssue] = []
     allowed = set(lesson.allowedSlotIds or slots_by_id.keys())
@@ -126,7 +163,7 @@ def _add_resource_capacity_issues(issues, lessons, candidates, resource: str, co
 
 
 def run_pre_solve_checks(request: SolveJobRequest) -> PreSolveReport:
-    issues: list[PreSolveIssue] = []
+    issues: list[PreSolveIssue] = _teacher_subject_grade_issues(request)
     slots_by_id = {slot.id: slot for slot in request.timeSlots}
     demand = sum(lesson.requiredSessions for lesson in request.lessons)
     hard_rules = _active_hard_teacher_rules(request)
@@ -226,5 +263,5 @@ def run_pre_solve_checks(request: SolveJobRequest) -> PreSolveReport:
         totalDemandSessions=demand,
         slotCapacity=slot_capacity,
         issues=[_decorate_issue(issue) for issue in issues],
-        warnings=[],
+        warnings=[issue.message for issue in issues if issue.severity == "WARNING"],
     )

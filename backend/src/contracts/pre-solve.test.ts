@@ -110,4 +110,39 @@ describe("pre-solve checks", () => {
 
     expect(runPreSolveChecks(createRequest()).canSolve).toBe(true);
   });
+
+  it("reports teacher subject grade coverage as a warning or hard error by mode", () => {
+    const input = {
+      classGrades: { "class-1": 9 },
+      teacherSubjectGradeAssignments: [{ teacherId: "teacher-2", subjectId: "subject-1", grade: 9 }],
+    };
+    const warning = runPreSolveChecks(createRequest({ ...input, teacherSubjectGradeEnforcement: "WARNING" }));
+    expect(warning.canSolve).toBe(true);
+    expect(warning.warnings).toHaveLength(1);
+    expect(warning.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "TEACHER_SUBJECT_GRADE_NOT_ALLOWED", severity: "WARNING" }),
+      ]),
+    );
+
+    const hard = runPreSolveChecks(createRequest({ ...input, teacherSubjectGradeEnforcement: "HARD" }));
+    expect(hard.canSolve).toBe(false);
+    expect(hard.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "TEACHER_SUBJECT_GRADE_NOT_ALLOWED", severity: "ERROR" }),
+      ]),
+    );
+  });
+
+  it("accepts a teacher subject grade assignment for the class grade", () => {
+    const report = runPreSolveChecks(
+      createRequest({
+        classGrades: { "class-1": 9 },
+        teacherSubjectGradeAssignments: [{ teacherId: "teacher-1", subjectId: "subject-1", grade: 9 }],
+        teacherSubjectGradeEnforcement: "HARD",
+      }),
+    );
+    expect(report.canSolve).toBe(true);
+    expect(report.issues.map((issue) => issue.code)).not.toContain("TEACHER_SUBJECT_GRADE_NOT_ALLOWED");
+  });
 });

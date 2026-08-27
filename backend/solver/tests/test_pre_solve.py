@@ -122,6 +122,33 @@ class PreSolveTest(unittest.TestCase):
         )
         self.assertIn("ROOM_AVAILABILITY_CONFLICT", {issue.code for issue in room_report.issues})
 
+    def test_teacher_subject_grade_warning_and_hard_enforcement(self):
+        payload = {
+            "classGrades": {"class-1": 9},
+            "teacherSubjectGradeAssignments": [{"teacherId": "teacher-2", "subjectId": "subject-1", "grade": 9}],
+        }
+        warning = run_pre_solve_checks(request(**payload, teacherSubjectGradeEnforcement="WARNING"))
+        self.assertTrue(warning.canSolve)
+        self.assertEqual(warning.warnings, [warning.issues[0].message])
+        self.assertEqual(warning.issues[0].code, "TEACHER_SUBJECT_GRADE_NOT_ALLOWED")
+        self.assertEqual(warning.issues[0].severity, "WARNING")
+
+        hard = run_pre_solve_checks(request(**payload, teacherSubjectGradeEnforcement="HARD"))
+        self.assertFalse(hard.canSolve)
+        self.assertEqual(hard.issues[0].code, "TEACHER_SUBJECT_GRADE_NOT_ALLOWED")
+        self.assertEqual(hard.issues[0].severity, "ERROR")
+
+    def test_teacher_subject_grade_assignment_allows_matching_class_grade(self):
+        report = run_pre_solve_checks(
+            request(
+                classGrades={"class-1": 9},
+                teacherSubjectGradeAssignments=[{"teacherId": "teacher-1", "subjectId": "subject-1", "grade": 9}],
+                teacherSubjectGradeEnforcement="HARD",
+            )
+        )
+        self.assertTrue(report.canSolve)
+        self.assertNotIn("TEACHER_SUBJECT_GRADE_NOT_ALLOWED", {issue.code for issue in report.issues})
+
 
 if __name__ == "__main__":
     unittest.main()

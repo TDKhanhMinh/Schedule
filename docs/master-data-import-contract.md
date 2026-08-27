@@ -8,14 +8,14 @@
 
 ## Sáu loại template
 
-| Entity | Sheet | Khóa tự nhiên | Cột dữ liệu |
-| --- | --- | --- | --- |
-| Lớp | `Classes` | Mã lớp | Mã lớp, Tên lớp, Khối |
-| Giáo viên | `Teachers` | Mã giáo viên | Mã giáo viên, Tên giáo viên |
-| Môn học | `Subjects` | Mã môn | Mã môn, Tên môn |
-| Phòng học | `Rooms` | Mã phòng | Mã phòng, Tên phòng, Loại phòng, Sức chứa |
-| Phân công chuyên môn | `TeacherSubjectGrades` | Mã giáo viên + Mã môn + Khối + Năm học + Mã học kỳ | Mã giáo viên, Mã môn, Khối, Năm học, Mã học kỳ |
-| Phân công chủ nhiệm | `HomeroomAssignments` | Mã lớp + Năm học + Mã học kỳ | Mã lớp, Mã giáo viên, Năm học, Mã học kỳ, Số tiết giảm, Mã quy định |
+| Entity               | Sheet                  | Khóa tự nhiên                                      | Cột dữ liệu                                                         |
+| -------------------- | ---------------------- | -------------------------------------------------- | ------------------------------------------------------------------- |
+| Lớp                  | `Classes`              | Mã lớp                                             | Mã lớp, Tên lớp, Khối                                               |
+| Giáo viên            | `Teachers`             | Mã giáo viên                                       | Mã giáo viên, Tên giáo viên                                         |
+| Môn học              | `Subjects`             | Mã môn                                             | Mã môn, Tên môn                                                     |
+| Phòng học            | `Rooms`                | Mã phòng                                           | Mã phòng, Tên phòng, Loại phòng, Sức chứa                           |
+| Phân công chuyên môn | `TeacherSubjectGrades` | Mã giáo viên + Mã môn + Khối + Năm học + Mã học kỳ | Mã giáo viên, Mã môn, Khối, Năm học, Mã học kỳ                      |
+| Phân công chủ nhiệm  | `HomeroomAssignments`  | Mã lớp + Năm học + Mã học kỳ                       | Mã lớp, Mã giáo viên, Năm học, Mã học kỳ, Số tiết giảm, Mã quy định |
 
 Phân công chuyên môn không có `Mã lớp`. Phân công lớp cụ thể chỉ dùng cho GVCN.
 

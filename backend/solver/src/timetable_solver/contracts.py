@@ -38,6 +38,14 @@ class LessonRequirement(BaseModel):
     requiredRoomCapabilities: list[str] | None = None
 
 
+class TeacherSubjectGradeAssignment(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    teacherId: str = Field(min_length=1)
+    subjectId: str = Field(min_length=1)
+    grade: int = Field(ge=6, le=12)
+
+
 class RoomCapability(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -145,6 +153,9 @@ class SolveJobRequest(BaseModel):
     lessons: list[LessonRequirement]
     teacherAvailability: TeacherAvailabilitySet | None = None
     classUnavailableSlotIds: dict[str, list[str]] | None = None
+    classGrades: dict[str, int] | None = None
+    teacherSubjectGradeAssignments: list[TeacherSubjectGradeAssignment] | None = None
+    teacherSubjectGradeEnforcement: Literal["OFF", "WARNING", "HARD"] | None = None
     rooms: list[RoomCapability] | None = None
     lockedAssignments: LockedAssignments | None = None
     localRepair: LocalRepairRequest | None = None

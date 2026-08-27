@@ -41,6 +41,14 @@ export interface LessonRequirement {
   requiredRoomCapabilities?: string[];
 }
 
+export type TeacherSubjectGradeEnforcement = "OFF" | "WARNING" | "HARD";
+
+export interface TeacherSubjectGradeAssignment {
+  teacherId: string;
+  subjectId: string;
+  grade: number;
+}
+
 export interface SolveJobOptions {
   timeLimitSeconds?: number;
 }
@@ -94,6 +102,9 @@ export interface SolveJobRequest {
   lessons: LessonRequirement[];
   teacherAvailability?: TeacherAvailabilitySet;
   classUnavailableSlotIds?: Record<string, string[]>;
+  classGrades?: Record<string, number>;
+  teacherSubjectGradeAssignments?: TeacherSubjectGradeAssignment[];
+  teacherSubjectGradeEnforcement?: TeacherSubjectGradeEnforcement;
   rooms?: RoomCapability[];
   lockedAssignments?: LockedAssignments;
   localRepair?: LocalRepairRequest;

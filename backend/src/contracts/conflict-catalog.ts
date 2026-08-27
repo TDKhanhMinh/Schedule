@@ -224,6 +224,13 @@ export const CONFLICT_CATALOG = [
     messageTemplateVi: "Bộ tối ưu phải vi phạm một ưu tiên mềm.",
     remediationHintVi: "Rà soát lịch kết quả hoặc giảm mức ưu tiên nếu cần.",
   },
+  {
+    code: "TEACHER_SUBJECT_GRADE_NOT_ALLOWED",
+    severity: "ERROR",
+    entity: "TEACHER",
+    messageTemplateVi: "Giáo viên chưa được phân công dạy môn và khối của yêu cầu tiết học.",
+    remediationHintVi: "Bổ sung phân công chuyên môn cho giáo viên, môn và khối tương ứng hoặc đổi dữ liệu đầu vào.",
+  },
 ] as const satisfies readonly ConflictDefinition[];
 
 const catalogByCode = new Map<string, ConflictDefinition>(

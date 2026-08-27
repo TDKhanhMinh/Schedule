@@ -67,6 +67,7 @@ _CATALOG = [
     ("HARD_AVAILABILITY_CONFLICT", "ERROR", "TEACHER", "Không còn khung tiết sau khi áp dụng ràng buộc sẵn sàng cứng.", "Mở rộng khung tiết hoặc điều chỉnh quy tắc sẵn sàng đã phê duyệt."),
     ("NO_FEASIBLE_ASSIGNMENT", "ERROR", "JOB", "Không tìm được phân công thỏa mãn các ràng buộc cứng.", "Xem các xung đột theo yêu cầu tiết học/lớp/giáo viên và nới dữ liệu đầu vào hoặc quy tắc phù hợp."),
     ("PREFERENCE_VIOLATED", "WARNING", "TEACHER", "Bộ tối ưu phải vi phạm một ưu tiên mềm.", "Rà soát lịch kết quả hoặc giảm mức ưu tiên nếu cần."),
+    ("TEACHER_SUBJECT_GRADE_NOT_ALLOWED", "ERROR", "TEACHER", "Giáo viên chưa được phân công dạy môn và khối của yêu cầu tiết học.", "Bổ sung phân công chuyên môn cho giáo viên, môn và khối tương ứng hoặc đổi dữ liệu đầu vào."),
 ]
 
 CONFLICT_CATALOG = {

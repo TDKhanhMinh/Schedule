@@ -8,6 +8,7 @@ import { HealthModule } from "./health/health.module";
 import { ImportsModule } from "./imports/imports.module";
 import { JobsModule } from "./jobs/jobs.module";
 import { MasterDataModule } from "./master-data/master-data.module";
+import { MasterDataImportModule } from "./master-data-import/master-data-import.module";
 import { RulesModule } from "./rules/rules.module";
 import { TimetableModule } from "./timetable/timetable.module";
 import { ObservabilityModule } from "./observability/observability.module";
@@ -21,6 +22,7 @@ import { ObservabilityModule } from "./observability/observability.module";
     }),
     AuthModule,
     MasterDataModule,
+    MasterDataImportModule,
     ImportsModule,
     RulesModule,
     TimetableModule,

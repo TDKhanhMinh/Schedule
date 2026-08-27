@@ -10,6 +10,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
   Matches,
   Min,
@@ -82,6 +83,21 @@ export class LessonRequirementDto {
   @IsString({ each: true })
   @IsOptional()
   requiredRoomCapabilities?: string[];
+}
+
+export class TeacherSubjectGradeAssignmentDto {
+  @IsString()
+  @IsNotEmpty()
+  teacherId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  subjectId!: string;
+
+  @IsInt()
+  @Min(6)
+  @Max(12)
+  grade!: number;
 }
 
 export class RoomCapabilityDto {
@@ -361,6 +377,20 @@ export class SolveJobDto implements SolveJobRequest {
   @IsObject()
   @IsOptional()
   classUnavailableSlotIds?: Record<string, string[]>;
+
+  @IsObject()
+  @IsOptional()
+  classGrades?: Record<string, number>;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TeacherSubjectGradeAssignmentDto)
+  @IsOptional()
+  teacherSubjectGradeAssignments?: TeacherSubjectGradeAssignmentDto[];
+
+  @IsIn(["OFF", "WARNING", "HARD"])
+  @IsOptional()
+  teacherSubjectGradeEnforcement?: "OFF" | "WARNING" | "HARD";
 
   @IsArray()
   @ValidateNested({ each: true })

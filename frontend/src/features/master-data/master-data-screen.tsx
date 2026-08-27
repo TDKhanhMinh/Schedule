@@ -68,6 +68,7 @@ import {
   type TimeSlot,
 } from "./master-data-types";
 import { HomeroomAssignmentPanel, TeacherLoadSummaryPanel } from "./teacher-duty-panels";
+import { MasterDataImportActions } from "./master-data-import-dialog";
 
 const entityIcons: Record<MasterDataEntity, LucideIcon> = {
   school: Building2,
@@ -437,6 +438,11 @@ export function MasterDataScreen() {
     );
   }
 
+  function handleMasterDataImported(message: string) {
+    setError("");
+    setNotice(message);
+  }
+
   function renderField(field: (typeof fields)[MasterDataEntity][number]) {
     const errorMessage = fieldErrors[field.key];
     const selectOptions =
@@ -734,6 +740,36 @@ export function MasterDataScreen() {
           />
         ) : null}
 
+        <section className="master-relation-imports" aria-labelledby="master-relation-imports-title">
+          <div className="master-relation-imports-heading">
+            <div>
+              <span className="master-section-kicker">Nhập theo quan hệ</span>
+              <h2 id="master-relation-imports-title">Phân công chuyên môn và chủ nhiệm</h2>
+              <p>Hai loại phân công dùng file riêng. Phân công chuyên môn không gắn với lớp cụ thể.</p>
+            </div>
+          </div>
+          <div className="master-relation-import-grid">
+            <div className="master-relation-import-card">
+              <div>
+                <strong>Phân công chuyên môn</strong>
+                <small>Giáo viên, môn, khối và năm học/kỳ học.</small>
+              </div>
+              <MasterDataImportActions
+                entity="teacherSubjectGrade"
+                canImport={canWrite}
+                onImported={handleMasterDataImported}
+              />
+            </div>
+            <div className="master-relation-import-card">
+              <div>
+                <strong>Phân công chủ nhiệm</strong>
+                <small>Lớp cụ thể, giáo viên, năm học/kỳ học và số tiết giảm.</small>
+              </div>
+              <MasterDataImportActions entity="homeroom" canImport={canWrite} onImported={handleMasterDataImported} />
+            </div>
+          </div>
+        </section>
+
         <div className="master-data-list">
           <div className="master-list-header">
             <div>
@@ -764,6 +800,16 @@ export function MasterDataScreen() {
               <Button variant="outline" type="button" onClick={() => void loadBaseData()} disabled={loading}>
                 Làm mới
               </Button>
+              {activeEntity === "class" ||
+              activeEntity === "teacher" ||
+              activeEntity === "subject" ||
+              activeEntity === "room" ? (
+                <MasterDataImportActions
+                  entity={activeEntity}
+                  canImport={canWrite}
+                  onImported={handleMasterDataImported}
+                />
+              ) : null}
             </div>
           </div>
           <label className="master-search-field">
@@ -850,7 +896,12 @@ export function MasterDataScreen() {
             </div>
           )}
         </div>
-        {selectedPeriodId ? <TeacherLoadSummaryPanel periodId={selectedPeriodId} /> : null}
+        {selectedPeriodId ? (
+          <TeacherLoadSummaryPanel
+            periodId={selectedPeriodId}
+            periodLabel={periods.find((period) => period.id === selectedPeriodId)?.name}
+          />
+        ) : null}
       </section>
       <Dialog
         open={editorOpen}

@@ -121,6 +121,24 @@
       "type": "object",
       "additionalProperties": { "type": "array", "items": { "type": "string" } }
     },
+    "classGrades": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 6, "maximum": 12 }
+    },
+    "teacherSubjectGradeAssignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["teacherId", "subjectId", "grade"],
+        "properties": {
+          "teacherId": { "type": "string", "minLength": 1 },
+          "subjectId": { "type": "string", "minLength": 1 },
+          "grade": { "type": "integer", "minimum": 6, "maximum": 12 }
+        }
+      }
+    },
+    "teacherSubjectGradeEnforcement": { "enum": ["OFF", "WARNING", "HARD"] },
     "rooms": {
       "type": "array",
       "items": {

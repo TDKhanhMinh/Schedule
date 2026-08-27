@@ -98,6 +98,22 @@ export class MasterDataController {
     return this.masterData.listHomeroomAssignments(schoolId, academicPeriodId);
   }
 
+  @Get(":schoolId/academic-periods/:academicPeriodId/teacher-subject-grade-assignments")
+  listTeacherSubjectGradeAssignments(
+    @Param("schoolId") schoolId: string,
+    @Param("academicPeriodId") academicPeriodId: string,
+  ) {
+    return this.masterData.listTeacherSubjectGradeAssignments(schoolId, academicPeriodId);
+  }
+
+  @Get(":schoolId/academic-periods/:academicPeriodId/teacher-subject-grade-coverage")
+  getTeacherSubjectGradeCoverage(
+    @Param("schoolId") schoolId: string,
+    @Param("academicPeriodId") academicPeriodId: string,
+  ) {
+    return this.masterData.getTeacherSubjectGradeCoverage(schoolId, academicPeriodId);
+  }
+
   @Get(":schoolId/academic-periods/:academicPeriodId/teacher-load-summary")
   getTeacherLoadSummary(@Param("schoolId") schoolId: string, @Param("academicPeriodId") academicPeriodId: string) {
     return this.masterData.getTeacherLoadSummary(schoolId, academicPeriodId);

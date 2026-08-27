@@ -120,26 +120,37 @@ describe("MasterDataService", () => {
   });
 
   it("calculates the teacher load after the homeroom reduction", async () => {
-    query.mockResolvedValueOnce({ rows: [periodRow] }).mockResolvedValueOnce({
-      rows: [
-        {
-          teacher_id: "teacher-001",
-          teacher_code: "GV-001",
-          teacher_name: "Nguyễn An",
-          education_level: "LOWER_SECONDARY",
-          standard_weekly_periods: 19,
-          teaching_periods: 13,
-          homeroom_classes: 1,
-          reduction_periods: 4,
-          adjusted_weekly_target: 15,
-        },
-      ],
-    });
+    query
+      .mockResolvedValueOnce({ rows: [periodRow] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            teacher_id: "teacher-001",
+            teacher_code: "GV-001",
+            teacher_name: "Nguyễn An",
+            education_level: "LOWER_SECONDARY",
+            standard_weekly_periods: 19,
+            teaching_periods: 13,
+            subject_count: 1,
+            grade_count: 1,
+            subject_codes: ["MATH"],
+            grades: [9],
+            homeroom_classes: 1,
+            reduction_periods: 4,
+            adjusted_weekly_target: 15,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] });
 
     await expect(service.getTeacherLoadSummary("school-001", "period-001")).resolves.toEqual([
       expect.objectContaining({
         teacherName: "Nguyễn An",
         teachingPeriods: 13,
+        subjectCount: 1,
+        gradeCount: 1,
+        subjectCodes: ["MATH"],
+        grades: [9],
         reductionPeriods: 4,
         adjustedWeeklyTarget: 15,
         difference: -2,

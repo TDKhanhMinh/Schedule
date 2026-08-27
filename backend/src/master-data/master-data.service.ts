@@ -95,6 +95,19 @@ interface HomeroomAssignmentRow extends QueryResultRow {
   updated_at: string | Date;
 }
 
+interface TeacherSubjectGradeAssignmentRow extends QueryResultRow {
+  id: string;
+  school_id: string;
+  academic_period_id: string;
+  teacher_id: string;
+  subject_id: string;
+  grade: number;
+  status: "ACTIVE" | "ARCHIVED";
+  source_ref: string | null;
+  created_at: string | Date;
+  updated_at: string | Date;
+}
+
 interface TeacherLoadSummaryRow extends QueryResultRow {
   teacher_id: string;
   teacher_code: string;
@@ -102,9 +115,34 @@ interface TeacherLoadSummaryRow extends QueryResultRow {
   education_level: string;
   standard_weekly_periods: number;
   teaching_periods: number;
+  subject_count: number;
+  grade_count: number;
+  subject_codes: string[];
+  grades: number[];
   homeroom_classes: number;
   reduction_periods: number;
   adjusted_weekly_target: number;
+}
+
+export interface TeacherLoadRuleSummary {
+  ruleCode: string;
+  ruleSetVersion: string;
+  ruleSnapshotId: string | null;
+  sourceUrl: string;
+  sourceLocator: string | null;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  enforcement: "REPORT_ONLY" | "HARD_CAP";
+}
+
+interface TeacherLoadRuleSnapshotRow extends QueryResultRow {
+  id: string;
+  rule_set_version: string;
+  source_url: string;
+  source_locator: string | null;
+  effective_from: string | Date;
+  effective_to: string | Date | null;
+  rules: Array<{ code?: unknown; kind?: unknown }> | string;
 }
 
 interface SubjectRow extends QueryResultRow {
@@ -615,6 +653,54 @@ export class MasterDataService {
     return result.rows.map((row) => this.toHomeroomAssignment(row));
   }
 
+  async listTeacherSubjectGradeAssignments(schoolId: string, academicPeriodId: string) {
+    await this.ensureAcademicPeriod(schoolId, academicPeriodId);
+    const result = await this.pool.query<TeacherSubjectGradeAssignmentRow>(
+      `SELECT id::text, school_id::text, academic_period_id::text,
+              teacher_id::text, subject_id::text, grade, status, source_ref,
+              created_at, updated_at
+         FROM teacher_subject_grade_assignments
+        WHERE school_id = $1 AND academic_period_id = $2
+        ORDER BY teacher_id, subject_id, grade`,
+      [schoolId, academicPeriodId],
+    );
+    return result.rows.map((row) => ({
+      id: row.id,
+      schoolId: row.school_id,
+      academicPeriodId: row.academic_period_id,
+      teacherId: row.teacher_id,
+      subjectId: row.subject_id,
+      grade: row.grade,
+      status: row.status,
+      sourceRef: row.source_ref,
+      createdAt: new Date(row.created_at).toISOString(),
+      updatedAt: new Date(row.updated_at).toISOString(),
+    }));
+  }
+
+  async getTeacherSubjectGradeCoverage(schoolId: string, academicPeriodId: string) {
+    const [assignments, classes] = await Promise.all([
+      this.listTeacherSubjectGradeAssignments(schoolId, academicPeriodId),
+      this.listClasses(schoolId),
+    ]);
+    const activeAssignments = assignments.filter((assignment) => assignment.status === "ACTIVE");
+    const activeClasses = classes.filter((item) => item.status === "ACTIVE");
+    const coveredGrades = [...new Set(activeAssignments.map((assignment) => assignment.grade))].sort(
+      (left, right) => left - right,
+    );
+    const activeClassGrades = [...new Set(activeClasses.map((item) => item.grade))].sort((left, right) => left - right);
+    return {
+      contractVersion: "TEACHER-SUBJECT-GRADE-COVERAGE-1.0.0",
+      schoolId,
+      academicPeriodId,
+      activeAssignmentCount: activeAssignments.length,
+      activeClassCount: activeClasses.length,
+      coveredGrades,
+      uncoveredGrades: activeClassGrades.filter((grade) => !coveredGrades.includes(grade)),
+      assignments,
+    };
+  }
+
   async assignHomeroomTeacher(
     schoolId: string,
     academicPeriodId: string,
@@ -674,48 +760,68 @@ export class MasterDataService {
 
   async getTeacherLoadSummary(schoolId: string, academicPeriodId: string) {
     await this.ensureAcademicPeriod(schoolId, academicPeriodId);
-    const result = await this.pool.query<TeacherLoadSummaryRow>(
-      `WITH teaching AS (
-             SELECT teacher_id, COALESCE(SUM(required_sessions), 0)::int AS teaching_periods
-               FROM lesson_requirements
-              WHERE school_id = $1 AND academic_period_id = $2 AND status = 'ACTIVE'
-              GROUP BY teacher_id
-           ), homeroom AS (
-             SELECT teacher_id,
-                    COUNT(*)::int AS homeroom_classes,
-                    COALESCE(SUM(weekly_reduction_periods), 0)::int AS reduction_periods
-               FROM class_homeroom_assignments
-              WHERE school_id = $1 AND academic_period_id = $2
-              GROUP BY teacher_id
-           )
-       SELECT teacher.id::text AS teacher_id,
-              teacher.code AS teacher_code,
-              teacher.display_name AS teacher_name,
-              school.education_level,
-              CASE school.education_level
-                WHEN 'PRIMARY' THEN 23
-                WHEN 'UPPER_SECONDARY' THEN 17
-                ELSE 19
-              END::int AS standard_weekly_periods,
-              COALESCE(teaching.teaching_periods, 0)::int AS teaching_periods,
-              COALESCE(homeroom.homeroom_classes, 0)::int AS homeroom_classes,
-              COALESCE(homeroom.reduction_periods, 0)::int AS reduction_periods,
-              GREATEST(
+    const [result, rule] = await Promise.all([
+      this.pool.query<TeacherLoadSummaryRow>(
+        `WITH teaching AS (
+               SELECT lesson.teacher_id,
+                      COALESCE(SUM(lesson.required_sessions), 0)::int AS teaching_periods,
+                      COUNT(DISTINCT lesson.subject_id)::int AS subject_count,
+                      COUNT(DISTINCT class.grade)::int AS grade_count,
+                      COALESCE(ARRAY_AGG(DISTINCT subject.code ORDER BY subject.code), ARRAY[]::text[]) AS subject_codes,
+                      COALESCE(ARRAY_AGG(DISTINCT class.grade ORDER BY class.grade), ARRAY[]::smallint[]) AS grades
+                 FROM lesson_requirements lesson
+                 JOIN classes class
+                   ON class.id = lesson.class_id
+                  AND class.school_id = lesson.school_id
+                 JOIN subjects subject
+                   ON subject.id = lesson.subject_id
+                  AND subject.school_id = lesson.school_id
+                WHERE lesson.school_id = $1
+                  AND lesson.academic_period_id = $2
+                  AND lesson.status = 'ACTIVE'
+                GROUP BY lesson.teacher_id
+             ), homeroom AS (
+               SELECT teacher_id,
+                      COUNT(*)::int AS homeroom_classes,
+                      COALESCE(SUM(weekly_reduction_periods), 0)::int AS reduction_periods
+                 FROM class_homeroom_assignments
+                WHERE school_id = $1 AND academic_period_id = $2
+                GROUP BY teacher_id
+             )
+         SELECT teacher.id::text AS teacher_id,
+                teacher.code AS teacher_code,
+                teacher.display_name AS teacher_name,
+                school.education_level,
                 CASE school.education_level
                   WHEN 'PRIMARY' THEN 23
                   WHEN 'UPPER_SECONDARY' THEN 17
                   ELSE 19
-                END - COALESCE(homeroom.reduction_periods, 0),
-                0
-              )::int AS adjusted_weekly_target
-         FROM teachers teacher
-         JOIN schools school ON school.id = teacher.school_id
-         LEFT JOIN teaching ON teaching.teacher_id = teacher.id
-         LEFT JOIN homeroom ON homeroom.teacher_id = teacher.id
-        WHERE teacher.school_id = $1 AND teacher.status = 'ACTIVE'
-        ORDER BY teacher.code`,
-      [schoolId, academicPeriodId],
-    );
+                END::int AS standard_weekly_periods,
+                COALESCE(teaching.teaching_periods, 0)::int AS teaching_periods,
+                COALESCE(teaching.subject_count, 0)::int AS subject_count,
+                COALESCE(teaching.grade_count, 0)::int AS grade_count,
+                COALESCE(teaching.subject_codes, ARRAY[]::text[]) AS subject_codes,
+                COALESCE(teaching.grades, ARRAY[]::smallint[]) AS grades,
+                COALESCE(homeroom.homeroom_classes, 0)::int AS homeroom_classes,
+                COALESCE(homeroom.reduction_periods, 0)::int AS reduction_periods,
+                GREATEST(
+                  CASE school.education_level
+                    WHEN 'PRIMARY' THEN 23
+                    WHEN 'UPPER_SECONDARY' THEN 17
+                    ELSE 19
+                  END - COALESCE(homeroom.reduction_periods, 0),
+                  0
+                )::int AS adjusted_weekly_target
+           FROM teachers teacher
+           JOIN schools school ON school.id = teacher.school_id
+           LEFT JOIN teaching ON teaching.teacher_id = teacher.id
+           LEFT JOIN homeroom ON homeroom.teacher_id = teacher.id
+          WHERE teacher.school_id = $1 AND teacher.status = 'ACTIVE'
+          ORDER BY teacher.code`,
+        [schoolId, academicPeriodId],
+      ),
+      this.getTeacherLoadRuleSummary(schoolId, academicPeriodId),
+    ]);
     return result.rows.map((row) => {
       const difference = row.teaching_periods - row.adjusted_weekly_target;
       return {
@@ -725,15 +831,71 @@ export class MasterDataService {
         educationLevel: row.education_level,
         standardWeeklyPeriods: row.standard_weekly_periods,
         teachingPeriods: row.teaching_periods,
+        subjectCount: row.subject_count,
+        gradeCount: row.grade_count,
+        subjectCodes: row.subject_codes ?? [],
+        grades: (row.grades ?? []).map(Number),
         homeroomClasses: row.homeroom_classes,
         reductionPeriods: row.reduction_periods,
         adjustedWeeklyTarget: row.adjusted_weekly_target,
         difference,
         status: difference > 0 ? "OVER" : difference < 0 ? "UNDER" : "ON_TARGET",
+        rule,
         duties:
           row.homeroom_classes > 0 ? [{ code: "HOMEROOM_TEACHER", label: "GVCN", count: row.homeroom_classes }] : [],
       };
     });
+  }
+
+  private async getTeacherLoadRuleSummary(schoolId: string, academicPeriodId: string): Promise<TeacherLoadRuleSummary> {
+    const result = await this.pool.query<TeacherLoadRuleSnapshotRow>(
+      `SELECT id::text,
+              rule_set_version,
+              source_url,
+              source_locator,
+              effective_from::text,
+              effective_to::text,
+              rules
+         FROM rule_set_snapshots
+        WHERE school_id = $1
+          AND approval_state = 'APPROVED'
+          AND (
+            scope ->> 'academicPeriodId' IS NULL
+            OR scope ->> 'academicPeriodId' = $2
+          )
+        ORDER BY captured_at DESC, id DESC
+        LIMIT 1`,
+      [schoolId, academicPeriodId],
+    );
+    const snapshot = result.rows[0];
+    if (!snapshot) {
+      return {
+        ruleCode: "RULE-TEACH-002",
+        ruleSetVersion: "Chưa có snapshot đã duyệt",
+        ruleSnapshotId: null,
+        sourceUrl:
+          "https://xaydungchinhsach.chinhphu.vn/toan-van-thong-tu-05-2025-tt-bgddt-quy-dinh-che-do-lam-viec-doi-voi-giao-vien-pho-thong-du-bi-dai-hoc-119250311185323893.htm",
+        sourceLocator: "SRC-TT05-2025#7.3.a",
+        effectiveFrom: "2025-04-22",
+        effectiveTo: null,
+        enforcement: "REPORT_ONLY",
+      };
+    }
+    const rules =
+      typeof snapshot.rules === "string"
+        ? (JSON.parse(snapshot.rules) as Array<Record<string, unknown>>)
+        : snapshot.rules;
+    const normRule = rules.find((candidate) => candidate.code === "RULE-TEACH-002");
+    return {
+      ruleCode: typeof normRule?.code === "string" ? normRule.code : "RULE-TEACH-002",
+      ruleSetVersion: snapshot.rule_set_version,
+      ruleSnapshotId: snapshot.id,
+      sourceUrl: snapshot.source_url,
+      sourceLocator: snapshot.source_locator,
+      effectiveFrom: this.dateOnly(snapshot.effective_from),
+      effectiveTo: snapshot.effective_to ? this.dateOnly(snapshot.effective_to) : null,
+      enforcement: normRule?.kind === "HARD" ? "HARD_CAP" : "REPORT_ONLY",
+    };
   }
 
   async getClass(schoolId: string, classId: string) {
