@@ -149,6 +149,140 @@ export function withTimeout<T>(promise: Promise<T>, timeoutMs: number, onTimeout
 export class ImportsService {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
+  async buildTemplate(schoolId: string) {
+    await this.assertSchool(schoolId);
+    const [classes, subjects, teachers, rooms] = await Promise.all([
+      this.pool.query<{ code: string; name: string; status: string }>(
+        "SELECT code, name, status FROM classes WHERE school_id = $1 ORDER BY code",
+        [schoolId],
+      ),
+      this.pool.query<{ code: string; name: string; status: string }>(
+        "SELECT code, name, status FROM subjects WHERE school_id = $1 ORDER BY code",
+        [schoolId],
+      ),
+      this.pool.query<{ code: string; display_name: string; status: string }>(
+        "SELECT code, display_name, status FROM teachers WHERE school_id = $1 ORDER BY code",
+        [schoolId],
+      ),
+      this.pool.query<{ code: string; name: string; status: string }>(
+        "SELECT code, name, status FROM rooms WHERE school_id = $1 ORDER BY code",
+        [schoolId],
+      ),
+    ]);
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "Thời khóa biểu trường học - Bộ tối ưu";
+    workbook.created = new Date();
+    workbook.title = "Mẫu nhập yêu cầu tiết học";
+
+    const lessonSheet = workbook.addWorksheet("LessonRequirements");
+    lessonSheet.columns = [
+      { header: "Mã lớp", key: "classCode", width: 20 },
+      { header: "Mã môn", key: "subjectCode", width: 20 },
+      { header: "Mã giáo viên", key: "teacherCode", width: 24 },
+      { header: "Số tiết", key: "requiredSessions", width: 14 },
+      { header: "Mã phòng", key: "roomCode", width: 20 },
+    ];
+    this.styleTemplateHeader(lessonSheet);
+    lessonSheet.views = [{ state: "frozen", ySplit: 1 }];
+    lessonSheet.autoFilter = "A1:E200";
+    for (let row = 2; row <= 200; row += 1) {
+      lessonSheet.getCell(`D${row}`).dataValidation = {
+        type: "whole",
+        operator: "between",
+        formulae: [1, 50],
+        allowBlank: true,
+        showErrorMessage: true,
+        errorTitle: "Số tiết không hợp lệ",
+        error: "Nhập số nguyên từ 1 đến 50.",
+      };
+    }
+
+    const guide = workbook.addWorksheet("TemplateGuide");
+    guide.columns = [
+      { header: "Thuộc tính", key: "key", width: 30 },
+      { header: "Giá trị", key: "value", width: 96 },
+    ];
+    guide.addRows([
+      ["Phiên bản contract", "1.0"],
+      ["Phiên bản template", TEMPLATE_VERSION],
+      ["Mục đích", "Nhập yêu cầu tiết học theo lớp, môn, giáo viên, số tiết và phòng tùy chọn."],
+      ["Trang dữ liệu", "LessonRequirements"],
+      ["Cột bắt buộc", "Mã lớp, Mã môn, Mã giáo viên, Số tiết"],
+      ["Cột tùy chọn", "Mã phòng"],
+      ["Nguyên tắc", "Không đổi tên cột; không nhập dữ liệu vào các trang hướng dẫn."],
+      ["Quy trình", "Tải file mẫu → điền dữ liệu → Tải lên và xem trước → sửa lỗi → Xác nhận nhập dữ liệu."],
+    ]);
+    this.styleTemplateHeader(guide);
+    guide.views = [{ state: "frozen", ySplit: 1 }];
+
+    const errorCatalog = workbook.addWorksheet("ErrorCatalog");
+    errorCatalog.columns = [
+      { header: "Mã lỗi", key: "code", width: 28 },
+      { header: "Mức độ", key: "severity", width: 14 },
+      { header: "Vị trí", key: "location", width: 20 },
+      { header: "Hướng xử lý", key: "remediation", width: 72 },
+    ];
+    this.styleTemplateHeader(errorCatalog);
+    errorCatalog.addRows([
+      ["INVALID_TEMPLATE", "ERROR", "Tiêu đề", "Giữ đúng tên trang và tên cột của mẫu."],
+      ["REQUIRED", "ERROR", "Dòng dữ liệu", "Bổ sung giá trị bắt buộc còn thiếu."],
+      ["INVALID_NUMBER", "ERROR", "Số tiết", "Nhập số nguyên dương trong giới hạn của mẫu."],
+      ["UNKNOWN_REFERENCE", "ERROR", "Mã danh mục", "Dùng mã lớp, môn, giáo viên hoặc phòng đang có trong trường."],
+      ["DUPLICATE", "ERROR", "Khóa phân công", "Xóa dòng trùng lớp, môn và giáo viên."],
+    ]);
+    errorCatalog.views = [{ state: "frozen", ySplit: 1 }];
+
+    const mapping = workbook.addWorksheet("Mapping");
+    mapping.columns = [
+      { header: "Cột Excel", key: "excel", width: 24 },
+      { header: "Trường chuẩn", key: "field", width: 24 },
+      { header: "Nguồn dữ liệu", key: "source", width: 34 },
+      { header: "Ghi chú", key: "note", width: 68 },
+    ];
+    this.styleTemplateHeader(mapping);
+    mapping.addRows([
+      ["Mã lớp", "classId", "classes.code", "Phải thuộc school scope đang chọn."],
+      ["Mã môn", "subjectId", "subjects.code", "Phải thuộc school scope đang chọn."],
+      ["Mã giáo viên", "teacherId", "teachers.code", "Phải thuộc school scope đang chọn."],
+      ["Số tiết", "requiredSessions", "lesson_requirements.required_sessions", "Số nguyên dương."],
+      ["Mã phòng", "roomId", "rooms.code", "Không bắt buộc; nếu có phải hợp lệ."],
+    ]);
+    mapping.views = [{ state: "frozen", ySplit: 1 }];
+
+    const codeLists = workbook.addWorksheet("CodeLists");
+    codeLists.columns = [
+      { header: "Danh mục", key: "catalog", width: 22 },
+      { header: "Mã", key: "code", width: 28 },
+      { header: "Tên hiển thị", key: "label", width: 42 },
+      { header: "Trạng thái", key: "status", width: 16 },
+    ];
+    this.styleTemplateHeader(codeLists);
+    codeLists.addRows([
+      ...classes.rows.map((row) => ["Lớp", row.code, row.name, row.status]),
+      ...subjects.rows.map((row) => ["Môn học", row.code, row.name, row.status]),
+      ...teachers.rows.map((row) => ["Giáo viên", row.code, row.display_name, row.status]),
+      ...rooms.rows.map((row) => ["Phòng học", row.code, row.name, row.status]),
+    ]);
+    codeLists.views = [{ state: "frozen", ySplit: 1 }];
+    codeLists.autoFilter = `A1:D${Math.max(1, codeLists.rowCount)}`;
+
+    const changelog = workbook.addWorksheet("Changelog");
+    changelog.columns = [
+      { header: "Phiên bản", key: "version", width: 16 },
+      { header: "Ngày", key: "date", width: 16 },
+      { header: "Thay đổi", key: "change", width: 84 },
+    ];
+    this.styleTemplateHeader(changelog);
+    changelog.addRow([TEMPLATE_VERSION, new Date().toISOString().slice(0, 10), "Mẫu nhập yêu cầu tiết học MVP-0.1.0."]);
+    changelog.views = [{ state: "frozen", ySplit: 1 }];
+
+    return {
+      filename: "school-timetable-mvp-0.1.0-template-v1.0.xlsx",
+      templateVersion: TEMPLATE_VERSION,
+      workbook: Buffer.from(await workbook.xlsx.writeBuffer()),
+    };
+  }
+
   async preview(file: UploadedExcelFile | undefined, schoolId: string, actorId: string) {
     if (!schoolId) {
       throw new BadRequestException({
@@ -1029,6 +1163,22 @@ export class ImportsService {
         });
       });
     }
+  }
+
+  private styleTemplateHeader(worksheet: ExcelJS.Worksheet) {
+    const row = worksheet.getRow(1);
+    row.height = 24;
+    row.font = { bold: true, color: { argb: "FFFFFFFF" } };
+    row.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF171717" } };
+    row.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFD4D4D4" } },
+        left: { style: "thin", color: { argb: "FFD4D4D4" } },
+        bottom: { style: "thin", color: { argb: "FFD4D4D4" } },
+        right: { style: "thin", color: { argb: "FFD4D4D4" } },
+      };
+    });
   }
 
   private hasZipSignature(buffer: Uint8Array) {

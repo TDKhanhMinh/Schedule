@@ -213,6 +213,40 @@ function createErrorReportPoolMock() {
 }
 
 describe("ImportsService secure workbook boundary", () => {
+  it("builds the downloadable schedule template with a blank import sheet and guide sheets", async () => {
+    const { pool } = createPoolMock();
+    const service = new ImportsService(pool);
+
+    const result = await service.buildTemplate(SCHOOL_ID);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(result.workbook as never);
+
+    expect(result.filename).toBe("school-timetable-mvp-0.1.0-template-v1.0.xlsx");
+    expect(result.templateVersion).toBe("1.0");
+    expect(workbook.worksheets.map((worksheet) => worksheet.name)).toEqual([
+      "LessonRequirements",
+      "TemplateGuide",
+      "ErrorCatalog",
+      "Mapping",
+      "CodeLists",
+      "Changelog",
+    ]);
+    expect(workbook.getWorksheet("LessonRequirements")?.getRow(1).values).toEqual([
+      undefined,
+      "Mã lớp",
+      "Mã môn",
+      "Mã giáo viên",
+      "Số tiết",
+      "Mã phòng",
+    ]);
+    expect(workbook.getWorksheet("LessonRequirements")?.getRow(2).values).toEqual([undefined]);
+    expect(workbook.getWorksheet("LessonRequirements")?.getCell("D2").dataValidation).toMatchObject({
+      type: "whole",
+      operator: "between",
+      formulae: [1, 50],
+    });
+  });
+
   it("parses a valid workbook and stages only import rows before confirm", async () => {
     const { pool, clientQueries } = createPoolMock();
     const service = new ImportsService(pool);

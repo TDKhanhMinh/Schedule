@@ -37,6 +37,15 @@ export class ImportsController {
     return this.imports.preview(file, body.schoolId, request.auth!.userId);
   }
 
+  @Get("template")
+  async template(@Req() request: RequestWithAuth, @Res() response: Response) {
+    const result = await this.imports.buildTemplate(request.auth!.schoolId);
+    response.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    response.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
+    response.setHeader("X-Template-Version", result.templateVersion);
+    response.send(result.workbook);
+  }
+
   @Post(":batchId/confirm")
   confirm(
     @Param("batchId") batchId: string,

@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
+import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WorkflowStepper, type WorkflowStepKey } from "@/components/workflow-stepper";
@@ -13,6 +14,19 @@ import type { ConfirmResponse, PreviewResponse } from "./import-types";
 export function ImportScreen() {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
+  const templateMutation = useMutation({
+    mutationFn: () => apiBlob("/imports/template"),
+    onSuccess: (blob) => {
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "school-timetable-mvp-0.1.0-template-v1.0.xlsx";
+      anchor.click();
+      URL.revokeObjectURL(url);
+    },
+    onError: (requestError) =>
+      setError(requestError instanceof Error ? requestError.message : "Không thể tải file mẫu."),
+  });
   const previewMutation = useMutation({
     mutationFn: async (selectedFile: File) => {
       const formData = new FormData();
@@ -93,7 +107,17 @@ export function ImportScreen() {
             <p className="eyebrow">Mẫu v1.0</p>
             <h2 id="import-form-title">Chọn tệp Excel để bắt đầu</h2>
           </div>
-          <span className="quiet-badge">Kiểm thử trước khi ghi dữ liệu nghiệp vụ</span>
+          <div className="import-panel-actions">
+            <span className="quiet-badge">Kiểm thử trước khi ghi dữ liệu nghiệp vụ</span>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => templateMutation.mutate()}
+              disabled={!frontendConfig.schoolId || templateMutation.isPending}
+            >
+              <FileDown /> {templateMutation.isPending ? "Đang tải…" : "Tải file mẫu"}
+            </Button>
+          </div>
         </div>
         <form className="upload-form" autoComplete="off" onSubmit={handlePreview}>
           <label htmlFor="excel-file">Tệp Excel theo mẫu MVP</label>
