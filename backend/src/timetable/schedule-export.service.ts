@@ -4,6 +4,7 @@ import type { Pool } from "pg";
 import type { Role } from "../auth/auth.constants";
 import { PG_POOL } from "../database/database.module";
 import {
+  DEFAULT_FLAG_CEREMONY_SLOT,
   SCHEDULE_EXPORT_CONTRACT_VERSION,
   type ScheduleExportMetadata,
   type ScheduleExportSheetSummary,
@@ -508,17 +509,26 @@ export class ScheduleExportService {
         const shiftStartRow = dayStartRow + SCHOOL_SHIFTS.indexOf(shift) * SCHOOL_PERIODS.length;
         const shiftEndRow = shiftStartRow + SCHOOL_PERIODS.length - 1;
         for (const period of SCHOOL_PERIODS) {
+          const values = classes.map((item) => {
+            if (
+              day === DEFAULT_FLAG_CEREMONY_SLOT.day &&
+              period === DEFAULT_FLAG_CEREMONY_SLOT.period &&
+              shift.code === DEFAULT_FLAG_CEREMONY_SLOT.shiftCode
+            ) {
+              return "Chào cờ";
+            }
+            return (
+              cells
+                .get(`${item.code}:${day}:${shift.code}:${period}`)
+                ?.map((value) => this.safeWorkbookValue(value))
+                .join(" / ") ?? ""
+            );
+          });
           const row = sheet.addRow([
             period === SCHOOL_PERIODS[0] && shift === SCHOOL_SHIFTS[0] ? this.dayLabel(day) : "",
             period === SCHOOL_PERIODS[0] ? shift.label : "",
             period,
-            ...classes.map(
-              (item) =>
-                cells
-                  .get(`${item.code}:${day}:${shift.code}:${period}`)
-                  ?.map((value) => this.safeWorkbookValue(value))
-                  .join(" / ") ?? "",
-            ),
+            ...values,
           ]);
           this.styleGridRow(row);
         }

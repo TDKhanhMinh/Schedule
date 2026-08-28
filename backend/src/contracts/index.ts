@@ -10,6 +10,11 @@ export const SCHEDULE_VERSION_OPERATIONS_CONTRACT_VERSION = "SCHEDULE-VERSION-OP
 export const FREEZE_SCOPE_CONTRACT_VERSION = "FREEZE-SCOPE-1.0.0" as const;
 export const OPTIMIZATION_QUEUE = "optimization" as const;
 export const OPTIMIZATION_JOB_NAME = "optimization.solve" as const;
+export const DEFAULT_FLAG_CEREMONY_SLOT = {
+  day: 1,
+  period: 1,
+  shiftCode: "MORNING",
+} as const;
 
 export * from "./rule-set";
 export * from "./conflict-catalog";

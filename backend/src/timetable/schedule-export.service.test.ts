@@ -30,7 +30,7 @@ const assignment = {
   subject_name: "Toán",
   room_code: "P-A",
   room_name: "Phòng A",
-  day: 1,
+  day: 2,
   period: 1,
   shift_code: "MORNING",
   starts_at: "07:00",
@@ -85,8 +85,8 @@ describe("ScheduleExportService", () => {
     expect(workbook.getWorksheet("Metadata & Summary")?.getCell("B3").value).toBe("SCHEDULE-EXPORT-1.0.0");
     expect(workbook.getWorksheet("Toàn trường")?.rowCount).toBe(64);
     expect(workbook.getWorksheet("Toàn trường")?.getRow(3).getCell(4).value).toBe("Lớp 7A");
-    expect(workbook.getWorksheet("Toàn trường")?.getRow(4).getCell(4).value).toBe("Toán - Nguyễn An");
-    expect(workbook.getWorksheet("Toàn trường")?.getRow(4).getCell(5).value).toBe("");
+    expect(workbook.getWorksheet("Toàn trường")?.getRow(4).getCell(4).value).toBe("Chào cờ");
+    expect(workbook.getWorksheet("Toàn trường")?.getRow(4).getCell(5).value).toBe("Chào cờ");
     expect(workbook.getWorksheet("Toàn trường")?.getRow(64).getCell(1).value).toBe("GVCN");
     expect(workbook.getWorksheet("Toàn trường")?.getRow(64).getCell(5).value).toBe("Chưa có");
     expect(workbook.getWorksheet("Theo lớp")?.getRow(4).getCell(6).value).toBe("Toán");

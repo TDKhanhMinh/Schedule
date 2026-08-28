@@ -2,6 +2,7 @@ import { ArrowLeftRight, CalendarDays, Maximize2, Minimize2 } from "lucide-react
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { HomeroomAssignment, TimetableAssignment, TimetableView } from "./timetable-types";
+import { DEFAULT_FLAG_CEREMONY_SLOT } from "./timetable-rules";
 
 const SCHOOL_DAYS = [1, 2, 3, 4, 5, 6];
 const SCHOOL_PERIODS = [1, 2, 3, 4, 5];
@@ -38,6 +39,7 @@ export function TimetableGrid({
       .toLowerCase()
       .includes(normalizedQuery),
   );
+  const flagCeremonyMatchesQuery = !normalizedQuery || "chào cờ".includes(normalizedQuery);
   const isGridView = view === "school" || view === "class";
   if (visibleAssignments.length === 0 && !isGridView)
     return (
@@ -53,6 +55,7 @@ export function TimetableGrid({
     const visibleClassLabels = classLabels.filter(
       (classLabel) =>
         !normalizedQuery ||
+        flagCeremonyMatchesQuery ||
         classLabel.toLowerCase().includes(normalizedQuery) ||
         visibleAssignments.some((assignment) => assignment.classLabel === classLabel),
     );
@@ -64,6 +67,7 @@ export function TimetableGrid({
     const visibleClassLabels = classLabels.filter(
       (classLabel) =>
         !normalizedQuery ||
+        flagCeremonyMatchesQuery ||
         classLabel.toLowerCase().includes(normalizedQuery) ||
         visibleAssignments.some((assignment) => assignment.classLabel === classLabel),
     );
@@ -234,12 +238,7 @@ function SchoolOverviewView({
                         const cellAssignments = cells.get(`${classLabel}:${day}:${shift.code}:${period}`) ?? [];
                         return (
                           <td className="school-subject-cell" key={classLabel}>
-                            {cellAssignments
-                              .map(
-                                (assignment) =>
-                                  `${shortLabel(assignment.subjectLabel)} - ${shortLabel(assignment.teacherLabel)}`,
-                              )
-                              .join(" / ")}
+                            {cellLabel(cellAssignments, day, shift.code, period)}
                           </td>
                         );
                       })}
@@ -323,12 +322,7 @@ function SchoolClassOverviewTable({
                   const cellAssignments = assignments.get(`${classLabel}:${day}:${shift.code}:${period}`) ?? [];
                   return (
                     <td className="school-subject-cell" key={day}>
-                      {cellAssignments
-                        .map(
-                          (assignment) =>
-                            `${shortLabel(assignment.subjectLabel)} - ${shortLabel(assignment.teacherLabel)}`,
-                        )
-                        .join(" / ")}
+                      {cellLabel(cellAssignments, day, shift.code, period)}
                     </td>
                   );
                 })}
@@ -413,7 +407,7 @@ function ClassShiftRows({
             const cellAssignments = cells.get(`${day}:${period}`) ?? [];
             return (
               <td className="school-subject-cell" key={day}>
-                {cellAssignments.map((assignment) => shortLabel(assignment.subjectLabel)).join(" / ")}
+                {cellLabel(cellAssignments, day, shift.code, period, "subject")}
               </td>
             );
           })}
@@ -426,6 +420,29 @@ function ClassShiftRows({
 function shortLabel(value: string) {
   const parts = value.split(" · ");
   return parts.at(-1) ?? value;
+}
+
+function cellLabel(
+  cellAssignments: TimetableAssignment[],
+  day: number,
+  shiftCode: string,
+  period: number,
+  mode: "school" | "subject" = "school",
+) {
+  if (
+    day === DEFAULT_FLAG_CEREMONY_SLOT.day &&
+    period === DEFAULT_FLAG_CEREMONY_SLOT.period &&
+    (shiftCode ?? "MORNING") === DEFAULT_FLAG_CEREMONY_SLOT.shiftCode
+  ) {
+    return "Chào cờ";
+  }
+  return cellAssignments
+    .map((assignment) =>
+      mode === "subject"
+        ? shortLabel(assignment.subjectLabel)
+        : `${shortLabel(assignment.subjectLabel)} - ${shortLabel(assignment.teacherLabel)}`,
+    )
+    .join(" / ");
 }
 
 function homeroomTeacherName(classLabel: string, assignments: HomeroomAssignment[]) {

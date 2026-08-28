@@ -15,6 +15,7 @@ import { OptimizationJobPanel } from "./optimization-job-panel";
 import { ReleasePanel } from "./release-panel";
 import { buildTimetableAssignments, loadTimetable, type TimetableSolveInput } from "./timetable-api";
 import { TimetableGrid } from "./timetable-grid";
+import { DEFAULT_FLAG_CEREMONY_SLOT } from "./timetable-rules";
 import type { TimetableView } from "./timetable-types";
 
 const statusLabels: Record<string, string> = {
@@ -45,6 +46,15 @@ export function TimetableScreen() {
   });
   const data = timetableQuery.data ?? null;
   const activeLessonRequirements = data?.lessonRequirements.filter(({ status }) => status !== "ARCHIVED") ?? [];
+  const flagCeremonySlotIds =
+    data?.timeSlots
+      .filter(
+        (slot) =>
+          slot.day === DEFAULT_FLAG_CEREMONY_SLOT.day &&
+          slot.period === DEFAULT_FLAG_CEREMONY_SLOT.period &&
+          (slot.shiftCode ?? "MORNING") === DEFAULT_FLAG_CEREMONY_SLOT.shiftCode,
+      )
+      .map((slot) => slot.id) ?? [];
   const solveInput: TimetableSolveInput | null =
     data && frontendConfig.schoolId && data.timeSlots.length > 0 && activeLessonRequirements.length > 0
       ? {
@@ -64,6 +74,7 @@ export function TimetableScreen() {
             teacherId,
             requiredSessions,
           })),
+          classUnavailableSlotIds: Object.fromEntries(data.classes.map((item) => [item.id, flagCeremonySlotIds])),
         }
       : null;
   const solverPreviewAssignments =

@@ -1,0 +1,1010 @@
+/* Master Data T04: organize entity navigation, editor and data table as one workspace. */
+.master-data-screen {
+  display: grid;
+  min-width: 0;
+  gap: 20px;
+}
+
+.master-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.master-workspace {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  background: var(--card);
+  box-shadow: 0 10px 28px color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+
+.master-workspace-toolbar {
+  display: grid;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+  padding: 2px 2px 16px;
+}
+
+.master-toolbar-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.master-section-kicker {
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.master-toolbar-heading strong {
+  color: var(--foreground);
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.master-toolbar-heading small {
+  color: var(--muted-foreground);
+  font-size: 0.74rem;
+}
+
+.master-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+}
+
+.master-tab {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: var(--control-height);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 10px;
+  color: var(--muted-foreground);
+  background: color-mix(in oklch, var(--muted) 3%, var(--card));
+  text-align: left;
+}
+
+.master-tab:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--accent);
+}
+
+.master-tab.active {
+  border-color: color-mix(in oklch, var(--primary) 30%, var(--border));
+  color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 9%, var(--card));
+}
+
+.master-tab svg {
+  width: 16px;
+  height: 16px;
+}
+
+.master-tab > span {
+  min-width: 0;
+  overflow: hidden;
+  color: currentColor;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.master-tab small {
+  display: grid;
+  min-width: 24px;
+  height: 22px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  background: var(--secondary);
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.master-tab.active small {
+  color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 15%, var(--card));
+}
+
+.master-period-picker {
+  display: grid;
+  gap: 7px;
+  width: min(100%, 360px);
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.master-select,
+.master-field select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--input);
+  border-radius: 9px;
+  padding: 8px 10px;
+  color: var(--foreground);
+  background: var(--card);
+  font-size: 0.8rem;
+}
+
+.master-workspace-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.34fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+  min-width: 0;
+}
+
+.master-editor {
+  position: sticky;
+  top: 92px;
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  background: color-mix(in oklch, var(--primary) 4%, var(--card));
+}
+
+.master-editor-header,
+.master-list-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.master-editor-header h2,
+.master-list-header h2 {
+  margin: 5px 0 0;
+  color: var(--foreground);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.master-fields {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.master-field {
+  display: grid;
+  gap: 6px;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.master-field > span {
+  color: var(--foreground);
+}
+
+.master-field input[aria-invalid="true"],
+.master-field select[aria-invalid="true"],
+.master-input-error {
+  border-color: var(--destructive) !important;
+  background: color-mix(in oklch, var(--destructive) 7%, var(--card)) !important;
+}
+
+.master-editor > [data-slot="button"] {
+  width: 100%;
+}
+
+.master-data-list {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+}
+
+.master-list-header {
+  align-items: center;
+}
+
+.master-list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.master-search-field {
+  display: grid;
+  gap: 7px;
+  width: min(100%, 460px);
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.master-search-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.master-search-input > svg {
+  position: absolute;
+  left: 10px;
+  z-index: 1;
+  width: 15px;
+  height: 15px;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.master-search-input [data-slot="input"] {
+  width: 100%;
+  padding-left: 32px;
+  background: var(--card);
+}
+
+.master-table-frame {
+  min-width: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  scrollbar-color: color-mix(in oklch, var(--primary) 42%, var(--border)) transparent;
+}
+
+.master-relation-imports {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: color-mix(in oklch, var(--primary) 3%, var(--card));
+}
+
+.master-relation-imports-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.master-relation-imports-heading h2 {
+  margin: 3px 0 0;
+  color: var(--foreground);
+  font-size: 1rem;
+}
+
+.master-relation-imports-heading p,
+.master-relation-import-card small {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.master-relation-import-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.master-relation-import-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--card);
+}
+
+.master-relation-import-card > div:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.master-relation-import-card strong {
+  color: var(--foreground);
+  font-size: 0.82rem;
+}
+
+.master-relation-import-card .master-import-actions {
+  justify-content: flex-start;
+}
+
+.master-import-dialog {
+  width: calc(100% - 2rem);
+  max-width: 760px;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.master-import-dialog-body {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.master-import-file-field {
+  display: grid;
+  gap: 7px;
+  color: var(--foreground);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.master-import-file-field input[type="file"] {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: 6px 8px;
+  border: 1px solid var(--input);
+  border-radius: var(--control-radius);
+  color: var(--foreground);
+  background: var(--card);
+  font-size: 0.78rem;
+}
+
+.master-import-file-name,
+.master-import-read-only {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.74rem;
+  overflow-wrap: anywhere;
+}
+
+.master-import-preview {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.master-import-preview-heading,
+.master-import-metrics {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.master-import-preview-heading > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.master-import-preview-heading strong {
+  color: var(--foreground);
+  font-size: 0.86rem;
+}
+
+.master-import-preview-heading small {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  overflow-wrap: anywhere;
+}
+
+.master-import-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--muted) 3%, var(--card));
+}
+
+.master-import-metrics span {
+  display: grid;
+  gap: 2px;
+  border-right: 1px solid var(--border);
+  padding: 9px 10px;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+}
+
+.master-import-metrics span:last-child {
+  border-right: 0;
+}
+
+.master-import-metrics b {
+  color: var(--foreground);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.master-import-issues {
+  display: grid;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  border-left: 3px solid var(--destructive);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--destructive);
+  background: color-mix(in oklch, var(--destructive) 7%, var(--card));
+  font-size: 0.74rem;
+}
+
+.master-import-issues p,
+.master-import-issues small {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.master-import-issues small {
+  color: var(--muted-foreground);
+}
+
+.master-import-preview-table {
+  min-width: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.master-import-preview-table table {
+  min-width: 560px;
+  margin: 0;
+}
+
+.master-import-preview-table td,
+.master-import-preview-table th {
+  padding: 8px 10px;
+}
+
+.master-import-preview-table > small {
+  display: block;
+  padding: 8px 10px;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+}
+
+@media (max-width: 720px) {
+  .master-relation-import-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .master-list-actions > .master-import-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .master-list-actions > .master-import-actions > * {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .master-import-preview-heading {
+    flex-direction: column;
+  }
+
+  .master-import-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .master-import-metrics span:nth-child(2) {
+    border-right: 0;
+  }
+
+  .master-import-metrics span:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .master-import-metrics span:last-child {
+    border-right: 0;
+  }
+
+  .master-relation-import-card .master-import-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .master-relation-import-card .master-import-actions > * {
+    width: 100%;
+  }
+}
+
+.master-table-frame table {
+  min-width: 620px;
+  margin: 0;
+}
+
+.master-table-frame thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--foreground);
+}
+
+.master-table-frame tbody tr {
+  transition: background-color 140ms ease;
+}
+
+.master-table-frame tbody tr:hover {
+  background: color-mix(in oklch, var(--primary) 5%, var(--card));
+}
+
+.master-table-frame td {
+  vertical-align: middle;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.table-action {
+  min-width: 48px;
+}
+
+.table-action.danger {
+  color: var(--destructive);
+}
+
+.master-duty-cell {
+  display: grid;
+  min-width: 130px;
+  gap: 2px;
+}
+
+.master-duty-cell strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.master-duty-cell small {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+}
+
+.master-assignment-cell {
+  display: grid;
+  min-width: 150px;
+  gap: 2px;
+}
+
+.master-assignment-cell strong {
+  color: var(--foreground);
+  font-size: 0.76rem;
+}
+
+.master-assignment-cell small {
+  max-width: 210px;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-assignment-action svg {
+  width: 14px;
+  height: 14px;
+}
+
+.homeroom-action svg {
+  width: 14px;
+  height: 14px;
+}
+
+.master-loading-state,
+.master-empty-state {
+  display: grid;
+  gap: 8px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.master-empty-state strong {
+  color: var(--foreground);
+  font-size: 0.84rem;
+}
+
+.master-empty-state p {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.74rem;
+}
+
+.master-workspace > [data-slot="card"] {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+@media (max-width: 980px) {
+  .master-workspace-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .master-editor {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .master-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .master-list-header,
+  .master-editor-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .master-list-actions {
+    justify-content: flex-start;
+  }
+
+  .master-list-actions > *,
+  .master-search-field {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .master-workspace {
+    padding: 12px;
+  }
+
+  .master-tabs {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .master-table-frame tbody tr {
+    transition: none;
+  }
+}
+
+/* Master Data dialogs: keep CRUD and homeroom editing focused without losing context. */
+.master-editor-dialog,
+.master-duty-dialog {
+  width: calc(100% - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.master-editor-dialog {
+  max-width: 600px;
+}
+
+.master-duty-dialog {
+  max-width: 540px;
+}
+
+.teacher-assignment-dialog {
+  max-width: 640px;
+}
+
+.teacher-assignment-dialog [data-slot="dialog-header"] {
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.teacher-assignment-dialog [data-slot="dialog-title"] {
+  font-size: 1.2rem;
+  letter-spacing: -0.025em;
+}
+
+.teacher-assignment-current,
+.teacher-assignment-form {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  background: color-mix(in oklch, var(--muted) 22%, var(--card));
+}
+
+.teacher-assignment-form {
+  grid-template-columns: minmax(0, 1.2fr) minmax(120px, 0.8fr);
+}
+
+.teacher-assignment-section-heading {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.teacher-assignment-section-heading strong {
+  color: var(--foreground);
+  font-size: 0.84rem;
+}
+
+.teacher-assignment-section-heading span {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  text-align: right;
+}
+
+.teacher-assignment-list {
+  display: grid;
+  gap: 0;
+}
+
+.teacher-assignment-list-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding: 10px 0 0;
+}
+
+.teacher-assignment-list-item + .teacher-assignment-list-item {
+  margin-top: 10px;
+}
+
+.teacher-assignment-list-item > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.teacher-assignment-list-item strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-assignment-list-item small {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-assignment-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.teacher-assignment-form .master-select {
+  width: 100%;
+}
+
+.teacher-assignment-empty {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.master-editor-form,
+.master-duty-form {
+  display: grid;
+  gap: 16px;
+}
+
+.master-editor-form .master-fields {
+  margin: 0;
+}
+
+.master-dialog-alert {
+  margin: 0;
+}
+
+.master-editor-form [data-slot="dialog-footer"] {
+  margin-inline: -16px;
+  margin-bottom: -16px;
+}
+
+.master-duty-header {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.master-duty-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.master-duty-summary > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.master-duty-summary > div > span,
+.master-duty-summary > div > small {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+}
+
+.master-duty-summary > div > strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 0.84rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.master-duty-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.master-duty-form .master-select {
+  width: 100%;
+}
+
+.master-dialog-error {
+  margin: 0;
+  border-radius: 9px;
+  padding: 9px 11px;
+  color: var(--destructive);
+  background: color-mix(in oklch, var(--destructive) 8%, var(--card));
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.teacher-load-summary-content {
+  display: grid;
+  gap: 14px;
+}
+
+.teacher-load-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(190px, 0.5fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.teacher-load-filters label,
+.teacher-load-rule-summary > div {
+  display: grid;
+  gap: 5px;
+}
+
+.teacher-load-filters label > span,
+.teacher-load-rule-summary span {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.teacher-load-result-count {
+  align-self: center;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.teacher-load-rule-summary {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1.4fr) minmax(165px, 1fr) minmax(170px, 1fr);
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  background: color-mix(in oklch, var(--muted) 34%, var(--card));
+}
+
+.teacher-load-rule-summary code {
+  color: var(--foreground);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.teacher-load-rule-summary a,
+.teacher-load-rule-summary strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-load-rule-summary a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.teacher-load-rule-summary .inline-flex {
+  margin-top: 2px;
+}
+
+.teacher-load-subjects {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.teacher-load-empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .master-duty-header,
+  .master-duty-summary {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .master-duty-summary > [data-slot="button"] {
+    width: 100%;
+  }
+
+  .teacher-load-filters,
+  .teacher-load-rule-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-load-result-count {
+    align-self: start;
+  }
+
+  .teacher-assignment-dialog {
+    max-width: calc(100% - 2rem);
+  }
+
+  .teacher-assignment-form {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-assignment-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .teacher-assignment-section-heading span {
+    text-align: left;
+  }
+
+  .teacher-assignment-list-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .teacher-assignment-list-item [data-slot="button"] {
+    justify-self: start;
+  }
+}
