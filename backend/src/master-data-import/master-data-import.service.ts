@@ -14,6 +14,7 @@ import {
   type MasterDataImportPreview,
   type MasterDataImportRowPreview,
 } from "../contracts/master-data-import";
+import { deriveSubjectCode } from "../contracts/subject-code";
 import { PG_POOL } from "../database/database.module";
 import { withTimeout, type UploadedExcelFile } from "../imports/imports.service";
 import {
@@ -144,7 +145,12 @@ export class MasterDataImportService {
       ["Entity", definition.entity],
       ["Sheet dữ liệu", definition.sheetName],
       ["Khóa tự nhiên", definition.naturalKey.join(" + ")],
-      ["Nguyên tắc", "Mã mới tạo, mã tồn tại cập nhật, không tự động xóa hoặc khôi phục dữ liệu."],
+      [
+        "Nguyên tắc",
+        entity === "subject"
+          ? "Chỉ nhập Tên môn; Mã môn được tự sinh từ chữ cái đầu của từng từ."
+          : "Mã mới tạo, mã tồn tại cập nhật, không tự động xóa hoặc khôi phục dữ liệu.",
+      ],
       ["Ghi chú", "Xóa các dòng minh họa trước khi tải lên nếu có thêm dữ liệu thử nghiệm."],
     ]);
     guide.getRow(1).font = { bold: true };
@@ -620,7 +626,22 @@ export class MasterDataImportService {
         );
     }
     if (entity === "class" || entity === "teacher" || entity === "subject" || entity === "room") {
-      const code = this.text(values.code);
+      const name = entity === "teacher" ? this.text(values.displayName) : this.text(values.name);
+      const code = entity === "subject" ? deriveSubjectCode(name) : this.text(values.code);
+      if (entity === "subject") values.code = code;
+      if (entity === "subject" && name && !code)
+        errors.push(
+          this.issue(
+            definition.sheetName,
+            rowNumber,
+            "Tên môn",
+            "name",
+            "SUBJECT_CODE_EMPTY",
+            "Không thể tự sinh mã môn từ tên môn này.",
+            name,
+            "Nhập tên môn có ít nhất một chữ cái hoặc chữ số.",
+          ),
+        );
       if (
         entity === "class" &&
         this.integer(values.grade) !== null &&
@@ -670,7 +691,25 @@ export class MasterDataImportService {
           ),
         );
       if (normalizedKey) seenKeys.add(normalizedKey);
-      const existing = normalizedKey ? catalog.records.get(normalizedKey) : undefined;
+      let existing = normalizedKey ? catalog.records.get(normalizedKey) : undefined;
+      if (entity === "subject" && name && !existing) {
+        existing = [...catalog.records.values()].find(
+          (record) => this.normalize(record.name ?? "") === this.normalize(name),
+        );
+      }
+      if (entity === "subject" && existing && this.normalize(existing.name ?? "") !== this.normalize(name))
+        errors.push(
+          this.issue(
+            definition.sheetName,
+            rowNumber,
+            "Tên môn",
+            "name",
+            "SUBJECT_CODE_CONFLICT",
+            `Mã môn tự sinh ${code} đã được sử dụng cho môn ${existing.name ?? "khác"}.`,
+            name,
+            "Đổi tên môn để tạo mã khác hoặc cập nhật đúng môn đang có.",
+          ),
+        );
       if (existing?.status === "ARCHIVED")
         errors.push(
           this.issue(
@@ -684,7 +723,6 @@ export class MasterDataImportService {
             "Không tự động khôi phục; dùng CRUD hoặc quy trình khôi phục được phê duyệt.",
           ),
         );
-      const name = entity === "teacher" ? this.text(values.displayName) : this.text(values.name);
       const duplicateName =
         name && entity !== "teacher"
           ? [...catalog.records.values()].find(
@@ -1038,7 +1076,7 @@ export class MasterDataImportService {
         : entity === "teacher"
           ? ["display_name"]
           : entity === "subject"
-            ? ["name"]
+            ? ["code", "name"]
             : ["name", "room_type", "capacity"];
     const values: Scalar[] = [];
     const setClause = fields

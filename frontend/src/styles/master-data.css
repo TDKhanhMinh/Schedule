@@ -198,6 +198,17 @@
   color: var(--foreground);
 }
 
+.master-field .field-hint {
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.master-field .field-hint strong {
+  color: var(--primary);
+  letter-spacing: 0.04em;
+}
+
 .master-field input[aria-invalid="true"],
 .master-field select[aria-invalid="true"],
 .master-input-error {

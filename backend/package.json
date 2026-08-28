@@ -6,6 +6,10 @@
     "./contracts": {
       "types": "./src/contracts/index.ts",
       "default": "./src/contracts/index.ts"
+    },
+    "./subject-code": {
+      "types": "./src/contracts/subject-code.ts",
+      "default": "./src/contracts/subject-code.ts"
     }
   },
   "scripts": {

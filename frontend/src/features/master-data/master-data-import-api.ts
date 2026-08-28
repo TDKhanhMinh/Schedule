@@ -56,7 +56,7 @@ export async function downloadMasterDataTemplate(entity: MasterDataImportEntity)
   const blob = await response.blob();
   const contentDisposition = response.headers.get("content-disposition") ?? "";
   const filename =
-    contentDisposition.match(/filename="?([^";]+)"?/i)?.[1] ?? `master-data-${entity}-template-v1.0.xlsx`;
+    contentDisposition.match(/filename="?([^";]+)"?/i)?.[1] ?? `master-data-${entity}-template-v1.1.xlsx`;
   return { blob, filename };
 }
 

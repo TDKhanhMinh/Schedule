@@ -38,7 +38,7 @@ export const emptyForm: Record<MasterDataEntity, Record<string, string>> = {
   slot: { day: "1", period: "1", shiftCode: "MORNING", startsAt: "07:00", endsAt: "07:45" },
   teacher: { code: "", displayName: "" },
   class: { code: "", name: "", grade: "7" },
-  subject: { code: "", name: "" },
+  subject: { name: "" },
   room: { code: "", name: "", roomType: "STANDARD", capacity: "" },
   assignment: { classId: "", subjectId: "", teacherId: "", roomId: "", requiredSessions: "" },
 };
@@ -75,10 +75,7 @@ export const fields: Record<
     { key: "name", label: "Tên lớp", required: true, placeholder: "Nhập tên lớp" },
     { key: "grade", label: "Khối", type: "number", required: true },
   ],
-  subject: [
-    { key: "code", label: "Mã môn", required: true, placeholder: "Nhập mã môn" },
-    { key: "name", label: "Tên môn", required: true, placeholder: "Nhập tên môn" },
-  ],
+  subject: [{ key: "name", label: "Tên môn", required: true, placeholder: "Nhập tên môn" }],
   room: [
     { key: "code", label: "Mã phòng", required: true, placeholder: "Nhập mã phòng" },
     { key: "name", label: "Tên phòng", required: true, placeholder: "Nhập tên phòng" },

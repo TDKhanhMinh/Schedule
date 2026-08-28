@@ -29,7 +29,7 @@
   ],
   "properties": {
     "contractVersion": { "const": "MASTER-DATA-IMPORT-1.0.0" },
-    "templateVersion": { "const": "1.0" },
+    "templateVersion": { "const": "1.1" },
     "entity": { "enum": ["class", "teacher", "subject", "room", "teacherSubjectGrade", "homeroom"] },
     "label": { "type": "string", "minLength": 1 },
     "sheetName": { "type": "string", "minLength": 1 },

@@ -13,7 +13,7 @@ ENV VITE_USER_ROLE=$VITE_USER_ROLE
 COPY package.json package-lock.json ./
 COPY backend/package.json backend/package.json
 COPY frontend/package.json frontend/package.json
-RUN npm ci
+RUN npm ci --include=optional
 COPY backend backend
 COPY frontend frontend
 COPY tsconfig.base.json .

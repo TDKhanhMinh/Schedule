@@ -27,7 +27,7 @@ không đổi và khớp `backend/src/master-data/master-data.dto.ts`:
 | Time slot          | `day`, `period`, `shiftCode`, `startsAt`, `endsAt`                | `/schools/:schoolId/academic-periods/:periodId/time-slots`          |
 | Teacher            | `code`, `displayName`                                             | `/schools/:schoolId/teachers`                                       |
 | Class              | `code`, `name`, `grade`                                           | `/schools/:schoolId/classes`                                        |
-| Subject            | `code`, `name`                                                    | `/schools/:schoolId/subjects`                                       |
+| Subject            | `name` (mã được tự sinh)                                         | `/schools/:schoolId/subjects`                                       |
 | Room               | `code`, `name`, `roomType`, `capacity`                            | `/schools/:schoolId/rooms`                                          |
 | Lesson requirement | `classId`, `subjectId`, `teacherId`, `roomId`, `requiredSessions` | `/schools/:schoolId/academic-periods/:periodId/lesson-requirements` |
 

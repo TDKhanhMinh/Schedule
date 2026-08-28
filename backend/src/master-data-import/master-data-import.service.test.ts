@@ -33,7 +33,7 @@ describe("MasterDataImportService", () => {
   it.each([
     ["class", "Classes", ["Mã lớp", "Tên lớp", "Khối"]],
     ["teacher", "Teachers", ["Mã giáo viên", "Tên giáo viên"]],
-    ["subject", "Subjects", ["Mã môn", "Tên môn"]],
+    ["subject", "Subjects", ["Tên môn"]],
     ["room", "Rooms", ["Mã phòng", "Tên phòng", "Loại phòng", "Sức chứa"]],
     ["teacherSubjectGrade", "TeacherSubjectGrades", ["Mã giáo viên", "Mã môn", "Khối", "Năm học", "Mã học kỳ"]],
     [
@@ -50,7 +50,7 @@ describe("MasterDataImportService", () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(result.workbook as never);
 
-    expect(result.filename).toContain(`master-data-${entity}-template-v1.0.xlsx`);
+    expect(result.filename).toContain(`master-data-${entity}-template-v1.1.xlsx`);
     expect(workbook.worksheets.map((worksheet) => worksheet.name)).toEqual([
       sheetName,
       "TemplateGuide",
@@ -103,6 +103,47 @@ describe("MasterDataImportService", () => {
       expect.any(Array),
     );
     expect(clientQuery.mock.calls.some(([sql]) => String(sql).includes("INSERT INTO classes"))).toBe(false);
+  });
+
+  it("derives subject codes from the subject name when previewing a name-only workbook", async () => {
+    const { pool, query } = createPool();
+    query.mockResolvedValueOnce({ rows: [{ id: SCHOOL_ID }], rowCount: 1 }).mockResolvedValueOnce({
+      rows: [{ id: "subject-001", code: "NATURAL_SCIENCE", name: "Khoa học tự nhiên", status: "ACTIVE" }],
+      rowCount: 1,
+    });
+    const service = new MasterDataImportService(pool);
+
+    const result = await service.preview(
+      {
+        originalname: "subjects.xlsx",
+        buffer: await workbookBuffer("Subjects", ["Tên môn"], [["Khoa học tự nhiên"], ["Vật lí"]]),
+      },
+      SCHOOL_ID,
+      "subject",
+      "import-user",
+    );
+
+    expect(result).toMatchObject({
+      templateVersion: "1.1",
+      rowCount: 2,
+      validRowCount: 2,
+      errorCount: 0,
+      createCount: 1,
+      updateCount: 1,
+      canConfirm: true,
+    });
+    expect(result.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          values: { name: "Khoa học tự nhiên", code: "KHTN" },
+          normalized: expect.objectContaining({ code: "KHTN" }),
+        }),
+        expect.objectContaining({
+          values: { name: "Vật lí", code: "VL" },
+          normalized: expect.objectContaining({ code: "VL" }),
+        }),
+      ]),
+    );
   });
 
   it("returns row-level errors for duplicate and invalid class data", async () => {

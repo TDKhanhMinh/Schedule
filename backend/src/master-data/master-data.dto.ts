@@ -215,7 +215,8 @@ export class AssignTeacherSubjectGradeDto {
 export class CreateSubjectDto {
   @IsString()
   @IsNotEmpty()
-  code!: string;
+  @IsOptional()
+  code?: string;
 
   @IsString()
   @IsNotEmpty()

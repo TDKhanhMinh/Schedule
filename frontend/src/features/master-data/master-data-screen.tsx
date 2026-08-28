@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { deriveSubjectCode } from "@schedule/backend/subject-code";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   BookOpen,
@@ -364,6 +365,10 @@ export function MasterDataScreen() {
   }
 
   function formBody() {
+    if (activeEntity === "subject") {
+      const name = form.name?.trim() ?? "";
+      return { code: deriveSubjectCode(name), name };
+    }
     const numericKeys = new Set(["day", "period", "grade", "capacity", "requiredSessions"]);
     const body: Record<string, string | number> = {};
     for (const [key, value] of Object.entries(form)) {
@@ -575,6 +580,11 @@ export function MasterDataScreen() {
             aria-invalid={Boolean(errorMessage)}
           />
         )}
+        {activeEntity === "subject" && field.key === "name" ? (
+          <small className="field-hint">
+            Mã môn tự sinh: <strong>{deriveSubjectCode(form.name ?? "") || "—"}</strong>
+          </small>
+        ) : null}
         {errorMessage ? <small className="field-error">{errorMessage}</small> : null}
       </label>
     );

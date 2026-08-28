@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import type { Pool, QueryResultRow } from "pg";
 import { PG_POOL } from "../database/database.module";
+import { deriveSubjectCode } from "../contracts/subject-code";
 import {
   AssignHomeroomTeacherDto,
   AssignTeacherSubjectGradeDto,
@@ -1057,12 +1058,14 @@ export class MasterDataService {
 
   async createSubject(schoolId: string, dto: CreateSubjectDto) {
     await this.ensureSchool(schoolId);
+    const name = this.requiredText(dto.name, "name");
+    const code = this.requiredText(deriveSubjectCode(name), "code");
     try {
       const result = await this.pool.query<SubjectRow>(
         `INSERT INTO subjects (school_id, code, name, status)
          VALUES ($1, $2, $3, 'ACTIVE')
          RETURNING id::text, school_id::text, code, name, status, created_at, updated_at`,
-        [schoolId, this.requiredText(dto.code, "code"), this.requiredText(dto.name, "name")],
+        [schoolId, code, name],
       );
       return this.toSubject(result.rows[0]);
     } catch (error) {
@@ -1073,13 +1076,15 @@ export class MasterDataService {
   async updateSubject(schoolId: string, subjectId: string, dto: UpdateSubjectDto) {
     const updates: string[] = [];
     const values: unknown[] = [];
-    if (dto.code !== undefined) {
+    if (dto.name !== undefined) {
+      const name = this.requiredText(dto.name, "name");
+      updates.push(`code = $${values.length + 1}`);
+      values.push(this.requiredText(deriveSubjectCode(name), "code"));
+      updates.push(`name = $${values.length + 1}`);
+      values.push(name);
+    } else if (dto.code !== undefined) {
       updates.push(`code = $${values.length + 1}`);
       values.push(this.requiredText(dto.code, "code"));
-    }
-    if (dto.name !== undefined) {
-      updates.push(`name = $${values.length + 1}`);
-      values.push(this.requiredText(dto.name, "name"));
     }
     if (updates.length === 0) throw this.noFieldsToUpdate();
     values.push(subjectId, schoolId);

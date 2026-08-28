@@ -119,6 +119,59 @@ describe("MasterDataService", () => {
     ]);
   });
 
+  it("derives a subject code from its name when creating a subject", async () => {
+    query.mockResolvedValueOnce({ rows: [schoolRow] }).mockResolvedValueOnce({
+      rows: [
+        {
+          id: "subject-001",
+          school_id: "school-001",
+          code: "KHTN",
+          name: "Khoa học tự nhiên",
+          status: "ACTIVE",
+          created_at: timestamp,
+          updated_at: timestamp,
+        },
+      ],
+    });
+
+    await expect(service.createSubject("school-001", { name: "Khoa học tự nhiên" })).resolves.toMatchObject({
+      code: "KHTN",
+      name: "Khoa học tự nhiên",
+    });
+    expect(query).toHaveBeenLastCalledWith(expect.stringContaining("INSERT INTO subjects"), [
+      "school-001",
+      "KHTN",
+      "Khoa học tự nhiên",
+    ]);
+  });
+
+  it("regenerates a subject code when its name changes", async () => {
+    query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: "subject-001",
+          school_id: "school-001",
+          code: "VL",
+          name: "Vật lí",
+          status: "ACTIVE",
+          created_at: timestamp,
+          updated_at: timestamp,
+        },
+      ],
+    });
+
+    await expect(service.updateSubject("school-001", "subject-001", { name: "Vật lí" })).resolves.toMatchObject({
+      code: "VL",
+      name: "Vật lí",
+    });
+    expect(query).toHaveBeenLastCalledWith(expect.stringContaining("UPDATE subjects"), [
+      "VL",
+      "Vật lí",
+      "subject-001",
+      "school-001",
+    ]);
+  });
+
   it("creates a professional assignment for an active teacher and subject", async () => {
     query
       .mockResolvedValueOnce({ rows: [periodRow] })

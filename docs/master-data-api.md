@@ -51,3 +51,6 @@ xóa vật lý khi không có tham chiếu `optimization_assignments` hoặc
 API trả trường camelCase trong khi PostgreSQL vẫn dùng `snake_case`. Ranh giới
 CRUD không thay đổi hợp đồng truyền bộ tối ưu Python `schemaVersion: "1.0"`;
 xác thực/RBAC, phê duyệt thí điểm và sẵn sàng production vẫn là các cổng riêng.
+
+Khi tạo hoặc cập nhật môn học, API tự sinh `code` từ chữ cái đầu của từng từ
+trong `name` (ví dụ `Vật lí` → `VL`, `Khoa học tự nhiên` → `KHTN`).

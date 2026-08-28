@@ -1,5 +1,5 @@
 export const MASTER_DATA_IMPORT_CONTRACT_VERSION = "MASTER-DATA-IMPORT-1.0.0" as const;
-export const MASTER_DATA_TEMPLATE_VERSION = "1.0" as const;
+export const MASTER_DATA_TEMPLATE_VERSION = "1.1" as const;
 
 export type MasterDataImportEntity = "class" | "teacher" | "subject" | "room" | "teacherSubjectGrade" | "homeroom";
 
@@ -78,8 +78,13 @@ export const MASTER_DATA_IMPORT_DEFINITIONS: readonly MasterDataImportDefinition
     sheetName: "Subjects",
     naturalKey: ["code"],
     columns: [
-      { key: "code", header: "Mã môn", required: true, type: "string", description: "Mã môn duy nhất trong trường." },
-      { key: "name", header: "Tên môn", required: true, type: "string", description: "Tên hiển thị của môn học." },
+      {
+        key: "name",
+        header: "Tên môn",
+        required: true,
+        type: "string",
+        description: "Tên hiển thị; mã môn được tự sinh từ chữ cái đầu của từng từ.",
+      },
     ],
   },
   {

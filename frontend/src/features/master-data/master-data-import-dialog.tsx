@@ -139,7 +139,9 @@ export function MasterDataImportActions({
           <DialogHeader>
             <DialogTitle>Nhập Excel: {labels[entity]}</DialogTitle>
             <DialogDescription id={`${entity}-import-description`}>
-              Chọn đúng file mẫu, xem trước dữ liệu và chỉ xác nhận khi không còn lỗi.
+              {entity === "subject"
+                ? "Chỉ cần nhập Tên môn trong file mẫu; hệ thống sẽ tự sinh Mã môn trước khi kiểm tra và lưu dữ liệu."
+                : "Chọn đúng file mẫu, xem trước dữ liệu và chỉ xác nhận khi không còn lỗi."}
             </DialogDescription>
           </DialogHeader>
           <div className="master-import-dialog-body">
