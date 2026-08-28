@@ -1,5 +1,6 @@
 export type Status = "ACTIVE" | "ARCHIVED";
 export type MasterDataEntity = "school" | "period" | "slot" | "teacher" | "class" | "subject" | "room" | "assignment";
+export type ShiftCode = "MORNING" | "AFTERNOON";
 
 export interface School {
   id: string;
@@ -26,6 +27,21 @@ export interface TimeSlot {
   shiftCode: string | null;
   startsAt: string | null;
   endsAt: string | null;
+}
+
+export interface GradeShiftConfig {
+  id: string;
+  schoolId: string;
+  academicPeriodId: string;
+  grade: number;
+  mainShiftCode: ShiftCode;
+  secondaryShiftCode: ShiftCode;
+  allowSecondary: boolean;
+  flagCeremony: {
+    day: number;
+    shiftCode: ShiftCode;
+    period: number;
+  };
 }
 
 export interface Teacher {
@@ -66,6 +82,8 @@ export interface LessonRequirement {
   teacherId: string;
   roomId: string | null;
   requiredSessions: number;
+  fixedSlotId?: string | null;
+  activityType?: "LESSON" | "FLAG_CEREMONY";
   status: Status;
 }
 

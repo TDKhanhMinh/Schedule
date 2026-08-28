@@ -2,11 +2,14 @@ import "reflect-metadata";
 import { ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
+import express from "express";
 import { AppModule } from "./app.module";
 import { ApiExceptionFilter } from "./common/http/api-exception.filter";
 
 export async function createApp() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  app.use(express.json({ limit: "2mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "2mb" }));
   const config = app.get(ConfigService);
   app.setGlobalPrefix(config.get<string>("API_PREFIX", "api/v1"));
   const corsOrigin = config.get<string>("CORS_ORIGIN");

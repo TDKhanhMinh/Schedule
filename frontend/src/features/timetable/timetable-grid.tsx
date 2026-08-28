@@ -2,7 +2,6 @@ import { ArrowLeftRight, CalendarDays, Maximize2, Minimize2 } from "lucide-react
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { HomeroomAssignment, TimetableAssignment, TimetableView } from "./timetable-types";
-import { DEFAULT_FLAG_CEREMONY_SLOT } from "./timetable-rules";
 
 const SCHOOL_DAYS = [1, 2, 3, 4, 5, 6];
 const SCHOOL_PERIODS = [1, 2, 3, 4, 5];
@@ -35,7 +34,7 @@ export function TimetableGrid({
 }) {
   const normalizedQuery = query.trim().toLowerCase();
   const visibleAssignments = assignments.filter((assignment) =>
-    `${assignment.classLabel} ${assignment.subjectLabel} ${assignment.teacherLabel} ${assignment.roomLabel}`
+    `${assignment.classLabel} ${assignment.subjectLabel} ${assignment.subjectName} ${assignment.teacherLabel} ${assignment.roomLabel}`
       .toLowerCase()
       .includes(normalizedQuery),
   );
@@ -238,7 +237,7 @@ function SchoolOverviewView({
                         const cellAssignments = cells.get(`${classLabel}:${day}:${shift.code}:${period}`) ?? [];
                         return (
                           <td className="school-subject-cell" key={classLabel}>
-                            {cellLabel(cellAssignments, day, shift.code, period)}
+                            {cellLabel(cellAssignments)}
                           </td>
                         );
                       })}
@@ -322,7 +321,7 @@ function SchoolClassOverviewTable({
                   const cellAssignments = assignments.get(`${classLabel}:${day}:${shift.code}:${period}`) ?? [];
                   return (
                     <td className="school-subject-cell" key={day}>
-                      {cellLabel(cellAssignments, day, shift.code, period)}
+                      {cellLabel(cellAssignments)}
                     </td>
                   );
                 })}
@@ -407,7 +406,7 @@ function ClassShiftRows({
             const cellAssignments = cells.get(`${day}:${period}`) ?? [];
             return (
               <td className="school-subject-cell" key={day}>
-                {cellLabel(cellAssignments, day, shift.code, period, "subject")}
+                {cellLabel(cellAssignments, "subject")}
               </td>
             );
           })}
@@ -422,20 +421,7 @@ function shortLabel(value: string) {
   return parts.at(-1) ?? value;
 }
 
-function cellLabel(
-  cellAssignments: TimetableAssignment[],
-  day: number,
-  shiftCode: string,
-  period: number,
-  mode: "school" | "subject" = "school",
-) {
-  if (
-    day === DEFAULT_FLAG_CEREMONY_SLOT.day &&
-    period === DEFAULT_FLAG_CEREMONY_SLOT.period &&
-    (shiftCode ?? "MORNING") === DEFAULT_FLAG_CEREMONY_SLOT.shiftCode
-  ) {
-    return "Chào cờ";
-  }
+function cellLabel(cellAssignments: TimetableAssignment[], mode: "school" | "subject" = "school") {
   return cellAssignments
     .map((assignment) =>
       mode === "subject"

@@ -16,6 +16,22 @@ export interface MasterRecord {
   code?: string;
   name?: string;
   displayName?: string;
+  grade?: number;
+}
+
+export interface GradeShiftConfig {
+  id: string;
+  schoolId: string;
+  academicPeriodId: string;
+  grade: number;
+  mainShiftCode: "MORNING" | "AFTERNOON";
+  secondaryShiftCode: "MORNING" | "AFTERNOON";
+  allowSecondary: boolean;
+  flagCeremony: {
+    day: number;
+    shiftCode: "MORNING" | "AFTERNOON";
+    period: number;
+  };
 }
 
 export interface TimeSlot {
@@ -34,6 +50,8 @@ export interface LessonRequirement {
   teacherId: string;
   roomId?: string | null;
   requiredSessions: number;
+  fixedSlotId?: string | null;
+  activityType?: "LESSON" | "FLAG_CEREMONY";
   status?: "ACTIVE" | "ARCHIVED";
 }
 
@@ -45,6 +63,8 @@ export interface TimetableAssignment {
   roomId: string | null;
   classLabel: string;
   subjectLabel: string;
+  subjectName: string;
+  activityType?: "LESSON" | "FLAG_CEREMONY";
   teacherLabel: string;
   roomLabel: string;
   shiftCode: string | null;

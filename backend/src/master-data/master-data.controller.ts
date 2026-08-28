@@ -12,6 +12,7 @@ import {
   CreateSubjectDto,
   CreateTeacherDto,
   CreateTimeSlotDto,
+  UpsertGradeShiftConfigsDto,
   UpdateAcademicPeriodDto,
   UpdateClassDto,
   UpdateLessonRequirementDto,
@@ -291,6 +292,20 @@ export class MasterDataController {
     @Param("slotId") slotId: string,
   ) {
     return this.masterData.deleteTimeSlot(schoolId, periodId, slotId);
+  }
+
+  @Get(":schoolId/academic-periods/:periodId/grade-shifts")
+  listGradeShiftConfigs(@Param("schoolId") schoolId: string, @Param("periodId") periodId: string) {
+    return this.masterData.listGradeShiftConfigs(schoolId, periodId);
+  }
+
+  @Put(":schoolId/academic-periods/:periodId/grade-shifts")
+  upsertGradeShiftConfigs(
+    @Param("schoolId") schoolId: string,
+    @Param("periodId") periodId: string,
+    @Body() dto: UpsertGradeShiftConfigsDto,
+  ) {
+    return this.masterData.upsertGradeShiftConfigs(schoolId, periodId, dto);
   }
 
   @Get(":schoolId/academic-periods/:periodId/lesson-requirements")

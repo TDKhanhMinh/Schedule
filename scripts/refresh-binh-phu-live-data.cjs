@@ -8,43 +8,55 @@ const SCHOOL_ID = "00000000-0000-0000-0000-000000000001";
 const PERIOD_ID = "00000000-0000-0000-0000-000000000101";
 const VERSION_ID = "51a452c7-5cce-4472-87ff-f840fc4ca06c";
 
+function deriveSubjectCode(name) {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .split(/\s+/)
+    .map((word) => word.replace(/[^a-zA-Z0-9]/g, ""))
+    .filter(Boolean)
+    .map((word) => word[0].toUpperCase())
+    .join("");
+}
+
 const subjects = [
-  ["MATH", "Toán"],
-  ["LITERATURE", "Ngữ văn"],
-  ["ENGLISH", "Tiếng Anh"],
-  ["NATURAL_SCIENCE", "Khoa học tự nhiên"],
-  ["HISTORY_GEOGRAPHY", "Lịch sử và Địa lí"],
-  ["CIVICS", "Giáo dục công dân"],
-  ["PHYSICAL_EDUCATION", "Giáo dục thể chất"],
-  ["INFORMATICS", "Tin học"],
-  ["TECHNOLOGY", "Công nghệ"],
-  ["FINE_ARTS", "Mĩ thuật"],
-  ["MUSIC", "Âm nhạc"],
-  ["EXPERIENCE", "Hoạt động trải nghiệm"],
-  ["LOCAL_EDUCATION", "Giáo dục địa phương"],
-  ["LIFE_SKILLS", "Kĩ năng sống"],
-  ["FLAG_CEREMONY", "Chào cờ"],
-];
+  "Toán",
+  "Ngữ văn",
+  "Tiếng Anh",
+  "Khoa học tự nhiên",
+  "Lịch sử và Địa lí",
+  "Giáo dục công dân",
+  "Giáo dục thể chất",
+  "Tin học",
+  "Công nghệ",
+  "Mĩ thuật",
+  "Âm nhạc",
+  "Hoạt động trải nghiệm",
+  "Giáo dục địa phương",
+  "Kĩ năng sống",
+  "Chào cờ",
+].map((name) => [deriveSubjectCode(name), name]);
 
 const subjectCodeBySourceName = new Map([
-  ["Toán", "MATH"],
-  ["Toán TS", "MATH"],
-  ["Văn", "LITERATURE"],
-  ["Văn TS", "LITERATURE"],
-  ["T.Anh", "ENGLISH"],
-  ["T.Anh TS", "ENGLISH"],
-  ["KHTN", "NATURAL_SCIENCE"],
-  ["LSĐL", "HISTORY_GEOGRAPHY"],
-  ["GDCD", "CIVICS"],
-  ["GDTC", "PHYSICAL_EDUCATION"],
-  ["Tin", "INFORMATICS"],
-  ["CNghệ", "TECHNOLOGY"],
-  ["MT", "FINE_ARTS"],
-  ["Nhạc", "MUSIC"],
-  ["HĐTN", "EXPERIENCE"],
-  ["HĐTN_1", "EXPERIENCE"],
-  ["GDĐP", "LOCAL_EDUCATION"],
-  ["KNS", "LIFE_SKILLS"],
+  ["Toán", deriveSubjectCode("Toán")],
+  ["Toán TS", deriveSubjectCode("Toán")],
+  ["Văn", deriveSubjectCode("Ngữ văn")],
+  ["Văn TS", deriveSubjectCode("Ngữ văn")],
+  ["T.Anh", deriveSubjectCode("Tiếng Anh")],
+  ["T.Anh TS", deriveSubjectCode("Tiếng Anh")],
+  ["KHTN", deriveSubjectCode("Khoa học tự nhiên")],
+  ["LSĐL", deriveSubjectCode("Lịch sử và Địa lí")],
+  ["GDCD", deriveSubjectCode("Giáo dục công dân")],
+  ["GDTC", deriveSubjectCode("Giáo dục thể chất")],
+  ["Tin", deriveSubjectCode("Tin học")],
+  ["CNghệ", deriveSubjectCode("Công nghệ")],
+  ["MT", deriveSubjectCode("Mĩ thuật")],
+  ["Nhạc", deriveSubjectCode("Âm nhạc")],
+  ["HĐTN", deriveSubjectCode("Hoạt động trải nghiệm")],
+  ["HĐTN_1", deriveSubjectCode("Hoạt động trải nghiệm")],
+  ["GDĐP", deriveSubjectCode("Giáo dục địa phương")],
+  ["KNS", deriveSubjectCode("Kĩ năng sống")],
 ]);
 
 const rooms = [
@@ -60,6 +72,13 @@ const rooms = [
   ["P-27", "Phòng 27", "MULTIPURPOSE", 60],
   ["P-28", "Phòng 28", "MULTIPURPOSE", 60],
   ["P-AV", "Phòng âm thanh - nghe nhìn", "SPECIALIZED", 60],
+];
+
+const gradeShiftConfigs = [
+  [6, "AFTERNOON", "MORNING"],
+  [7, "MORNING", "AFTERNOON"],
+  [8, "AFTERNOON", "MORNING"],
+  [9, "MORNING", "AFTERNOON"],
 ];
 
 function stableUuid(key) {
@@ -263,7 +282,7 @@ async function main() {
   }
 
   const lessonGroups = new Map();
-  for (const item of source.entries.filter((entry) => entry.shift === "MORNING")) {
+  for (const item of source.entries) {
     const teacher = teacherCodeBySlug.get(item.teacherSlug);
     const key = `${item.classCode}|${item.subjectCode}|${teacher}`;
     const group = lessonGroups.get(key) ?? { ...item, teacher, count: 0 };
@@ -280,8 +299,6 @@ async function main() {
   await client.connect();
   try {
     await client.query("BEGIN");
-    const version = await client.query(`SELECT status FROM schedule_versions WHERE id = $1`, [VERSION_ID]);
-    if (version.rows[0]?.status !== "DRAFT") throw new Error("Phiên bản mặc định không còn ở trạng thái DRAFT.");
     await client.query(`DELETE FROM schedule_assignments WHERE schedule_version_id = $1`, [VERSION_ID]);
     await client.query(`UPDATE schedule_versions SET revision = revision + 1, updated_at = now() WHERE id = $1`, [
       VERSION_ID,
@@ -321,6 +338,44 @@ async function main() {
       [PERIOD_ID, TENANT_ID, SCHOOL_ID],
     );
 
+    const version = await client.query(`SELECT status FROM schedule_versions WHERE id = $1`, [VERSION_ID]);
+    if (version.rows[0]?.status && version.rows[0].status !== "DRAFT")
+      throw new Error("Phiên bản mặc định không còn ở trạng thái DRAFT.");
+    await client.query(
+      `INSERT INTO schedule_versions
+         (id, tenant_id, school_id, academic_period_id, version_number, status, created_by, revision,
+          status_changed_by, status_changed_at, status_reason)
+       VALUES ($1, $2, $3, $4, 1, 'DRAFT', 'refresh-binh-phu-live-data', 1,
+          'refresh-binh-phu-live-data', now(), 'Dữ liệu công khai dùng cho kiểm thử local')
+       ON CONFLICT (id) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, school_id = EXCLUDED.school_id,
+         academic_period_id = EXCLUDED.academic_period_id, version_number = EXCLUDED.version_number,
+         updated_at = now()`,
+      [VERSION_ID, TENANT_ID, SCHOOL_ID, PERIOD_ID],
+    );
+
+    for (const [grade, mainShiftCode, secondaryShiftCode] of gradeShiftConfigs) {
+      await client.query(
+        `INSERT INTO academic_period_grade_shifts
+           (tenant_id, school_id, academic_period_id, grade, main_shift_code, secondary_shift_code, allow_secondary)
+         VALUES ($1, $2, $3, $4, $5, $6, TRUE)
+         ON CONFLICT (tenant_id, school_id, academic_period_id, grade)
+         DO UPDATE SET main_shift_code = EXCLUDED.main_shift_code,
+                       secondary_shift_code = EXCLUDED.secondary_shift_code,
+                       allow_secondary = TRUE,
+                       updated_at = now()`,
+        [TENANT_ID, SCHOOL_ID, PERIOD_ID, grade, mainShiftCode, secondaryShiftCode],
+      );
+    }
+
+    for (const [code, displayName] of teacherRows) {
+      await client.query(
+        `INSERT INTO teachers (id, tenant_id, school_id, code, display_name, status) VALUES ($1, $2, $3, $4, $5, 'ACTIVE')
+         ON CONFLICT (school_id, code) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, display_name = EXCLUDED.display_name,
+           status = EXCLUDED.status, updated_at = now()`,
+        [stableUuid(`teacher:${code}`), TENANT_ID, SCHOOL_ID, code, displayName],
+      );
+    }
+
     for (const [classCode, homeroomName] of source.classes.map((item) => [item.code, item.homeroom])) {
       const classId = stableUuid(`class:${classCode}`);
       const rosterCode = source.classes.findIndex((item) => item.code === classCode) + 1;
@@ -349,14 +404,6 @@ async function main() {
       if (!homeroomName) throw new Error(`Thiếu GVCN cho ${classCode}`);
     }
 
-    for (const [code, displayName] of teacherRows) {
-      await client.query(
-        `INSERT INTO teachers (id, tenant_id, school_id, code, display_name, status) VALUES ($1, $2, $3, $4, $5, 'ACTIVE')
-         ON CONFLICT (school_id, code) DO UPDATE SET tenant_id = EXCLUDED.tenant_id, display_name = EXCLUDED.display_name,
-           status = EXCLUDED.status, updated_at = now()`,
-        [stableUuid(`teacher:${code}`), TENANT_ID, SCHOOL_ID, code, displayName],
-      );
-    }
     for (const [code, name] of subjects) {
       await client.query(
         `INSERT INTO subjects (id, tenant_id, school_id, code, name, status) VALUES ($1, $2, $3, $4, $5, 'ACTIVE')
@@ -375,24 +422,35 @@ async function main() {
       );
     }
 
-    const slotTimes = [
-      ["07:00", "07:45"],
-      ["07:50", "08:35"],
-      ["08:40", "09:25"],
-      ["09:30", "10:15"],
-      ["10:20", "11:05"],
-    ];
+    const slotTimesByShift = {
+      MORNING: [
+        ["07:00", "07:45"],
+        ["07:50", "08:35"],
+        ["08:40", "09:25"],
+        ["09:30", "10:15"],
+        ["10:20", "11:05"],
+      ],
+      AFTERNOON: [
+        ["13:00", "13:45"],
+        ["13:50", "14:35"],
+        ["14:40", "15:25"],
+        ["15:30", "16:15"],
+        ["16:20", "17:05"],
+      ],
+    };
     for (let day = 1; day <= 6; day += 1) {
-      for (let period = 1; period <= 5; period += 1) {
-        const [startsAt, endsAt] = slotTimes[period - 1];
-        await client.query(
-          `INSERT INTO time_slots (id, tenant_id, school_id, academic_period_id, day, period, shift_code, starts_at, ends_at)
-           VALUES ($1, $2, $3, $4, $5, $6, 'MORNING', $7, $8)
-           ON CONFLICT (academic_period_id, day, period) DO UPDATE SET tenant_id = EXCLUDED.tenant_id,
-             school_id = EXCLUDED.school_id, shift_code = EXCLUDED.shift_code, starts_at = EXCLUDED.starts_at,
-             ends_at = EXCLUDED.ends_at, updated_at = now()`,
-          [stableUuid(`slot:${day}:${period}`), TENANT_ID, SCHOOL_ID, PERIOD_ID, day, period, startsAt, endsAt],
-        );
+      for (const shiftCode of ["MORNING", "AFTERNOON"]) {
+        for (let period = 1; period <= 5; period += 1) {
+          const [startsAt, endsAt] = slotTimesByShift[shiftCode][period - 1];
+          const slotKey = shiftCode === "MORNING" ? `slot:${day}:${period}` : `slot:${shiftCode}:${day}:${period}`;
+          await client.query(
+            `INSERT INTO time_slots (id, tenant_id, school_id, academic_period_id, day, period, shift_code, starts_at, ends_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             ON CONFLICT (academic_period_id, day, shift_code, period) DO UPDATE SET tenant_id = EXCLUDED.tenant_id,
+               school_id = EXCLUDED.school_id, starts_at = EXCLUDED.starts_at, ends_at = EXCLUDED.ends_at, updated_at = now()`,
+            [stableUuid(slotKey), TENANT_ID, SCHOOL_ID, PERIOD_ID, day, period, shiftCode, startsAt, endsAt],
+          );
+        }
       }
     }
 
@@ -438,6 +496,34 @@ async function main() {
       );
     }
 
+    for (const [index, item] of source.classes.entries()) {
+      const classId = stableUuid(`class:${item.code}`);
+      const teacherCode = `BP-GV-${String(index + 1).padStart(3, "0")}`;
+      const flagShiftCode = item.grade === 6 || item.grade === 8 ? "AFTERNOON" : "MORNING";
+      const flagPeriod = flagShiftCode === "AFTERNOON" ? 5 : 1;
+      const flagSlotKey =
+        flagShiftCode === "MORNING" ? `slot:1:${flagPeriod}` : `slot:${flagShiftCode}:1:${flagPeriod}`;
+      await client.query(
+        `INSERT INTO lesson_requirements
+           (id, tenant_id, school_id, academic_period_id, class_id, subject_id, teacher_id, required_sessions,
+            fixed_slot_id, activity_type, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8, 'FLAG_CEREMONY', 'ACTIVE')
+         ON CONFLICT (id) DO UPDATE SET fixed_slot_id = EXCLUDED.fixed_slot_id,
+           activity_type = EXCLUDED.activity_type, teacher_id = EXCLUDED.teacher_id,
+           required_sessions = 1, status = 'ACTIVE', updated_at = now()`,
+        [
+          stableUuid(`flag-ceremony:${item.code}`),
+          TENANT_ID,
+          SCHOOL_ID,
+          PERIOD_ID,
+          classId,
+          stableUuid(`subject:${deriveSubjectCode("Chào cờ")}`),
+          stableUuid(`teacher:${teacherCode}`),
+          stableUuid(flagSlotKey),
+        ],
+      );
+    }
+
     await client.query("COMMIT");
     console.log(
       JSON.stringify(
@@ -461,7 +547,7 @@ async function main() {
           ),
           homeroomAssignments: source.classes.length,
           teacherSubjectGradeAssignments: eligibilityKeys.size,
-          activeLessonRequirements: lessonGroups.size,
+          activeLessonRequirements: lessonGroups.size + source.classes.length,
           morningSourceEntries: source.entries.filter((item) => item.shift === "MORNING").length,
           allSourceEntries: source.entries.length,
           scheduleAssignments: 0,

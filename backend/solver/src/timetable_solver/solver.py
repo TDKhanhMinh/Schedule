@@ -28,6 +28,7 @@ OBJECTIVE_GROUPS = (
     "preferredDays",
     "fairness",
 )
+SECONDARY_SHIFT_PENALTY = 1_000_000
 DEFAULT_OBJECTIVE_WEIGHTS = {
     "teacherGap": 0.0,
     "compactness": 0.0,
@@ -232,6 +233,8 @@ def solve(
     conflict_details = []
     model = cp_model.CpModel()
     variables: dict[tuple[str, int, str, str | None], cp_model.IntVar] = {}
+    variables_by_resource_slot: dict[tuple[str, str, str], list[cp_model.IntVar]] = {}
+    variables_by_room_slot: dict[tuple[str, str], list[cp_model.IntVar]] = {}
     candidate_pair_count = 0
     domain_pruned_count = 0
     room_domain_count = 0
@@ -354,6 +357,12 @@ def solve(
 
         domain_pruned_count += len(unknown) * len(eligible_room_ids) * lesson.requiredSessions
         class_blocked = set((request.classUnavailableSlotIds or {}).get(lesson.classId, []))
+        shift_policy = (request.classShiftPolicies or {}).get(lesson.classId)
+        allowed_shift_codes = None
+        if shift_policy:
+            allowed_shift_codes = {shift_policy.mainShiftCode}
+            if shift_policy.allowSecondary:
+                allowed_shift_codes.add(shift_policy.secondaryShiftCode)
 
         for session_index in range(lesson.requiredSessions):
             locked_assignment = locked_by_occurrence.get((lesson.id, session_index))
@@ -388,6 +397,10 @@ def solve(
             room_blocked_slots = 0
             for slot_id in sorted(session_allowed):
                 slot = slots_by_id[slot_id]
+                slot_shift_code = slot.shiftCode or "MORNING"
+                if allowed_shift_codes is not None and slot_shift_code not in allowed_shift_codes:
+                    domain_pruned_count += len(eligible_room_ids)
+                    continue
                 if slot_id in class_blocked:
                     class_blocked_slots += 1
                     domain_pruned_count += len(eligible_room_ids)
@@ -415,8 +428,15 @@ def solve(
                     room_label = room_id or "no-room"
                     variable = model.NewBoolVar(f"{lesson.id}_{session_index}_{slot_id}_{room_label}")
                     variables[(lesson.id, session_index, slot_id, room_id)] = variable
+                    for resource in ("classId", "teacherId"):
+                        resource_key = (resource, getattr(lesson, resource), slot_id)
+                        variables_by_resource_slot.setdefault(resource_key, []).append(variable)
+                    if room_id is not None:
+                        variables_by_room_slot.setdefault((slot_id, room_id), []).append(variable)
                     candidate_pair_count += 1
                     choices.append(variable)
+                    if shift_policy and slot_shift_code == shift_policy.secondaryShiftCode:
+                        objective_terms.append(variable * SECONDARY_SHIFT_PENALTY)
                     for rule in preference_rules:
                         if rule.teacherId == lesson.teacherId and _rule_matches_slot(rule, slot):
                             penalty = _availability_penalty(rule)
@@ -556,21 +576,13 @@ def solve(
     for slot_id in slot_ids:
         for resource in ("classId", "teacherId"):
             for resource_id in {getattr(lesson, resource) for lesson in request.lessons}:
-                choices = [
-                    variable
-                    for (lesson_id, _, candidate_slot_id, _), variable in variables.items()
-                    if candidate_slot_id == slot_id and getattr(lessons_by_id[lesson_id], resource) == resource_id
-                ]
+                choices = variables_by_resource_slot.get((resource, resource_id, slot_id), [])
                 if choices:
                     model.AddAtMostOne(choices)
 
         if room_model_enabled:
             for room_id in rooms_by_id:
-                choices = [
-                    variable
-                    for (_, _, candidate_slot_id, candidate_room_id), variable in variables.items()
-                    if candidate_slot_id == slot_id and candidate_room_id == room_id
-                ]
+                choices = variables_by_room_slot.get((slot_id, room_id), [])
                 if choices:
                     model.AddAtMostOne(choices)
 
@@ -585,6 +597,7 @@ def solve(
     solver.parameters.random_seed = random_seed
     time_limit_seconds = request.options.timeLimitSeconds if request.options else DEFAULT_TIME_LIMIT_SECONDS
     solver.parameters.max_time_in_seconds = time_limit_seconds
+    solver.parameters.num_search_workers = 2
     status = solver.Solve(model)
     status_name = {
         cp_model.OPTIMAL: "OPTIMAL",

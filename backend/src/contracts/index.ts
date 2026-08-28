@@ -16,6 +16,14 @@ export const DEFAULT_FLAG_CEREMONY_SLOT = {
   shiftCode: "MORNING",
 } as const;
 
+export type ShiftCode = "MORNING" | "AFTERNOON";
+
+export interface ClassShiftPolicy {
+  mainShiftCode: ShiftCode;
+  secondaryShiftCode: ShiftCode;
+  allowSecondary: boolean;
+}
+
 export * from "./rule-set";
 export * from "./conflict-catalog";
 export * from "./pre-solve";
@@ -44,6 +52,7 @@ export interface LessonRequirement {
   fixedSlotId?: string;
   allowedRoomIds?: string[];
   requiredRoomCapabilities?: string[];
+  activityType?: "LESSON" | "FLAG_CEREMONY";
 }
 
 export type TeacherSubjectGradeEnforcement = "OFF" | "WARNING" | "HARD";
@@ -108,6 +117,7 @@ export interface SolveJobRequest {
   teacherAvailability?: TeacherAvailabilitySet;
   classUnavailableSlotIds?: Record<string, string[]>;
   classGrades?: Record<string, number>;
+  classShiftPolicies?: Record<string, ClassShiftPolicy>;
   teacherSubjectGradeAssignments?: TeacherSubjectGradeAssignment[];
   teacherSubjectGradeEnforcement?: TeacherSubjectGradeEnforcement;
   rooms?: RoomCapability[];

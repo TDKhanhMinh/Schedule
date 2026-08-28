@@ -17,7 +17,7 @@ import {
   ValidateIf,
   ValidateNested,
 } from "class-validator";
-import type { SolveJobRequest } from "../contracts";
+import type { ClassShiftPolicy, SolveJobRequest } from "../contracts";
 
 export class CancelOptimizationJobDto {
   @IsString()
@@ -381,6 +381,10 @@ export class SolveJobDto implements SolveJobRequest {
   @IsObject()
   @IsOptional()
   classGrades?: Record<string, number>;
+
+  @IsObject()
+  @IsOptional()
+  classShiftPolicies?: Record<string, ClassShiftPolicy>;
 
   @IsArray()
   @ValidateNested({ each: true })

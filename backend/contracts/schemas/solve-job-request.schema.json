@@ -125,6 +125,19 @@
       "type": "object",
       "additionalProperties": { "type": "integer", "minimum": 6, "maximum": 12 }
     },
+    "classShiftPolicies": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["mainShiftCode", "secondaryShiftCode", "allowSecondary"],
+        "properties": {
+          "mainShiftCode": { "enum": ["MORNING", "AFTERNOON"] },
+          "secondaryShiftCode": { "enum": ["MORNING", "AFTERNOON"] },
+          "allowSecondary": { "type": "boolean" }
+        }
+      }
+    },
     "teacherSubjectGradeAssignments": {
       "type": "array",
       "items": {

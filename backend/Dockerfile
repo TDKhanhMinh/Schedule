@@ -20,8 +20,7 @@ ENV NODE_ENV=production
 COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/database ./backend/database
-COPY backend/package.json backend/package.json
-COPY package.json package.json
+COPY --from=build /app/package.json package.json
 USER node
 EXPOSE 3000
 CMD ["node", "backend/dist/main.js"]
@@ -38,8 +37,9 @@ RUN apt-get update \
 COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/solver ./backend/solver
-RUN python -m pip install --no-cache-dir --break-system-packages ./backend/solver
-COPY backend/package.json backend/package.json
-COPY package.json package.json
+COPY --from=build /app/backend/contracts ./backend/contracts
+RUN python -m pip install --no-cache-dir --break-system-packages ./backend/solver \
+  && python -c "import ortools, pydantic; print('solver dependencies ready: pydantic=' + pydantic.__version__ + ', ortools=' + ortools.__version__)"
+COPY --from=build /app/package.json package.json
 USER node
 CMD ["node", "backend/dist/worker/main.js"]

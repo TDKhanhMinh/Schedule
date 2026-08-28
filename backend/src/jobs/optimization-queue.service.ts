@@ -330,10 +330,12 @@ export class OptimizationQueueService implements OnModuleDestroy {
       payload.teacherAvailability?.academicPeriodId;
     if (!periodId) return payload;
 
-    const [eligibility, classes] = await Promise.all([
+    const [eligibility, classes, gradeShiftConfigs] = await Promise.all([
       this.masterData.listTeacherSubjectGradeAssignments(payload.schoolId, periodId),
       this.masterData.listClasses(payload.schoolId),
+      this.masterData.listGradeShiftConfigs(payload.schoolId, periodId),
     ]);
+    const shiftByGrade = new Map(gradeShiftConfigs.map((item) => [item.grade, item]));
     return {
       ...payload,
       classGrades: Object.fromEntries(
@@ -342,6 +344,28 @@ export class OptimizationQueueService implements OnModuleDestroy {
       teacherSubjectGradeAssignments: eligibility
         .filter((item) => item.status === "ACTIVE")
         .map((item) => ({ teacherId: item.teacherId, subjectId: item.subjectId, grade: item.grade })),
+      classShiftPolicies: {
+        ...(payload.classShiftPolicies ?? {}),
+        ...Object.fromEntries(
+          classes
+            .filter((item) => item.status === "ACTIVE")
+            .flatMap((item) => {
+              const config = shiftByGrade.get(item.grade);
+              return config
+                ? [
+                    [
+                      item.id,
+                      {
+                        mainShiftCode: config.mainShiftCode,
+                        secondaryShiftCode: config.secondaryShiftCode,
+                        allowSecondary: config.allowSecondary,
+                      },
+                    ] as const,
+                  ]
+                : [];
+            }),
+        ),
+      },
       teacherSubjectGradeEnforcement: payload.teacherSubjectGradeEnforcement ?? "WARNING",
     } as T;
   }

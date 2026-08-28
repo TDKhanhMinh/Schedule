@@ -4,6 +4,7 @@ import type { SolveJobRequest } from "@schedule/backend/contracts";
 import type {
   LessonRequirement,
   HomeroomAssignment,
+  GradeShiftConfig,
   MasterRecord,
   ScheduleVersionSnapshot,
   TimeSlot,
@@ -41,6 +42,7 @@ export interface TimetableLoadedData extends TimetableSourceData {
   history: TimetableHistoryEntry[];
   classLabels: string[];
   homerooms: HomeroomAssignment[];
+  gradeShiftConfigs: GradeShiftConfig[];
 }
 
 function label(record: MasterRecord | undefined, fallback: string) {
@@ -57,16 +59,21 @@ export async function loadTimetable(signal?: AbortSignal) {
     signal,
   );
   const base = `/schools/${frontendConfig.schoolId}`;
-  const [periodSlots, lessonRequirements, classes, subjects, teachers, rooms, history, homerooms] = await Promise.all([
-    getJson<TimeSlot[]>(`${base}/academic-periods/${snapshot.academicPeriodId}/time-slots`, signal),
-    getJson<LessonRequirement[]>(`${base}/academic-periods/${snapshot.academicPeriodId}/lesson-requirements`, signal),
-    getJson<MasterRecord[]>(`${base}/classes`, signal),
-    getJson<MasterRecord[]>(`${base}/subjects`, signal),
-    getJson<MasterRecord[]>(`${base}/teachers`, signal),
-    getJson<MasterRecord[]>(`${base}/rooms`, signal),
-    getJson<TimetableHistoryEntry[]>(`${base}/schedule-versions/${snapshot.id}/history?limit=20`, signal),
-    getJson<HomeroomAssignment[]>(`${base}/academic-periods/${snapshot.academicPeriodId}/homeroom-assignments`, signal),
-  ]);
+  const [periodSlots, lessonRequirements, classes, subjects, teachers, rooms, history, homerooms, gradeShiftConfigs] =
+    await Promise.all([
+      getJson<TimeSlot[]>(`${base}/academic-periods/${snapshot.academicPeriodId}/time-slots`, signal),
+      getJson<LessonRequirement[]>(`${base}/academic-periods/${snapshot.academicPeriodId}/lesson-requirements`, signal),
+      getJson<MasterRecord[]>(`${base}/classes`, signal),
+      getJson<MasterRecord[]>(`${base}/subjects`, signal),
+      getJson<MasterRecord[]>(`${base}/teachers`, signal),
+      getJson<MasterRecord[]>(`${base}/rooms`, signal),
+      getJson<TimetableHistoryEntry[]>(`${base}/schedule-versions/${snapshot.id}/history?limit=20`, signal),
+      getJson<HomeroomAssignment[]>(
+        `${base}/academic-periods/${snapshot.academicPeriodId}/homeroom-assignments`,
+        signal,
+      ),
+      getJson<GradeShiftConfig[]>(`${base}/academic-periods/${snapshot.academicPeriodId}/grade-shifts`, signal),
+    ]);
   const assignments = buildTimetableAssignments(snapshot.assignments, {
     lessonRequirements,
     timeSlots: periodSlots,
@@ -87,6 +94,7 @@ export async function loadTimetable(signal?: AbortSignal) {
     rooms,
     classLabels: classes.map((item) => label(item, item.id)),
     homerooms,
+    gradeShiftConfigs,
   } satisfies TimetableLoadedData;
 }
 
@@ -107,6 +115,7 @@ export function buildTimetableAssignments(
     const lesson = lessonMap.get(assignment.lessonId);
     const slot = slotMap.get(timeSlotId);
     if (!lesson || !slot) return [];
+    const subject = subjectMap.get(lesson.subjectId);
     return [
       {
         id: assignment.id ?? `solver-${assignment.lessonId}-${assignment.sessionIndex}-${timeSlotId}`,
@@ -115,7 +124,9 @@ export function buildTimetableAssignments(
         timeSlotId,
         roomId: assignment.roomId ?? null,
         classLabel: label(classMap.get(lesson.classId), lesson.classId ?? "Lớp chưa xác định"),
-        subjectLabel: label(subjectMap.get(lesson.subjectId), lesson.subjectId ?? "Môn chưa xác định"),
+        subjectLabel: subject?.code ?? subject?.name ?? lesson.subjectId ?? "Môn chưa xác định",
+        subjectName: subject?.name ?? lesson.subjectId ?? "Môn chưa xác định",
+        activityType: lesson.activityType,
         teacherLabel: label(teacherMap.get(lesson.teacherId), lesson.teacherId ?? "Giáo viên chưa xác định"),
         roomLabel: assignment.roomId ? label(roomMap.get(assignment.roomId), assignment.roomId) : "Chưa chỉ định phòng",
         shiftCode: slot.shiftCode ?? "MORNING",

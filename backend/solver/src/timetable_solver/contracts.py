@@ -38,6 +38,20 @@ class LessonRequirement(BaseModel):
     requiredRoomCapabilities: list[str] | None = None
 
 
+class ClassShiftPolicy(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    mainShiftCode: Literal["MORNING", "AFTERNOON"]
+    secondaryShiftCode: Literal["MORNING", "AFTERNOON"]
+    allowSecondary: bool = True
+
+    @model_validator(mode="after")
+    def validate_distinct_shifts(self) -> "ClassShiftPolicy":
+        if self.mainShiftCode == self.secondaryShiftCode:
+            raise ValueError("Buổi chính và buổi phụ phải khác nhau")
+        return self
+
+
 class TeacherSubjectGradeAssignment(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -154,6 +168,7 @@ class SolveJobRequest(BaseModel):
     teacherAvailability: TeacherAvailabilitySet | None = None
     classUnavailableSlotIds: dict[str, list[str]] | None = None
     classGrades: dict[str, int] | None = None
+    classShiftPolicies: dict[str, ClassShiftPolicy] | None = None
     teacherSubjectGradeAssignments: list[TeacherSubjectGradeAssignment] | None = None
     teacherSubjectGradeEnforcement: Literal["OFF", "WARNING", "HARD"] | None = None
     rooms: list[RoomCapability] | None = None

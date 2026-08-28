@@ -22,6 +22,7 @@ import {
   UpdateSubjectDto,
   UpdateTeacherDto,
   UpdateTimeSlotDto,
+  UpsertGradeShiftConfigsDto,
 } from "./master-data.dto";
 
 interface SchoolRow extends QueryResultRow {
@@ -56,6 +57,18 @@ interface TimeSlotRow extends QueryResultRow {
   shift_code: string | null;
   starts_at: string | null;
   ends_at: string | null;
+  created_at: string | Date;
+  updated_at: string | Date;
+}
+
+interface GradeShiftConfigRow extends QueryResultRow {
+  id: string;
+  school_id: string;
+  academic_period_id: string;
+  grade: number;
+  main_shift_code: "MORNING" | "AFTERNOON";
+  secondary_shift_code: "MORNING" | "AFTERNOON";
+  allow_secondary: boolean;
   created_at: string | Date;
   updated_at: string | Date;
 }
@@ -178,6 +191,8 @@ interface LessonRequirementRow extends QueryResultRow {
   teacher_id: string;
   room_id: string | null;
   required_sessions: number;
+  fixed_slot_id: string | null;
+  activity_type: "LESSON" | "FLAG_CEREMONY";
   status: "ACTIVE" | "ARCHIVED";
   created_at: string | Date;
   updated_at: string | Date;
@@ -438,7 +453,7 @@ export class MasterDataService {
               shift_code, starts_at::text, ends_at::text, created_at, updated_at
          FROM time_slots
         WHERE school_id = $1 AND academic_period_id = $2
-        ORDER BY day, period`,
+        ORDER BY day, CASE shift_code WHEN 'MORNING' THEN 1 ELSE 2 END, period`,
       [schoolId, periodId],
     );
     return result.rows.map((row) => this.toTimeSlot(row));
@@ -460,7 +475,7 @@ export class MasterDataService {
          VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id::text, school_id::text, academic_period_id::text, day, period,
                    shift_code, starts_at::text, ends_at::text, created_at, updated_at`,
-        [schoolId, periodId, dto.day, dto.period, dto.shiftCode ?? null, dto.startsAt ?? null, dto.endsAt ?? null],
+        [schoolId, periodId, dto.day, dto.period, dto.shiftCode ?? "MORNING", dto.startsAt ?? null, dto.endsAt ?? null],
       );
       return this.toTimeSlot(result.rows[0]);
     } catch (error) {
@@ -533,6 +548,76 @@ export class MasterDataService {
       throw this.notFound("TIME_SLOT_NOT_FOUND", "Khung tiết không tồn tại trong phạm vi khung năm học.");
     }
     return { id: result.rows[0].id, deleted: true };
+  }
+
+  async listGradeShiftConfigs(schoolId: string, periodId: string) {
+    await this.ensureAcademicPeriod(schoolId, periodId);
+    const result = await this.pool.query<GradeShiftConfigRow>(
+      `SELECT id::text, school_id::text, academic_period_id::text, grade,
+              main_shift_code, secondary_shift_code, allow_secondary, created_at, updated_at
+         FROM academic_period_grade_shifts
+        WHERE school_id = $1 AND academic_period_id = $2
+        ORDER BY grade`,
+      [schoolId, periodId],
+    );
+    return result.rows.map((row) => this.toGradeShiftConfig(row));
+  }
+
+  async upsertGradeShiftConfigs(schoolId: string, periodId: string, dto: UpsertGradeShiftConfigsDto) {
+    const period = await this.ensureAcademicPeriod(schoolId, periodId);
+    if (period.status === "ARCHIVED") {
+      throw new ConflictException({
+        code: "ACADEMIC_PERIOD_ARCHIVED",
+        message: "Không thể cấu hình buổi học cho khung năm học đã lưu trữ.",
+      });
+    }
+    const seenGrades = new Set<number>();
+    for (const config of dto.configs) {
+      if (seenGrades.has(config.grade)) {
+        throw new BadRequestException({ code: "DUPLICATE_GRADE", message: `Khối ${config.grade} bị lặp.` });
+      }
+      seenGrades.add(config.grade);
+      if (config.mainShiftCode === config.secondaryShiftCode) {
+        throw new BadRequestException({
+          code: "DUPLICATE_SHIFT",
+          message: `Khối ${config.grade} phải có buổi chính và buổi phụ khác nhau.`,
+        });
+      }
+    }
+
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      for (const config of dto.configs) {
+        await client.query(
+          `INSERT INTO academic_period_grade_shifts
+             (tenant_id, school_id, academic_period_id, grade, main_shift_code, secondary_shift_code, allow_secondary)
+           SELECT tenant_id, $1, $2, $3, $4, $5, $6
+             FROM academic_periods
+            WHERE school_id = $1 AND id = $2
+           ON CONFLICT (tenant_id, school_id, academic_period_id, grade)
+           DO UPDATE SET main_shift_code = EXCLUDED.main_shift_code,
+                         secondary_shift_code = EXCLUDED.secondary_shift_code,
+                         allow_secondary = EXCLUDED.allow_secondary,
+                         updated_at = now()`,
+          [
+            schoolId,
+            periodId,
+            config.grade,
+            config.mainShiftCode,
+            config.secondaryShiftCode,
+            config.allowSecondary ?? true,
+          ],
+        );
+      }
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw this.translateDatabaseError(error, "Không thể lưu cấu hình buổi học.");
+    } finally {
+      client.release();
+    }
+    return this.listGradeShiftConfigs(schoolId, periodId);
   }
 
   async listTeachers(schoolId: string) {
@@ -1246,6 +1331,8 @@ export class MasterDataService {
     const subjectId = this.requiredText(dto.subjectId, "subjectId");
     const teacherId = this.requiredText(dto.teacherId, "teacherId");
     const roomId = dto.roomId === undefined ? null : this.requiredText(dto.roomId, "roomId");
+    const fixedSlotId = dto.fixedSlotId === undefined ? null : this.requiredText(dto.fixedSlotId, "fixedSlotId");
+    const activityType = dto.activityType ?? "LESSON";
     await this.ensureActiveReference("classes", classId, schoolId, "CLASS_NOT_FOUND", "CLASS_ARCHIVED", "Lớp");
     await this.ensureActiveReference(
       "subjects",
@@ -1265,16 +1352,18 @@ export class MasterDataService {
     );
     if (roomId)
       await this.ensureActiveReference("rooms", roomId, schoolId, "ROOM_NOT_FOUND", "ROOM_ARCHIVED", "Phòng học");
+    if (fixedSlotId) await this.getTimeSlotRow(schoolId, periodId, fixedSlotId);
     await this.assertLessonNotDuplicate(schoolId, periodId, classId, subjectId, teacherId);
     try {
       const result = await this.pool.query<LessonRequirementRow>(
         `INSERT INTO lesson_requirements
-          (school_id, academic_period_id, class_id, subject_id, teacher_id, room_id, required_sessions, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'ACTIVE')
+          (school_id, academic_period_id, class_id, subject_id, teacher_id, room_id, required_sessions,
+           fixed_slot_id, activity_type, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'ACTIVE')
          RETURNING id::text, school_id::text, academic_period_id::text, class_id::text,
                    subject_id::text, teacher_id::text, room_id::text, required_sessions,
-                   status, created_at, updated_at`,
-        [schoolId, periodId, classId, subjectId, teacherId, roomId, dto.requiredSessions],
+                   fixed_slot_id::text, activity_type, status, created_at, updated_at`,
+        [schoolId, periodId, classId, subjectId, teacherId, roomId, dto.requiredSessions, fixedSlotId, activityType],
       );
       return this.toLessonRequirement(result.rows[0]);
     } catch (error) {
@@ -1294,6 +1383,9 @@ export class MasterDataService {
     const subjectId = dto.subjectId === undefined ? current.subject_id : this.requiredText(dto.subjectId, "subjectId");
     const teacherId = dto.teacherId === undefined ? current.teacher_id : this.requiredText(dto.teacherId, "teacherId");
     const roomId = dto.roomId === undefined ? current.room_id : this.requiredText(dto.roomId, "roomId");
+    const fixedSlotId =
+      dto.fixedSlotId === undefined ? current.fixed_slot_id : this.requiredText(dto.fixedSlotId, "fixedSlotId");
+    const activityType = dto.activityType ?? current.activity_type;
     await this.ensureActiveReference("classes", classId, schoolId, "CLASS_NOT_FOUND", "CLASS_ARCHIVED", "Lớp");
     await this.ensureActiveReference(
       "subjects",
@@ -1313,6 +1405,7 @@ export class MasterDataService {
     );
     if (roomId)
       await this.ensureActiveReference("rooms", roomId, schoolId, "ROOM_NOT_FOUND", "ROOM_ARCHIVED", "Phòng học");
+    if (fixedSlotId) await this.getTimeSlotRow(schoolId, periodId, fixedSlotId);
     await this.assertLessonNotDuplicate(schoolId, periodId, classId, subjectId, teacherId, lessonId);
 
     const updates: string[] = [];
@@ -1326,6 +1419,8 @@ export class MasterDataService {
     if (dto.teacherId !== undefined) add("teacher_id", teacherId);
     if (dto.roomId !== undefined) add("room_id", roomId);
     if (dto.requiredSessions !== undefined) add("required_sessions", dto.requiredSessions);
+    if (dto.fixedSlotId !== undefined) add("fixed_slot_id", fixedSlotId);
+    if (dto.activityType !== undefined) add("activity_type", activityType);
     if (updates.length === 0) throw this.noFieldsToUpdate();
     values.push(lessonId, schoolId, periodId);
     try {
@@ -1337,7 +1432,7 @@ export class MasterDataService {
             AND academic_period_id = $${values.length}
         RETURNING id::text, school_id::text, academic_period_id::text, class_id::text,
                   subject_id::text, teacher_id::text, room_id::text, required_sessions,
-                  status, created_at, updated_at`,
+                  fixed_slot_id::text, activity_type, status, created_at, updated_at`,
         values,
       );
       const lesson = result.rows[0];
@@ -1363,7 +1458,7 @@ export class MasterDataService {
         WHERE id = $1 AND school_id = $2 AND academic_period_id = $3
       RETURNING id::text, school_id::text, academic_period_id::text, class_id::text,
                 subject_id::text, teacher_id::text, room_id::text, required_sessions,
-                status, created_at, updated_at`,
+                fixed_slot_id::text, activity_type, status, created_at, updated_at`,
       [lessonId, schoolId, periodId],
     );
     const lesson = result.rows[0];
@@ -1417,7 +1512,7 @@ export class MasterDataService {
   private lessonRequirementSelect() {
     return `SELECT id::text, school_id::text, academic_period_id::text, class_id::text,
                    subject_id::text, teacher_id::text, room_id::text, required_sessions,
-                   status, created_at, updated_at
+                   fixed_slot_id::text, activity_type, status, created_at, updated_at
               FROM lesson_requirements`;
   }
 
@@ -1592,6 +1687,25 @@ export class MasterDataService {
     };
   }
 
+  private toGradeShiftConfig(row: GradeShiftConfigRow) {
+    return {
+      id: row.id,
+      schoolId: row.school_id,
+      academicPeriodId: row.academic_period_id,
+      grade: row.grade,
+      mainShiftCode: row.main_shift_code,
+      secondaryShiftCode: row.secondary_shift_code,
+      allowSecondary: row.allow_secondary,
+      flagCeremony: {
+        day: 1,
+        shiftCode: row.main_shift_code,
+        period: row.main_shift_code === "AFTERNOON" ? 5 : 1,
+      },
+      createdAt: new Date(row.created_at).toISOString(),
+      updatedAt: new Date(row.updated_at).toISOString(),
+    };
+  }
+
   private toTeacher(row: TeacherRow) {
     return {
       id: row.id,
@@ -1686,6 +1800,8 @@ export class MasterDataService {
       teacherId: row.teacher_id,
       roomId: row.room_id,
       requiredSessions: row.required_sessions,
+      fixedSlotId: row.fixed_slot_id,
+      activityType: row.activity_type,
       status: row.status,
       createdAt: new Date(row.created_at).toISOString(),
       updatedAt: new Date(row.updated_at).toISOString(),

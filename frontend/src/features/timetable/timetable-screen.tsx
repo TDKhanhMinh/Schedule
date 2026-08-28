@@ -15,7 +15,6 @@ import { OptimizationJobPanel } from "./optimization-job-panel";
 import { ReleasePanel } from "./release-panel";
 import { buildTimetableAssignments, loadTimetable, type TimetableSolveInput } from "./timetable-api";
 import { TimetableGrid } from "./timetable-grid";
-import { DEFAULT_FLAG_CEREMONY_SLOT } from "./timetable-rules";
 import type { TimetableView } from "./timetable-types";
 
 const statusLabels: Record<string, string> = {
@@ -34,6 +33,8 @@ const viewOptions: Array<{ value: TimetableView; label: string; icon: typeof Tab
   { value: "room", label: "Theo phòng", icon: Table2 },
 ];
 
+const TIMETABLE_SOLVE_TIME_LIMIT_SECONDS = 30;
+
 export function TimetableScreen() {
   const [view, setView] = useState<TimetableView>("school");
   const [query, setQuery] = useState("");
@@ -46,15 +47,9 @@ export function TimetableScreen() {
   });
   const data = timetableQuery.data ?? null;
   const activeLessonRequirements = data?.lessonRequirements.filter(({ status }) => status !== "ARCHIVED") ?? [];
-  const flagCeremonySlotIds =
-    data?.timeSlots
-      .filter(
-        (slot) =>
-          slot.day === DEFAULT_FLAG_CEREMONY_SLOT.day &&
-          slot.period === DEFAULT_FLAG_CEREMONY_SLOT.period &&
-          (slot.shiftCode ?? "MORNING") === DEFAULT_FLAG_CEREMONY_SLOT.shiftCode,
-      )
-      .map((slot) => slot.id) ?? [];
+  const shiftConfigByGrade = new Map((data?.gradeShiftConfigs ?? []).map((config) => [config.grade, config]));
+  const classGradeEntries =
+    data?.classes.flatMap((item) => (item.grade === undefined ? [] : [[item.id, item.grade] as const])) ?? [];
   const solveInput: TimetableSolveInput | null =
     data && frontendConfig.schoolId && data.timeSlots.length > 0 && activeLessonRequirements.length > 0
       ? {
@@ -67,14 +62,35 @@ export function TimetableScreen() {
             period,
             ...(shiftCode ? { shiftCode } : {}),
           })),
-          lessons: activeLessonRequirements.map(({ id, classId, subjectId, teacherId, requiredSessions }) => ({
-            id,
-            classId,
-            subjectId,
-            teacherId,
-            requiredSessions,
-          })),
-          classUnavailableSlotIds: Object.fromEntries(data.classes.map((item) => [item.id, flagCeremonySlotIds])),
+          lessons: activeLessonRequirements.map(
+            ({ id, classId, subjectId, teacherId, requiredSessions, fixedSlotId }) => ({
+              id,
+              classId,
+              subjectId,
+              teacherId,
+              requiredSessions,
+              ...(fixedSlotId ? { fixedSlotId } : {}),
+            }),
+          ),
+          classGrades: Object.fromEntries(classGradeEntries),
+          classShiftPolicies: Object.fromEntries(
+            data.classes.flatMap((item) => {
+              const config = item.grade === undefined ? undefined : shiftConfigByGrade.get(item.grade);
+              return config
+                ? [
+                    [
+                      item.id,
+                      {
+                        mainShiftCode: config.mainShiftCode,
+                        secondaryShiftCode: config.secondaryShiftCode,
+                        allowSecondary: config.allowSecondary,
+                      },
+                    ] as const,
+                  ]
+                : [];
+            }),
+          ),
+          options: { timeLimitSeconds: TIMETABLE_SOLVE_TIME_LIMIT_SECONDS },
         }
       : null;
   const solverPreviewAssignments =

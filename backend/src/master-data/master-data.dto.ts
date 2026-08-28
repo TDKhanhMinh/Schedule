@@ -1,4 +1,19 @@
-import { IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, Matches, Max, Min } from "class-validator";
+import { Type } from "class-transformer";
+import {
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  Min,
+  ValidateNested,
+} from "class-validator";
 
 export class CreateSchoolDto {
   @IsString()
@@ -86,6 +101,7 @@ export class CreateTimeSlotDto {
   period!: number;
 
   @IsString()
+  @IsIn(["MORNING", "AFTERNOON"])
   @Matches(/^[A-Z0-9_-]+$/)
   @IsOptional()
   shiftCode?: string;
@@ -112,6 +128,7 @@ export class UpdateTimeSlotDto {
   period?: number;
 
   @IsString()
+  @IsIn(["MORNING", "AFTERNOON"])
   @Matches(/^[A-Z0-9_-]+$/)
   @IsOptional()
   shiftCode?: string;
@@ -123,6 +140,31 @@ export class UpdateTimeSlotDto {
   @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
   @IsOptional()
   endsAt?: string;
+}
+
+export class GradeShiftConfigDto {
+  @IsInt()
+  @Min(6)
+  @Max(12)
+  grade!: number;
+
+  @IsIn(["MORNING", "AFTERNOON"])
+  mainShiftCode!: "MORNING" | "AFTERNOON";
+
+  @IsIn(["MORNING", "AFTERNOON"])
+  secondaryShiftCode!: "MORNING" | "AFTERNOON";
+
+  @IsBoolean()
+  @IsOptional()
+  allowSecondary?: boolean;
+}
+
+export class UpsertGradeShiftConfigsDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => GradeShiftConfigDto)
+  configs!: GradeShiftConfigDto[];
 }
 
 export class CreateTeacherDto {
@@ -295,6 +337,14 @@ export class CreateLessonRequirementDto {
   @IsInt()
   @Min(1)
   requiredSessions!: number;
+
+  @IsString()
+  @IsOptional()
+  fixedSlotId?: string;
+
+  @IsIn(["LESSON", "FLAG_CEREMONY"])
+  @IsOptional()
+  activityType?: "LESSON" | "FLAG_CEREMONY";
 }
 
 export class UpdateLessonRequirementDto {
@@ -321,6 +371,14 @@ export class UpdateLessonRequirementDto {
   @Min(1)
   @IsOptional()
   requiredSessions?: number;
+
+  @IsString()
+  @IsOptional()
+  fixedSlotId?: string;
+
+  @IsIn(["LESSON", "FLAG_CEREMONY"])
+  @IsOptional()
+  activityType?: "LESSON" | "FLAG_CEREMONY";
 }
 
 export type LifecycleStatus = "ACTIVE" | "ARCHIVED";
