@@ -76,7 +76,7 @@ export const MASTER_DATA_IMPORT_DEFINITIONS: readonly MasterDataImportDefinition
     entity: "subject",
     label: "Môn học",
     sheetName: "Subjects",
-    naturalKey: ["code"],
+    naturalKey: ["Tên môn (Mã môn tự sinh)"],
     columns: [
       {
         key: "name",

@@ -146,6 +146,22 @@ describe("MasterDataImportService", () => {
     );
   });
 
+  it("documents subject code generation in the downloaded template guide", async () => {
+    const { pool, query } = createPool();
+    query.mockResolvedValueOnce({ rows: [{ id: SCHOOL_ID }], rowCount: 1 });
+    const service = new MasterDataImportService(pool);
+
+    const result = await service.buildTemplate(SCHOOL_ID, "subject");
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(result.workbook as never);
+
+    expect(workbook.getWorksheet("Subjects")?.getRow(1).values).toEqual([undefined, "Tên môn"]);
+    expect(workbook.getWorksheet("TemplateGuide")?.getColumn(1).values).toContain("Ví dụ mã tự sinh");
+    expect(workbook.getWorksheet("TemplateGuide")?.getColumn(2).values).toContain(
+      "Vật lí → VL; Khoa học tự nhiên → KHTN",
+    );
+  });
+
   it("returns row-level errors for duplicate and invalid class data", async () => {
     const { pool, query } = createPool();
     query

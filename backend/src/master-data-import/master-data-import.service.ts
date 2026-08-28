@@ -153,6 +153,9 @@ export class MasterDataImportService {
       ],
       ["Ghi chú", "Xóa các dòng minh họa trước khi tải lên nếu có thêm dữ liệu thử nghiệm."],
     ]);
+    if (entity === "subject") {
+      guide.addRow(["Ví dụ mã tự sinh", "Vật lí → VL; Khoa học tự nhiên → KHTN"]);
+    }
     guide.getRow(1).font = { bold: true };
     guide.views = [{ state: "frozen", ySplit: 1 }];
 
