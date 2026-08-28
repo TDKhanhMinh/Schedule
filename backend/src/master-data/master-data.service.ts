@@ -37,6 +37,7 @@ interface SchoolRow extends QueryResultRow {
 
 interface AcademicPeriodRow extends QueryResultRow {
   id: string;
+  tenant_id: string;
   school_id: string;
   academic_year: string;
   term_code: string;
@@ -343,7 +344,7 @@ export class MasterDataService {
   async listAcademicPeriods(schoolId: string) {
     await this.ensureSchool(schoolId);
     const result = await this.pool.query<AcademicPeriodRow>(
-      `SELECT id::text, school_id::text, academic_year, term_code, name,
+        `SELECT id::text, tenant_id::text, school_id::text, academic_year, term_code, name,
               starts_on, ends_on, status, created_at, updated_at
          FROM academic_periods
         WHERE school_id = $1
@@ -610,6 +611,34 @@ export class MasterDataService {
           ],
         );
       }
+      await client.query(
+        `UPDATE lesson_requirements AS lesson
+            SET fixed_slot_id = slot.id,
+                updated_at = now()
+           FROM classes AS klass
+           JOIN academic_period_grade_shifts AS preference
+             ON preference.tenant_id = klass.tenant_id
+            AND preference.school_id = klass.school_id
+            AND preference.academic_period_id = $2
+            AND preference.grade = klass.grade
+           JOIN time_slots AS slot
+             ON slot.tenant_id = preference.tenant_id
+            AND slot.school_id = preference.school_id
+            AND slot.academic_period_id = preference.academic_period_id
+            AND slot.day = 1
+            AND slot.shift_code = preference.main_shift_code
+            AND slot.period = CASE
+              WHEN preference.main_shift_code = 'AFTERNOON' THEN 5
+              ELSE 1
+            END
+          WHERE lesson.tenant_id = $3
+            AND lesson.school_id = $1
+            AND lesson.academic_period_id = $2
+            AND lesson.class_id = klass.id
+            AND lesson.activity_type = 'FLAG_CEREMONY'
+            AND lesson.status = 'ACTIVE'`,
+        [schoolId, periodId, period.tenant_id],
+      );
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK");
@@ -1481,7 +1510,7 @@ export class MasterDataService {
 
   private async getAcademicPeriodRow(schoolId: string, periodId: string) {
     const result = await this.pool.query<AcademicPeriodRow>(
-      `SELECT id::text, school_id::text, academic_year, term_code, name,
+      `SELECT id::text, tenant_id::text, school_id::text, academic_year, term_code, name,
               starts_on, ends_on, status, created_at, updated_at
          FROM academic_periods
         WHERE id = $1 AND school_id = $2`,
