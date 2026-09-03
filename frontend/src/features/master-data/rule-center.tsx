@@ -54,7 +54,7 @@ export function RuleCenterPanel({
   const [profileForm, setProfileForm] = useState({
     version: "1.0.0",
     name: "Bộ quy tắc xếp thời khóa biểu",
-    sourceUrl: "https://schedule.local/ui/rule-center",
+    sourceUrl: "",
     effectiveFrom: new Date().toISOString().slice(0, 10),
   });
   const [approvalSnapshot, setApprovalSnapshot] = useState<RuleSnapshot | null>(null);
@@ -189,7 +189,7 @@ export function RuleCenterPanel({
           icon={SlidersHorizontal}
           label="Catalog"
           value={catalogQuery.data?.catalogVersion ?? "Đang tải"}
-          detail={`${catalogQuery.data?.ruleTypes.length ?? 0} loại rule`}
+          detail={`${catalogQuery.data?.ruleTypes.filter((entry) => entry.implementationStatus === "SUPPORTED").length ?? 0} loại sẵn sàng`}
         />
         <StatusCard
           icon={CheckCircle2}
@@ -322,10 +322,7 @@ export function RuleCenterPanel({
                 <p className="text-sm text-muted-foreground">Profile chưa có rule. Thêm rule để tạo snapshot.</p>
               )}
               {selectedProfile.rules.length === 0 ? (
-                <p className="field-hint">
-                  Catalog hiện hiển thị cả rule đã hỗ trợ và rule đang chờ compiler. Chỉ rule đã hỗ trợ mới tạo được
-                  snapshot.
-                </p>
+                <p className="field-hint">Chỉ rule đã hỗ trợ và có nguồn hợp lệ mới được thêm vào snapshot.</p>
               ) : null}
             </div>
           ) : null}
@@ -414,6 +411,8 @@ function StatusCard({
 }
 
 function RuleCatalogList({ entries }: { entries: RuleCatalogEntry[] }) {
+  const supportedEntries = entries.filter((entry) => entry.implementationStatus === "SUPPORTED");
+  const plannedEntries = entries.filter((entry) => entry.implementationStatus === "PLANNED");
   return (
     <section className="rounded-xl border border-border bg-card p-4" aria-labelledby="rule-catalog-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -423,10 +422,10 @@ function RuleCatalogList({ entries }: { entries: RuleCatalogEntry[] }) {
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">Chỉ rule có compiler được hỗ trợ mới được tạo snapshot.</p>
         </div>
-        <Badge variant="secondary">{entries.length} loại</Badge>
+        <Badge variant="secondary">{supportedEntries.length} loại đang dùng</Badge>
       </div>
       <div className="mt-4 grid gap-2 md:grid-cols-2">
-        {entries.map((entry) => (
+        {supportedEntries.map((entry) => (
           <div className="rounded-lg border border-border px-3 py-3" key={entry.code}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <strong className="text-sm">{entry.name}</strong>
@@ -439,6 +438,11 @@ function RuleCatalogList({ entries }: { entries: RuleCatalogEntry[] }) {
           </div>
         ))}
       </div>
+      {plannedEntries.length ? (
+        <p className="mt-3 text-xs text-muted-foreground">
+          {plannedEntries.length} loại rule đang phát triển và chưa thể thêm vào snapshot.
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -529,7 +533,11 @@ function CreateRuleProfileDialog({
           </label>
           <label>
             <span>Nguồn</span>
-            <Input value={form.sourceUrl} onChange={(event) => onChange({ ...form, sourceUrl: event.target.value })} />
+            <Input
+              placeholder="https://…"
+              value={form.sourceUrl}
+              onChange={(event) => onChange({ ...form, sourceUrl: event.target.value })}
+            />
           </label>
           <label>
             <span>Ngày hiệu lực</span>

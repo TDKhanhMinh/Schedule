@@ -22,6 +22,7 @@ export class OptimizationPreflightService {
     const messages: Record<string, string> = {
       NO_APPROVED_SNAPSHOT: "Chưa có bộ quy tắc APPROVED đang hiệu lực cho kỳ học này.",
       SNAPSHOT_NOT_APPROVED: "Rule snapshot được yêu cầu chưa được phê duyệt.",
+      SNAPSHOT_PROFILE_NOT_ACTIVE: "Rule snapshot thuộc profile đã ngừng áp dụng.",
       SNAPSHOT_OUTSIDE_EFFECTIVE_WINDOW: "Rule snapshot không còn trong thời gian hiệu lực.",
     };
     return {

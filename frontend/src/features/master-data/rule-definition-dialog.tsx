@@ -54,20 +54,25 @@ export function RuleDefinitionDialog({
   const [parameters, setParameters] = useState<Record<string, unknown>>({});
   const queryClient = useQueryClient();
   const selectedEntry = supportedEntries.find((entry) => entry.code === code) ?? supportedEntries[0];
+  const teacherScopeRequired = selectedEntry?.targetResources.includes("TEACHER") ?? false;
   const mutation = useMutation({
     mutationFn: () => {
       if (!selectedEntry) throw new Error("Chưa có loại rule được hỗ trợ để thêm.");
+      const sourceUrl = profile.sourceUrl?.trim();
+      if (!sourceUrl) throw new Error("Bộ quy tắc cần có nguồn trước khi thêm rule.");
       return request(`/schools/${frontendConfig.schoolId}/rule-profiles/${profile.id}/rules`, {
         method: "POST",
         body: JSON.stringify({
           code: selectedEntry.code,
           kind: selectedEntry.defaultKind,
           ...(selectedEntry.defaultKind === "SOFT" ? { weight: selectedEntry.defaultWeight ?? 10 } : {}),
-          sourceUrl: profile.sourceUrl ?? "https://schedule.local/ui/rule-center",
+          sourceUrl,
           sourceLocator: "Rule Center",
           effectiveFrom: profile.effectiveFrom,
           effectiveTo: profile.effectiveTo,
-          scope: { actorType: "TEACHER", actorId: teacherId, resourceType: "TEACHER" },
+          scope: teacherScopeRequired
+            ? { actorType: "TEACHER", actorId: teacherId, resourceType: "TEACHER" }
+            : { schoolLevel: profile.scope.schoolLevel ?? "THCS" },
           parameters,
         }),
       });
@@ -127,22 +132,24 @@ export function RuleDefinitionDialog({
               </select>
               {selectedEntry ? <small className="field-hint">{selectedEntry.description}</small> : null}
             </label>
-            <label>
-              <span>Giáo viên</span>
-              <select
-                className="master-select"
-                value={teacherId}
-                onChange={(event) => setTeacherId(event.target.value)}
-              >
-                {teachers
-                  .filter((teacher) => teacher.status !== "ARCHIVED")
-                  .map((teacher) => (
-                    <option value={teacher.id} key={teacher.id}>
-                      {teacher.code} · {teacher.displayName}
-                    </option>
-                  ))}
-              </select>
-            </label>
+            {teacherScopeRequired ? (
+              <label>
+                <span>Giáo viên</span>
+                <select
+                  className="master-select"
+                  value={teacherId}
+                  onChange={(event) => setTeacherId(event.target.value)}
+                >
+                  {teachers
+                    .filter((teacher) => teacher.status !== "ARCHIVED")
+                    .map((teacher) => (
+                      <option value={teacher.id} key={teacher.id}>
+                        {teacher.code} · {teacher.displayName}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            ) : null}
             {selectedEntry?.parameters.map((parameter) => (
               <RuleParameterField
                 key={parameter.key}
@@ -164,7 +171,7 @@ export function RuleDefinitionDialog({
           </Button>
           <Button
             type="button"
-            disabled={!canWrite || !selectedEntry || !teacherId || mutation.isPending}
+            disabled={!canWrite || !selectedEntry || (teacherScopeRequired && !teacherId) || mutation.isPending}
             onClick={() => void mutation.mutateAsync()}
           >
             {mutation.isPending ? "Đang lưu…" : "Thêm rule"}
@@ -283,6 +290,26 @@ function RuleParameterField({
       <label className="flex cursor-pointer items-center gap-2 text-sm">
         <input type="checkbox" checked={value === true} onChange={(event) => onChange(event.target.checked)} />
         {parameter.label}
+      </label>
+    );
+  }
+  if (parameter.type === "OBJECT") {
+    const serialized = typeof value === "string" ? value : JSON.stringify(value ?? {}, null, 2);
+    return (
+      <label>
+        <span>{parameter.label}</span>
+        <textarea
+          className="master-textarea"
+          rows={5}
+          value={serialized}
+          onChange={(event) => {
+            try {
+              onChange(JSON.parse(event.target.value));
+            } catch {
+              onChange(event.target.value);
+            }
+          }}
+        />
       </label>
     );
   }

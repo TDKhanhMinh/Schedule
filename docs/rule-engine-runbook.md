@@ -41,16 +41,24 @@ phải có mã, nhóm, resource đích, kind, tham số, trọng số mặc đ�
 
 ## Rule được hỗ trợ hiện tại
 
-| Mã                                                           | Kind      | Phạm vi            | Ý nghĩa                                                                      |
-| ------------------------------------------------------------ | --------- | ------------------ | ---------------------------------------------------------------------------- |
-| `RULE-TEACHER-AVAILABILITY` và mã legacy có prefix tương ứng | HARD/SOFT | Giáo viên          | Không sẵn sàng hoặc ưu tiên theo ngày/buổi/tiết.                             |
-| `RULE-TEACHER-PREFERRED-OFF-DAYS`                            | SOFT      | Giáo viên          | Tối đa hai ngày nghỉ mong muốn trong tuần.                                   |
-| `RULE-TEACHER-MAX-WORKING-DAYS`                              | HARD      | Giáo viên          | Giới hạn số ngày có tiết dạy.                                                |
-| `RULE-SCHEDULE-NO-INTERNAL-GAPS`                             | HARD/SOFT | Lớp hoặc giáo viên | Không để gap giữa các tiết trong cùng ngày và buổi; không nối qua buổi khác. |
+| Mã                                                           | Kind      | Phạm vi             | Ý nghĩa                                                                            |
+| ------------------------------------------------------------ | --------- | ------------------- | ---------------------------------------------------------------------------------- |
+| `RULE-TEACHER-AVAILABILITY` và mã legacy có prefix tương ứng | HARD/SOFT | Giáo viên           | Không sẵn sàng hoặc ưu tiên theo ngày/buổi/tiết.                                   |
+| `RULE-TEACHER-PREFERRED-OFF-DAYS`                            | SOFT      | Giáo viên           | Tối đa hai ngày nghỉ mong muốn trong tuần.                                         |
+| `RULE-TEACHER-MAX-WORKING-DAYS`                              | HARD      | Giáo viên           | Giới hạn số ngày có tiết dạy.                                                      |
+| `RULE-SCHEDULE-NO-INTERNAL-GAPS`                             | HARD/SOFT | Lớp hoặc giáo viên  | Không để gap giữa các tiết trong cùng ngày và buổi; không nối qua buổi khác.       |
+| `RULE-TEACH-002`                                             | HARD      | Toàn trường/cấp học | Định mức trung bình dùng cho báo cáo tải: THCS 19 tiết/tuần, THPT 17 tiết/tuần.    |
+| `RULE-TEACH-003`                                             | HARD      | Toàn trường/cấp học | 35 tuần giảng dạy dùng để tính định mức năm học, không gồm 2 tuần dự phòng.        |
+| `RULE-TEACH-REDUCTION-*`                                     | HARD      | Giáo viên           | Giảm định mức theo chức trách đã được phân công và phê duyệt; GVCN là 4 tiết/tuần. |
 
 `RULE-TEACHER-MAX-PERIODS-DAY` và `RULE-CLASS-MAIN-SHIFT` vẫn là `PLANNED` trong
 catalog. Cấu hình buổi chính của lớp hiện đi qua model grade-shift riêng và
 không được giả mạo thành generic rule chưa có compiler.
+
+`RULE-TEACHER-PREFERRED-OFF-DAYS` và `RULE-TEACHER-MAX-WORKING-DAYS` không được
+tự sinh khi bootstrap production. Ngày nghỉ mong muốn phải đến từ dữ liệu từng
+giáo viên; giới hạn ngày làm việc phải đến từ lịch hoặc nội quy của trường.
+Bộ luật Lao động chỉ đặt ranh giới nghỉ hằng tuần tối thiểu 24 giờ liên tục.
 
 ## API vận hành
 
@@ -154,3 +162,19 @@ openGates:
 Evidence local/dev không thay thế browser QA, stakeholder sign-off, staging,
 production secrets hoặc production approval. Chỉ chuyển task sang `Done` sau
 khi các gate tương ứng đã có người chịu trách nhiệm xác nhận.
+
+## Bootstrap baseline production local
+
+Để làm sạch dữ liệu rule demo và tạo baseline theo register cho trường Bình Phú:
+
+```powershell
+$env:P21_PROD_CLEAN_CONFIRM = "YES"
+npm run bootstrap:production-rules
+```
+
+Script chỉ retire/revoke profile test theo đúng trường/kỳ học, giữ snapshot cũ
+để audit, chuẩn hóa 4 tiết giảm GVCN cho các lớp hiện có và tạo profile
+`PROD-2026.1.0` gồm rule định mức, 35 tuần và rule giảm GVCN. Snapshot mới ở
+`PENDING_STAKEHOLDER` cho tới khi người có thẩm quyền của trường approve trong
+Rule Center. Khi chưa approve, preflight phải chặn solve bằng
+`RULE_SNAPSHOT_NOT_APPLICABLE`.

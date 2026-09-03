@@ -178,11 +178,12 @@ export class RuleManagementService {
     await this.ensureAcademicPeriod(schoolId, academicPeriodId);
     const profiles = await this.pool.query<RuleProfileRow>(
       this.profileSelect() +
-        " WHERE profile.school_id = $1 AND profile.academic_period_id = $2 ORDER BY profile.version",
+        " WHERE profile.school_id = $1 AND profile.academic_period_id = $2 AND profile.status <> 'RETIRED' ORDER BY profile.version",
       [schoolId, academicPeriodId],
     );
     const rules = await this.pool.query<RuleDefinitionRow>(
-      this.ruleSelect() + " WHERE profile.school_id = $1 AND profile.academic_period_id = $2 ORDER BY rule.code",
+      this.ruleSelect() +
+        " WHERE profile.school_id = $1 AND profile.academic_period_id = $2 AND profile.status <> 'RETIRED' ORDER BY rule.code",
       [schoolId, academicPeriodId],
     );
     return this.mapProfiles(profiles.rows, rules.rows);
@@ -627,6 +628,7 @@ export class RuleManagementService {
       this.snapshotSelect() +
         ` JOIN rule_profiles profile ON profile.id = snapshot.rule_profile_id AND profile.tenant_id = snapshot.tenant_id
           WHERE snapshot.school_id = $1 AND profile.academic_period_id = $2
+            AND profile.status <> 'RETIRED'
           ORDER BY snapshot.captured_at DESC, snapshot.id DESC`,
       [schoolId, academicPeriodId],
     );
@@ -667,6 +669,8 @@ export class RuleManagementService {
         ` JOIN rule_profiles profile ON profile.id = snapshot.rule_profile_id AND profile.tenant_id = snapshot.tenant_id
           WHERE snapshot.school_id = $1
             AND profile.academic_period_id = $2
+            AND profile.status = 'ACTIVE'
+            AND profile.approval_state = 'APPROVED'
             AND snapshot.approval_state = 'APPROVED'
             AND snapshot.effective_from <= $3
             AND (snapshot.effective_to IS NULL OR $3 <= snapshot.effective_to)
@@ -708,6 +712,15 @@ export class RuleManagementService {
           code: "RULE_SNAPSHOT_PERIOD_MISMATCH",
           message: "Rule snapshot không thuộc kỳ học đang được xếp thời khóa biểu.",
         });
+      }
+      if (profile.status !== "ACTIVE" || profile.approval_state !== "APPROVED") {
+        return {
+          schoolId,
+          academicPeriodId,
+          effectiveAsOf,
+          resolved: false,
+          reason: "SNAPSHOT_PROFILE_NOT_ACTIVE",
+        };
       }
       snapshot = this.toSnapshot(row);
       if (snapshot.approvalState !== "APPROVED") {
@@ -1082,6 +1095,9 @@ export class RuleManagementService {
           break;
         case "TEXT":
           if (typeof value !== "string" || !value.trim()) throw this.invalidParameter(definition.key, entry.code);
+          break;
+        case "OBJECT":
+          if (!isRecord(value)) throw this.invalidParameter(definition.key, entry.code);
           break;
         case "SHIFT_CODE":
           if (value !== "MORNING" && value !== "AFTERNOON") throw this.invalidParameter(definition.key, entry.code);

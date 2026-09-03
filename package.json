@@ -25,6 +25,7 @@
     "check:template": "node scripts/check-template.cjs",
     "evidence:pilot-workbook": "node scripts/run-pilot-workbook-evidence.mjs",
     "evidence:p2.1-t14": "node scripts/run-p2-1-t14-evidence.mjs",
+    "bootstrap:production-rules": "node scripts/bootstrap-binh-phu-production-rules.cjs",
     "reconcile:pilot": "node scripts/reconcile-pilot-snapshot.mjs",
     "baseline:pilot": "node scripts/run-pilot-baseline.mjs",
     "weights:pilot": "python backend/solver/scripts/run_weight_sensitivity.py --output outputs/P3.1-T04/weight-sensitivity-report.json",

@@ -100,6 +100,7 @@ export interface RuleCatalogParameter {
     | "DAY_OF_WEEK_LIST"
     | "GRANULARITY"
     | "INTEGER"
+    | "OBJECT"
     | "PERIOD"
     | "SHIFT_CODE"
     | "SLOT_ID"

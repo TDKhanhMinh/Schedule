@@ -29,4 +29,15 @@ describe("Rule Catalog", () => {
     expect(isRuleCodeSupported("RULE-SCHEDULE-NO-INTERNAL-GAPS")).toBe(true);
     expect(() => assertKnownRuleCode("RULE-UNKNOWN")).toThrow("chưa được đăng ký");
   });
+
+  it("registers legal teacher-load rules and reduction prefixes", () => {
+    expect(findRuleCatalogEntry("RULE-TEACH-002")).toMatchObject({
+      implementationStatus: "SUPPORTED",
+      targetResources: ["SCHOOL"],
+    });
+    expect(findRuleCatalogEntry("RULE-TEACH-REDUCTION-HOMEROOM-6A1")).toMatchObject({
+      implementationStatus: "SUPPORTED",
+      handlerKey: "TEACHER_LOAD_REDUCTION",
+    });
+  });
 });

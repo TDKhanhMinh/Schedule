@@ -3,6 +3,72 @@
   "schemaVersion": "1.0",
   "ruleTypes": [
     {
+      "code": "RULE-TEACH-002",
+      "name": "Định mức tiết dạy trung bình",
+      "group": "TEACHER",
+      "targetResources": ["SCHOOL"],
+      "supportedKinds": ["HARD"],
+      "defaultKind": "HARD",
+      "implementationStatus": "SUPPORTED",
+      "handlerKey": "TEACHER_LOAD_NORM",
+      "description": "Định mức tiết dạy trung bình theo cấp học, dùng cho báo cáo tải dạy.",
+      "parameters": [
+        { "key": "weeklyNormBySchoolLevel", "label": "Định mức theo cấp học", "type": "OBJECT", "required": true },
+        {
+          "key": "hardWeeklyLimitSessions",
+          "label": "Giới hạn cứng mỗi tuần",
+          "type": "INTEGER",
+          "required": false,
+          "minimum": 0,
+          "maximum": 100
+        }
+      ]
+    },
+    {
+      "code": "RULE-TEACH-003",
+      "name": "Số tuần tính định mức",
+      "group": "TEACHER",
+      "targetResources": ["SCHOOL"],
+      "supportedKinds": ["HARD"],
+      "defaultKind": "HARD",
+      "implementationStatus": "SUPPORTED",
+      "handlerKey": "TEACHER_LOAD_WEEKS",
+      "description": "Số tuần giảng dạy dùng để quy đổi định mức năm học, không gồm tuần dự phòng.",
+      "parameters": [
+        {
+          "key": "teachingWeeksForNorm",
+          "label": "Số tuần giảng dạy tính định mức",
+          "type": "INTEGER",
+          "required": true,
+          "minimum": 1,
+          "maximum": 37
+        }
+      ]
+    },
+    {
+      "code": "RULE-TEACH-REDUCTION-",
+      "codePrefixes": ["RULE-TEACH-REDUCTION-"],
+      "name": "Giảm định mức do kiêm nhiệm",
+      "group": "TEACHER",
+      "targetResources": ["TEACHER"],
+      "supportedKinds": ["HARD"],
+      "defaultKind": "HARD",
+      "implementationStatus": "SUPPORTED",
+      "handlerKey": "TEACHER_LOAD_REDUCTION",
+      "description": "Mức giảm định mức theo chức trách đã được phân công và phê duyệt.",
+      "parameters": [
+        { "key": "roleCode", "label": "Mã chức trách", "type": "TEXT", "required": true },
+        {
+          "key": "reductionSessionsPerWeek",
+          "label": "Số tiết giảm mỗi tuần",
+          "type": "INTEGER",
+          "required": true,
+          "minimum": 0,
+          "maximum": 19
+        }
+      ]
+    },
+    {
       "code": "RULE-TEACHER-AVAILABILITY",
       "codePrefixes": ["RULE-TEACHER-AVAILABILITY-"],
       "name": "Thời gian sẵn sàng của giáo viên",
