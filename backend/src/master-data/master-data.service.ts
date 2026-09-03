@@ -344,7 +344,7 @@ export class MasterDataService {
   async listAcademicPeriods(schoolId: string) {
     await this.ensureSchool(schoolId);
     const result = await this.pool.query<AcademicPeriodRow>(
-        `SELECT id::text, tenant_id::text, school_id::text, academic_year, term_code, name,
+      `SELECT id::text, tenant_id::text, school_id::text, academic_year, term_code, name,
               starts_on, ends_on, status, created_at, updated_at
          FROM academic_periods
         WHERE school_id = $1

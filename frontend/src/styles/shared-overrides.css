@@ -56,6 +56,7 @@ body {
 .dark .master-panel,
 .dark .timetable-shell,
 .dark .optimization-job-panel,
+.dark .optimization-rule-summary,
 .dark .public-view-shell,
 .dark .public-view-panel {
   border-color: var(--line);
@@ -70,6 +71,12 @@ body {
 .dark .master-tabs,
 .dark .master-list,
 .dark .optimization-job-controls {
+  background: var(--surface-soft);
+}
+
+.dark .optimization-rule-facts span,
+.dark .optimization-rule-provenance span {
+  border-color: var(--line);
   background: var(--surface-soft);
 }
 

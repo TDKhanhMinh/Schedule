@@ -1,0 +1,142 @@
+{
+  "catalogVersion": "RULE-CATALOG-1.0.0",
+  "schemaVersion": "1.0",
+  "ruleTypes": [
+    {
+      "code": "RULE-TEACHER-AVAILABILITY",
+      "codePrefixes": ["RULE-TEACHER-AVAILABILITY-"],
+      "name": "Thời gian sẵn sàng của giáo viên",
+      "group": "TEACHER",
+      "targetResources": ["TEACHER"],
+      "supportedKinds": ["HARD", "SOFT"],
+      "defaultKind": "HARD",
+      "defaultWeight": 10,
+      "implementationStatus": "SUPPORTED",
+      "handlerKey": "TEACHER_AVAILABILITY",
+      "description": "Ngày, buổi hoặc tiết giáo viên không thể dạy hoặc muốn hạn chế.",
+      "parameters": [
+        { "key": "dayOfWeek", "label": "Thứ", "type": "DAY_OF_WEEK", "required": true },
+        { "key": "shiftCode", "label": "Buổi", "type": "SHIFT_CODE", "required": false },
+        { "key": "period", "label": "Tiết", "type": "PERIOD", "required": false },
+        { "key": "slotId", "label": "Mã khung tiết", "type": "SLOT_ID", "required": false },
+        {
+          "key": "constraintType",
+          "label": "Loại ràng buộc",
+          "type": "GRANULARITY",
+          "required": false,
+          "options": ["UNAVAILABLE"]
+        },
+        {
+          "key": "availabilityType",
+          "label": "Loại sẵn sàng",
+          "type": "GRANULARITY",
+          "required": false,
+          "options": ["UNAVAILABLE"]
+        },
+        {
+          "key": "preferenceLevel",
+          "label": "Mức ưu tiên",
+          "type": "GRANULARITY",
+          "required": false,
+          "options": ["STRONG", "SOFT"]
+        },
+        { "key": "reason", "label": "Lý do", "type": "TEXT", "required": false }
+      ]
+    },
+    {
+      "code": "RULE-TEACHER-PREFERRED-OFF-DAYS",
+      "name": "Ngày nghỉ mong muốn của giáo viên",
+      "group": "TEACHER",
+      "targetResources": ["TEACHER"],
+      "supportedKinds": ["SOFT"],
+      "defaultKind": "SOFT",
+      "defaultWeight": 10,
+      "implementationStatus": "SUPPORTED",
+      "handlerKey": "TEACHER_PREFERRED_OFF_DAYS",
+      "description": "Tối đa hai ngày giáo viên mong muốn không có tiết trong một tuần.",
+      "parameters": [
+        {
+          "key": "daysOfWeek",
+          "label": "Ngày nghỉ mong muốn",
+          "type": "DAY_OF_WEEK_LIST",
+          "required": true,
+          "minItems": 1,
+          "maxItems": 2
+        }
+      ]
+    },
+    {
+      "code": "RULE-TEACHER-MAX-WORKING-DAYS",
+      "name": "Số ngày dạy tối đa của giáo viên",
+      "group": "TEACHER",
+      "targetResources": ["TEACHER"],
+      "supportedKinds": ["HARD"],
+      "defaultKind": "HARD",
+      "implementationStatus": "SUPPORTED",
+      "handlerKey": "TEACHER_MAX_WORKING_DAYS",
+      "description": "Giới hạn số ngày trong tuần có ít nhất một tiết được phân công.",
+      "parameters": [
+        { "key": "maxDays", "label": "Số ngày tối đa", "type": "INTEGER", "required": true, "minimum": 1, "maximum": 7 }
+      ]
+    },
+    {
+      "code": "RULE-TEACHER-MAX-PERIODS-DAY",
+      "name": "Số tiết dạy tối đa trong ngày",
+      "group": "TEACHER",
+      "targetResources": ["TEACHER"],
+      "supportedKinds": ["HARD", "SOFT"],
+      "defaultKind": "HARD",
+      "defaultWeight": 10,
+      "implementationStatus": "PLANNED",
+      "handlerKey": "TEACHER_MAX_PERIODS_DAY",
+      "description": "Giới hạn số tiết một giáo viên được dạy trong một ngày.",
+      "parameters": [
+        {
+          "key": "maxPeriods",
+          "label": "Số tiết tối đa",
+          "type": "INTEGER",
+          "required": true,
+          "minimum": 1,
+          "maximum": 10
+        }
+      ]
+    },
+    {
+      "code": "RULE-SCHEDULE-NO-INTERNAL-GAPS",
+      "name": "Không để trống tiết giữa buổi",
+      "group": "SCHEDULE",
+      "targetResources": ["CLASS", "TEACHER"],
+      "supportedKinds": ["HARD", "SOFT"],
+      "defaultKind": "SOFT",
+      "defaultWeight": 10,
+      "implementationStatus": "SUPPORTED",
+      "handlerKey": "SCHEDULE_NO_INTERNAL_GAPS",
+      "description": "Nếu có tiết trước và sau trong cùng ngày/buổi thì các tiết ở giữa phải được lấp đầy.",
+      "parameters": [
+        {
+          "key": "granularity",
+          "label": "Phạm vi kiểm tra",
+          "type": "GRANULARITY",
+          "required": true,
+          "options": ["DAY_SHIFT"]
+        }
+      ]
+    },
+    {
+      "code": "RULE-CLASS-MAIN-SHIFT",
+      "name": "Buổi chính của lớp",
+      "group": "CLASS",
+      "targetResources": ["CLASS"],
+      "supportedKinds": ["HARD"],
+      "defaultKind": "HARD",
+      "implementationStatus": "PLANNED",
+      "handlerKey": "CLASS_MAIN_SHIFT",
+      "description": "Buổi chính được ưu tiên và buổi phụ được phép theo cấu hình của khối.",
+      "parameters": [
+        { "key": "mainShiftCode", "label": "Buổi chính", "type": "SHIFT_CODE", "required": true },
+        { "key": "secondaryShiftCode", "label": "Buổi phụ", "type": "SHIFT_CODE", "required": true },
+        { "key": "allowSecondary", "label": "Cho phép buổi phụ", "type": "BOOLEAN", "required": true }
+      ]
+    }
+  ]
+}

@@ -19,6 +19,16 @@ interface OptimizationJobStatus {
   canCancel: boolean;
   canRetry: boolean;
   result: SolveJobResult | null;
+  ruleSnapshot: {
+    id: string;
+    version: string | null;
+    hash: string | null;
+    approvedBy: string | null;
+    approvedAt: string | null;
+    effectiveFrom: string | null;
+    effectiveTo: string | null;
+  } | null;
+  appliedRuleCount: number;
   progress: { stage: string; percent?: number; heartbeatAt: string | null; isStalled: boolean };
 }
 const stateLabels: Record<string, string> = {
@@ -231,8 +241,10 @@ export function OptimizationJobPanel({
           </ul>
         </div>
       ) : null}
+      {preflight ? <RuleImpactPreview report={preflight} /> : null}
       {status ? (
         <>
+          <RuleApplicationSummary status={status} />
           <div className="optimization-job-metrics">
             <span>
               Giai đoạn <b>{status.progress.stage}</b>
@@ -265,6 +277,7 @@ export function OptimizationJobPanel({
             <p className="optimization-job-warning">Tác vụ bị treo; cần kiểm tra worker và nhật ký thực thi.</p>
           ) : null}
           {status.failedReason ? <p className="optimization-job-error">{status.failedReason}</p> : null}
+          {status.result ? <RuleDiagnostics result={status.result} ruleSnapshotId={status.ruleSnapshot?.id} /> : null}
           <div className="optimization-job-actions">
             <Button
               type="button"
@@ -286,6 +299,131 @@ export function OptimizationJobPanel({
       ) : null}
     </section>
   );
+}
+
+function RuleImpactPreview({ report }: { report: PreSolveReport }) {
+  const ruleIssueCount = report.issues.filter((issue) => issue.entity === "RULE").length;
+  return (
+    <section className="optimization-rule-summary" aria-labelledby="optimization-rule-impact-title">
+      <div className="optimization-rule-summary-heading">
+        <div>
+          <span className="optimization-rule-kicker">Kiểm tra trước khi xếp</span>
+          <h3 id="optimization-rule-impact-title">Ảnh hưởng của bộ quy tắc</h3>
+        </div>
+        <span className={report.canSolve ? "optimization-rule-state valid" : "optimization-rule-state invalid"}>
+          {report.canSolve ? "Đủ điều kiện" : "Cần rà soát"}
+        </span>
+      </div>
+      <div className="optimization-rule-facts">
+        <span>
+          Nhu cầu <b>{report.totalDemandSessions}</b> tiết
+        </span>
+        <span>
+          Sức chứa <b>{report.slotCapacity}</b> slot
+        </span>
+        <span>
+          Rule cần kiểm tra <b>{ruleIssueCount}</b>
+        </span>
+        <span>
+          Conflict <b>{report.issues.length}</b>
+        </span>
+      </div>
+    </section>
+  );
+}
+
+function RuleApplicationSummary({ status }: { status: OptimizationJobStatus }) {
+  return (
+    <section className="optimization-rule-summary" aria-labelledby="optimization-rule-application-title">
+      <div className="optimization-rule-summary-heading">
+        <div>
+          <span className="optimization-rule-kicker">Nguồn ràng buộc</span>
+          <h3 id="optimization-rule-application-title">Bộ quy tắc đã áp dụng</h3>
+        </div>
+        <span className={status.ruleSnapshot ? "optimization-rule-state valid" : "optimization-rule-state invalid"}>
+          {status.ruleSnapshot ? "Đã xác định" : "Chưa xác định"}
+        </span>
+      </div>
+      {status.ruleSnapshot ? (
+        <div className="optimization-rule-provenance">
+          <span>
+            Phiên bản <b>{status.ruleSnapshot.version ?? "Chưa có"}</b>
+          </span>
+          <span>
+            Rule đã áp dụng <b>{status.appliedRuleCount}</b>
+          </span>
+          <span>
+            Mã snapshot <code>{status.ruleSnapshot.id}</code>
+          </span>
+          <span>
+            Mã băm <code>{status.ruleSnapshot.hash?.slice(0, 16) ?? "Chưa có"}</code>
+          </span>
+          <span>
+            Người duyệt <b>{status.ruleSnapshot.approvedBy ?? "Chưa có"}</b>
+          </span>
+          <span>
+            Hiệu lực <b>{formatEffectiveRange(status.ruleSnapshot.effectiveFrom, status.ruleSnapshot.effectiveTo)}</b>
+          </span>
+        </div>
+      ) : (
+        <p className="optimization-job-warning">
+          Chưa có snapshot rule hợp lệ. Không nên dùng kết quả này cho phát hành.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function RuleDiagnostics({ result, ruleSnapshotId }: { result: SolveJobResult; ruleSnapshotId?: string }) {
+  const violations = (result.diagnostics.conflictDetails ?? []).filter(
+    (detail) => detail.severity === "WARNING" && detail.code === "PREFERENCE_VIOLATED",
+  );
+  const breakdown = result.diagnostics.objectiveBreakdown;
+  return (
+    <section className="optimization-rule-summary" aria-labelledby="optimization-rule-diagnostics-title">
+      <div className="optimization-rule-summary-heading">
+        <div>
+          <span className="optimization-rule-kicker">Sau khi xếp</span>
+          <h3 id="optimization-rule-diagnostics-title">Kết quả áp dụng rule</h3>
+        </div>
+        <span className={violations.length ? "optimization-rule-state invalid" : "optimization-rule-state valid"}>
+          {violations.length ? `${violations.length} ưu tiên bị vi phạm` : "Không có vi phạm mềm"}
+        </span>
+      </div>
+      {breakdown ? (
+        <div className="optimization-rule-facts">
+          <span>
+            Ngày nghỉ mong muốn <b>{breakdown.preferredDays}</b>
+          </span>
+          <span>
+            Liên tục <b>{breakdown.compactness}</b>
+          </span>
+          <span>
+            Tổng điểm phạt <b>{breakdown.weightedTotal}</b>
+          </span>
+        </div>
+      ) : null}
+      {ruleSnapshotId ? (
+        <small className="optimization-rule-reference">Snapshot tham chiếu: {ruleSnapshotId}</small>
+      ) : null}
+      {violations.length ? (
+        <ul className="optimization-rule-violations">
+          {violations.slice(0, 6).map((detail, index) => (
+            <li key={`${detail.code}-${detail.entityReferences.teacherId ?? "teacher"}-${index}`}>
+              <strong>{detail.code}</strong>
+              <span>{detail.message}</span>
+              <small>{detail.remediationHint}</small>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
+function formatEffectiveRange(from: string | null, to: string | null) {
+  if (!from) return "Chưa có";
+  return to ? `${from} → ${to}` : `Từ ${from}`;
 }
 
 function createJobId() {

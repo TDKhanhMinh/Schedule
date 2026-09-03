@@ -117,6 +117,10 @@
         }
       }
     },
+    "ruleDefinitions": {
+      "type": "array",
+      "items": { "$ref": "rule-set-snapshot.schema.json#/$defs/ruleDefinition" }
+    },
     "classUnavailableSlotIds": {
       "type": "object",
       "additionalProperties": { "type": "array", "items": { "type": "string" } }

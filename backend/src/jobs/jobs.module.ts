@@ -5,9 +5,10 @@ import { OptimizationJobsController } from "./optimization-jobs.controller";
 import { OptimizationQueueService } from "./optimization-queue.service";
 import { OptimizationPreflightService } from "./optimization-preflight.service";
 import { OptimizationRunStore } from "./optimization-run.store";
+import { RulesModule } from "../rules/rules.module";
 
 @Module({
-  imports: [DatabaseModule, MasterDataModule],
+  imports: [DatabaseModule, MasterDataModule, RulesModule],
   controllers: [OptimizationJobsController],
   providers: [OptimizationPreflightService, OptimizationQueueService, OptimizationRunStore],
   exports: [OptimizationQueueService],

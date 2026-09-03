@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .conflict_catalog import CONFLICT_CATALOG_VERSION, ConflictDiagnostic
 from .teacher_availability import TeacherAvailabilitySet
 from .pre_solve_contract import PreSolveReport
+from .rule_contract import RuleDefinition
 
 CONTRACT_VERSION = "1.0"
 SOLVER_VERSION = "0.1.0"
@@ -166,6 +167,7 @@ class SolveJobRequest(BaseModel):
     timeSlots: list[TimeSlot]
     lessons: list[LessonRequirement]
     teacherAvailability: TeacherAvailabilitySet | None = None
+    ruleDefinitions: list[RuleDefinition] | None = None
     classUnavailableSlotIds: dict[str, list[str]] | None = None
     classGrades: dict[str, int] | None = None
     classShiftPolicies: dict[str, ClassShiftPolicy] | None = None

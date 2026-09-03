@@ -101,6 +101,106 @@
   margin: 7px 0 0;
   padding-left: 18px;
 }
+.optimization-rule-summary {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfcff;
+}
+.optimization-rule-summary-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.optimization-rule-kicker {
+  display: block;
+  color: var(--blue);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.optimization-rule-summary h3 {
+  margin: 3px 0 0;
+  color: var(--ink);
+  font-size: 0.88rem;
+}
+.optimization-rule-state {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.64rem;
+  font-weight: 900;
+}
+.optimization-rule-state.valid {
+  color: var(--green);
+  border-color: color-mix(in oklch, var(--green) 26%, var(--line));
+  background: var(--green-soft);
+}
+.optimization-rule-state.invalid {
+  color: var(--red);
+  border-color: color-mix(in oklch, var(--red) 26%, var(--line));
+  background: var(--red-soft);
+}
+.optimization-rule-facts,
+.optimization-rule-provenance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.optimization-rule-facts span,
+.optimization-rule-provenance span {
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--muted);
+  background: #fff;
+  font-size: 0.66rem;
+}
+.optimization-rule-facts b,
+.optimization-rule-provenance b {
+  color: var(--ink);
+}
+.optimization-rule-provenance code {
+  color: var(--blue);
+  font-size: 0.62rem;
+}
+.optimization-rule-violations {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.optimization-rule-violations li {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--amber);
+  border-radius: 6px;
+  background: var(--amber-soft);
+  font-size: 0.68rem;
+}
+.optimization-rule-violations strong {
+  color: var(--amber);
+  font-size: 0.63rem;
+}
+.optimization-rule-violations span,
+.optimization-rule-violations small {
+  color: var(--muted);
+}
+.optimization-rule-violations small {
+  font-size: 0.62rem;
+}
+.optimization-rule-reference {
+  color: var(--muted);
+  font-size: 0.62rem;
+}
 .job-state-optimal,
 .job-state-feasible {
   color: var(--green);

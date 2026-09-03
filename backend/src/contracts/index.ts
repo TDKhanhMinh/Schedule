@@ -1,5 +1,6 @@
 import type { TeacherAvailabilitySet } from "./teacher-availability";
 import type { PreSolveReport, RoomCapability } from "./pre-solve";
+import type { RuleDefinition } from "./rule-set";
 
 export const CONTRACT_VERSION = "1.0" as const;
 export const SOLVER_OBJECTIVE_CONTRACT_VERSION = "SOLVER-OBJECTIVE-1.0.0" as const;
@@ -115,6 +116,7 @@ export interface SolveJobRequest {
   timeSlots: TimeSlot[];
   lessons: LessonRequirement[];
   teacherAvailability?: TeacherAvailabilitySet;
+  ruleDefinitions?: RuleDefinition[];
   classUnavailableSlotIds?: Record<string, string[]>;
   classGrades?: Record<string, number>;
   classShiftPolicies?: Record<string, ClassShiftPolicy>;

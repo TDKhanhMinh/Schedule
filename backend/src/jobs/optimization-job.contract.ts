@@ -26,11 +26,24 @@ export interface OptimizationJobData {
   tenantScopeContractVersion?: typeof TENANT_SCOPE_CONTRACT_VERSION;
 }
 
+export interface OptimizationRuleSnapshotSummary {
+  id: string;
+  version: string | null;
+  hash: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  effectiveFrom: string | null;
+  effectiveTo: string | null;
+}
+
 export interface OptimizationRunSnapshot {
   id: string;
   jobId: string;
   schoolId: string;
   academicPeriodId: string | null;
+  ruleSnapshotId?: string | null;
+  ruleSetVersion?: string | null;
+  ruleSnapshotHash?: string | null;
   status: "QUEUED" | "RUNNING" | "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "UNKNOWN" | "INVALID" | "FAILED" | "CANCELLED";
   inputChecksum: string;
   outputChecksum: string | null;

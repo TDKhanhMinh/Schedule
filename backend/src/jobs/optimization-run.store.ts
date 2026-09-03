@@ -30,6 +30,9 @@ interface OptimizationRunRow {
   job_id: string;
   school_id: string;
   academic_period_id: string | null;
+  rule_snapshot_id: string | null;
+  rule_set_version: string | null;
+  rule_snapshot_hash: string | null;
   status: OptimizationRunSnapshot["status"];
   payload_checksum: string;
   output_checksum: string | null;
@@ -281,7 +284,8 @@ export class OptimizationRunStore {
   }
 
   private selectColumns() {
-    return `id::text, job_id, school_id::text, academic_period_id::text, status, payload_checksum, output_checksum,
+    return `id::text, job_id, school_id::text, academic_period_id::text, rule_snapshot_id::text, rule_set_version,
+      rule_snapshot_hash, status, payload_checksum, output_checksum,
       payload, attempts, max_attempts, result, last_error, requested_at, started_at, completed_at,
       progress_stage, heartbeat_at, cancel_requested_at, cancel_reason, retry_key, retry_of_run_id::text`;
   }
@@ -304,6 +308,9 @@ export class OptimizationRunStore {
       jobId: row.job_id,
       schoolId: row.school_id,
       academicPeriodId: row.academic_period_id,
+      ruleSnapshotId: row.rule_snapshot_id,
+      ruleSetVersion: row.rule_set_version,
+      ruleSnapshotHash: row.rule_snapshot_hash,
       status: row.status,
       inputChecksum: row.payload_checksum,
       outputChecksum: row.output_checksum,

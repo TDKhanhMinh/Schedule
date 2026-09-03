@@ -881,6 +881,71 @@
   width: 100%;
 }
 
+.master-rule-day-list {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+
+.master-rule-day-list legend {
+  padding: 0 4px;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.master-rule-day-list .field-hint {
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.master-rule-day-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.master-rule-day-option {
+  display: flex !important;
+  min-width: 0;
+  min-height: 38px;
+  align-items: center;
+  gap: 7px !important;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--foreground) !important;
+  background: var(--surface);
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+}
+
+.master-rule-day-option:has(input:checked) {
+  border-color: var(--primary);
+  color: var(--primary) !important;
+  background: var(--blue-soft);
+}
+
+.master-rule-day-option:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.master-rule-day-option input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--primary);
+}
+
 .master-dialog-error {
   margin: 0;
   border-radius: 9px;

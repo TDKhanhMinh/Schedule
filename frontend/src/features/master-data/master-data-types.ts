@@ -87,6 +87,143 @@ export interface LessonRequirement {
   status: Status;
 }
 
+export type RuleKind = "HARD" | "SOFT";
+export type RuleApprovalState = "PENDING_STAKEHOLDER" | "APPROVED" | "REVOKED";
+export type RuleCatalogStatus = "SUPPORTED" | "PLANNED";
+
+export interface RuleCatalogParameter {
+  key: string;
+  label: string;
+  type:
+    | "BOOLEAN"
+    | "DAY_OF_WEEK"
+    | "DAY_OF_WEEK_LIST"
+    | "GRANULARITY"
+    | "INTEGER"
+    | "PERIOD"
+    | "SHIFT_CODE"
+    | "SLOT_ID"
+    | "TEXT";
+  required: boolean;
+  minimum?: number;
+  maximum?: number;
+  minItems?: number;
+  maxItems?: number;
+  options?: string[];
+}
+
+export interface RuleCatalogEntry {
+  code: string;
+  codePrefixes?: string[];
+  name: string;
+  group: "TEACHER" | "CLASS" | "SUBJECT" | "ROOM" | "SCHEDULE";
+  targetResources: Array<"SCHOOL" | "TEACHER" | "CLASS" | "SUBJECT" | "ROOM">;
+  supportedKinds: RuleKind[];
+  defaultKind: RuleKind;
+  defaultWeight?: number;
+  implementationStatus: RuleCatalogStatus;
+  handlerKey: string;
+  description: string;
+  parameters: RuleCatalogParameter[];
+}
+
+export interface RuleScope {
+  schoolId?: string;
+  academicPeriodId?: string;
+  schoolLevel?: "THCS" | "THPT" | "THCS_THPT";
+  actorType?: "SYSTEM" | "SCHOOL" | "TEACHER";
+  actorId?: string;
+  resourceType?: "SCHOOL" | "TEACHER" | "CLASS" | "SUBJECT" | "ROOM";
+  resourceIds?: string[];
+}
+
+export interface RuleDefinition {
+  id: string;
+  ruleProfileId: string;
+  code: string;
+  kind: RuleKind;
+  weight: number | null;
+  sourceUrl: string;
+  sourceLocator: string | null;
+  effectiveFrom: string | null;
+  effectiveTo: string | null;
+  scope: RuleScope;
+  approvalState: RuleApprovalState;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  approvalReason: string | null;
+  parameters: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RuleProfile {
+  id: string;
+  tenantId: string;
+  schoolId: string;
+  academicPeriodId: string;
+  version: string;
+  name: string;
+  status: "DRAFT" | "ACTIVE" | "RETIRED";
+  registerVersion: string;
+  sourceUrl: string | null;
+  sourceLocator: string | null;
+  effectiveFrom: string | null;
+  effectiveTo: string | null;
+  scope: RuleScope;
+  approvalState: RuleApprovalState;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  approvalReason: string | null;
+  rules: RuleDefinition[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RuleSnapshot {
+  snapshotId: string;
+  ruleSetVersion: string;
+  profileVersion: string;
+  registerVersion: string;
+  sourceUrl: string;
+  sourceLocator?: string;
+  effectiveFrom: string;
+  effectiveTo?: string;
+  scope: RuleScope;
+  approvalState: RuleApprovalState;
+  approvedBy?: string;
+  approvedAt?: string;
+  approvalReason?: string;
+  rules: Array<Omit<RuleDefinition, "id" | "ruleProfileId" | "createdAt" | "updatedAt">>;
+  snapshotHash: string;
+  capturedAt: string;
+  capturedBy: string;
+}
+
+export interface RuleCatalogResponse {
+  catalogVersion: string;
+  schemaVersion: string;
+  ruleTypes: RuleCatalogEntry[];
+}
+
+export interface RuleValidationResult {
+  profileId: string;
+  profileVersion: string;
+  valid: boolean;
+  canCreateSnapshot: boolean;
+  counts: { total: number; hard: number; soft: number; supported: number };
+  issues: Array<{ code: string; severity: "ERROR" | "WARNING"; ruleId?: string; ruleCode?: string; message: string }>;
+}
+
+export interface RuleSnapshotResolution {
+  schoolId: string;
+  academicPeriodId: string;
+  effectiveAsOf: string;
+  resolved: boolean;
+  reason?: string;
+  snapshot?: RuleSnapshot;
+}
+
 export type MasterRecord =
   School | AcademicPeriod | TimeSlot | Teacher | SchoolClass | Subject | Room | LessonRequirement;
 

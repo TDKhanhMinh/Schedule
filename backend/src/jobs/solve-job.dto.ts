@@ -17,7 +17,7 @@ import {
   ValidateIf,
   ValidateNested,
 } from "class-validator";
-import type { ClassShiftPolicy, SolveJobRequest } from "../contracts";
+import type { ClassShiftPolicy, RuleScope, SolveJobRequest } from "../contracts";
 
 export class CancelOptimizationJobDto {
   @IsString()
@@ -264,6 +264,58 @@ export class TeacherAvailabilitySetDto {
   rules!: TeacherAvailabilityRuleDto[];
 }
 
+export class SolveRuleDefinitionDto {
+  @IsString()
+  @Matches(/^[A-Z][A-Z0-9_.-]+$/)
+  code!: string;
+
+  @IsIn(["HARD", "SOFT"])
+  kind!: "HARD" | "SOFT";
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  weight!: number | null;
+
+  @IsString()
+  @IsNotEmpty()
+  sourceUrl!: string;
+
+  @IsString()
+  @IsOptional()
+  sourceLocator?: string;
+
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  effectiveFrom!: string;
+
+  @IsString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  @IsOptional()
+  effectiveTo?: string | null;
+
+  @IsObject()
+  scope!: RuleScope;
+
+  @IsIn(["PENDING_STAKEHOLDER", "APPROVED", "REVOKED"])
+  approvalState!: "PENDING_STAKEHOLDER" | "APPROVED" | "REVOKED";
+
+  @IsString()
+  @IsOptional()
+  approvedBy?: string;
+
+  @IsString()
+  @IsOptional()
+  approvedAt?: string;
+
+  @IsString()
+  @IsOptional()
+  approvalReason?: string;
+
+  @IsObject()
+  parameters!: Record<string, unknown>;
+}
+
 export class SolveJobOptionsDto {
   @IsNumber()
   @Min(0.1)
@@ -373,6 +425,12 @@ export class SolveJobDto implements SolveJobRequest {
   @Type(() => TeacherAvailabilitySetDto)
   @IsOptional()
   teacherAvailability?: TeacherAvailabilitySetDto;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SolveRuleDefinitionDto)
+  @IsOptional()
+  ruleDefinitions?: SolveRuleDefinitionDto[];
 
   @IsObject()
   @IsOptional()

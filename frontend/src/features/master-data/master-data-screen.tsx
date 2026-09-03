@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import {
   BookOpen,
   Building2,
+  CalendarDays,
   CalendarRange,
   ClipboardList,
   Clock3,
@@ -11,6 +12,7 @@ import {
   GraduationCap,
   Plus,
   Search,
+  SlidersHorizontal,
   Upload,
   UserRoundPlus,
   UsersRound,
@@ -79,8 +81,10 @@ import {
 } from "./teacher-duty-panels";
 import { MasterDataImportActions } from "./master-data-import-dialog";
 import { GradeShiftConfiguration } from "./grade-shift-configuration";
+import { RuleCenterPanel } from "./rule-center";
+import { TeacherPreferredOffDaysDialog } from "./teacher-preferred-off-days-dialog";
 
-type MasterDataPanel = "catalog" | "grade-shifts";
+type MasterDataPanel = "catalog" | "grade-shifts" | "rules";
 
 const entityIcons: Record<MasterDataEntity, LucideIcon> = {
   school: Building2,
@@ -121,6 +125,7 @@ export function MasterDataScreen() {
     teacherId: string;
     kind: "homeroom" | "professional";
   } | null>(null);
+  const [preferredOffDaysTeacherId, setPreferredOffDaysTeacherId] = useState<string | null>(null);
   const homeroomTriggerRef = useRef<HTMLButtonElement | null>(null);
   const teacherAssignmentTriggerRef = useRef<HTMLButtonElement | null>(null);
   const editorTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -190,6 +195,7 @@ export function MasterDataScreen() {
   const homeroomDialogClass = classes.find((item) => item.id === homeroomDialogClassId);
   const homeroomDialogAssignment = homeroomAssignments.find((item) => item.classId === homeroomDialogClassId);
   const teacherAssignmentDialogTeacher = teachers.find((item) => item.id === teacherAssignmentDialog?.teacherId);
+  const preferredOffDaysTeacher = teachers.find((item) => item.id === preferredOffDaysTeacherId);
 
   const saveMutation = useMutation({
     mutationFn: ({ path, body, method }: { path: string; body: string; method: "POST" | "PATCH" }) =>
@@ -305,6 +311,7 @@ export function MasterDataScreen() {
     setEditorOpen(false);
     setHomeroomDialogClassId(null);
     setTeacherAssignmentDialog(null);
+    setPreferredOffDaysTeacherId(null);
   }
 
   function closeEditor() {
@@ -817,6 +824,19 @@ export function MasterDataScreen() {
         >
           <UserRoundPlus /> GVCN
         </Button>
+        <Button
+          className="table-action teacher-assignment-action"
+          variant="outline"
+          type="button"
+          onClick={(event) => {
+            teacherAssignmentTriggerRef.current = event.currentTarget;
+            setPreferredOffDaysTeacherId(teacher.id);
+          }}
+          disabled={disabled}
+          aria-label={`Cấu hình ngày nghỉ mong muốn cho ${teacher.code}`}
+        >
+          <CalendarDays /> Ngày nghỉ
+        </Button>
       </>
     );
   }
@@ -905,16 +925,39 @@ export function MasterDataScreen() {
                 setEditorOpen(false);
                 setHomeroomDialogClassId(null);
                 setTeacherAssignmentDialog(null);
+                setPreferredOffDaysTeacherId(null);
               }}
             >
               <CalendarRange />
               <span>Cấu hình buổi</span>
               <small>4 khối</small>
             </Button>
+            <Button
+              className={activePanel === "rules" ? "master-tab active" : "master-tab"}
+              variant={activePanel === "rules" ? "secondary" : "ghost"}
+              type="button"
+              role="tab"
+              aria-selected={activePanel === "rules"}
+              onClick={() => {
+                setActivePanel("rules");
+                setQuery("");
+                setError("");
+                setNotice("");
+                setEditorOpen(false);
+                setHomeroomDialogClassId(null);
+                setTeacherAssignmentDialog(null);
+                setPreferredOffDaysTeacherId(null);
+              }}
+            >
+              <SlidersHorizontal />
+              <span>Quy tắc xếp lịch</span>
+              <small>Rule Center</small>
+            </Button>
           </div>
         </div>
 
         {activePanel === "grade-shifts" ||
+        activePanel === "rules" ||
         activeEntity === "slot" ||
         activeEntity === "assignment" ||
         activeEntity === "class" ? (
@@ -942,6 +985,19 @@ export function MasterDataScreen() {
 
         {activePanel === "grade-shifts" ? (
           <GradeShiftConfiguration schoolId={frontendConfig.schoolId} periodId={selectedPeriodId} canWrite={canWrite} />
+        ) : null}
+
+        {activePanel === "rules" ? (
+          <RuleCenterPanel
+            schoolId={frontendConfig.schoolId}
+            periodId={selectedPeriodId}
+            teachers={teachers}
+            canWrite={canWrite}
+            onSaved={(message) => {
+              setError("");
+              setNotice(message);
+            }}
+          />
         ) : null}
 
         {activePanel === "catalog" ? (
@@ -1179,6 +1235,27 @@ export function MasterDataScreen() {
             }}
           />
         )
+      ) : null}
+      {preferredOffDaysTeacher && selectedPeriodId ? (
+        <TeacherPreferredOffDaysDialog
+          teacher={preferredOffDaysTeacher}
+          periodId={selectedPeriodId}
+          canWrite={canWrite}
+          open
+          onOpenChange={(open) => {
+            if (open) return;
+            setPreferredOffDaysTeacherId(null);
+            window.requestAnimationFrame(() => teacherAssignmentTriggerRef.current?.focus());
+          }}
+          onSaved={(message) => {
+            setError("");
+            setNotice(message);
+          }}
+          onNeedDraftProfile={() => {
+            setPreferredOffDaysTeacherId(null);
+            setActivePanel("rules");
+          }}
+        />
       ) : null}
       <Dialog
         open={editorOpen}

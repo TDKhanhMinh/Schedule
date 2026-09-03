@@ -80,6 +80,8 @@ export class AuditInterceptor implements NestInterceptor {
       ["/rooms", "room"],
       ["/imports", "import_batch"],
       ["/optimization-jobs", "optimization_job"],
+      ["/rule-snapshots", "rule_snapshot"],
+      ["/rule-profiles", "rule_profile"],
       ["/publish", "schedule"],
     ];
     return mappings.find(([prefix]) => lowerPath.includes(prefix))?.[1] ?? "http_resource";

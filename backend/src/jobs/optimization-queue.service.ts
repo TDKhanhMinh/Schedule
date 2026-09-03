@@ -23,6 +23,8 @@ import {
   OPTIMIZATION_QUEUE_CONTRACT_VERSION,
   type OptimizationJobContext,
   type OptimizationJobData,
+  type OptimizationRuleSnapshotSummary,
+  type OptimizationRunSnapshot,
   type OptimizationSolverPayload,
 } from "./optimization-job.contract";
 import { OptimizationRunConflictError, OptimizationRunStore } from "./optimization-run.store";
@@ -30,6 +32,9 @@ import { randomUUID } from "node:crypto";
 import { ObservabilityService } from "../observability/observability.service";
 import { TENANT_SCOPE_CONTRACT_VERSION, tenantQueueNamespace } from "../auth/tenant-scope";
 import { MasterDataService } from "../master-data/master-data.service";
+import { RuleManagementService } from "../rules/rule-management.service";
+import type { RuleSolveResolution } from "../rules/rule-management.service";
+import type { RuleSetSnapshot } from "../contracts";
 
 const SOLVE_HEARTBEAT_STALE_AFTER_MS = 15_000;
 const QUEUE_HEARTBEAT_STALE_AFTER_MS = 60_000;
@@ -44,10 +49,11 @@ export class OptimizationQueueService implements OnModuleDestroy {
     private readonly runStore: OptimizationRunStore,
     @Optional() private readonly observability?: ObservabilityService,
     @Optional() private readonly masterData?: MasterDataService,
+    @Optional() private readonly ruleManagement?: RuleManagementService,
   ) {}
 
   async enqueue(payload: SolveJobRequest & OptimizationJobContext, traceId = payload.jobId, tenantId?: string) {
-    const enrichedPayload = await this.enrichTeacherEligibility(payload);
+    const enrichedPayload = await this.prepareSolvePayload(payload);
     const { academicPeriodId, templateVersion, randomSeed, ...request } = enrichedPayload;
     const report = this.preflightService.check(request);
     if (!report.canSolve) {
@@ -114,6 +120,8 @@ export class OptimizationQueueService implements OnModuleDestroy {
         state: run.status,
         inputChecksum,
         maxAttempts: OPTIMIZATION_MAX_ATTEMPTS,
+        ruleSnapshot: this.ruleSnapshotSummary(solverPayload, run),
+        appliedRuleCount: this.appliedRuleCount(solverPayload),
         traceId,
         tenantId,
         queueNamespace: tenantQueueNamespace(tenantId, request.schoolId),
@@ -130,13 +138,19 @@ export class OptimizationQueueService implements OnModuleDestroy {
       state: run.status,
       inputChecksum: run.inputChecksum,
       maxAttempts: run.maxAttempts,
+      ruleSnapshot: this.ruleSnapshotSummary(run.solverPayload, run),
+      appliedRuleCount: this.appliedRuleCount(run.solverPayload),
       traceId,
     };
   }
 
   async preflight(payload: SolveJobRequest) {
     const enrichedPayload = await this.enrichTeacherEligibility(payload);
-    return this.preflightService.check(enrichedPayload);
+    const resolved = await this.resolveRuleSnapshot(enrichedPayload);
+    if (!resolved.resolved) {
+      return this.preflightService.check(enrichedPayload, [this.preflightService.ruleSnapshotIssue(resolved.reason)]);
+    }
+    return this.preflightService.check(resolved.payload);
   }
 
   async getStatus(jobId: string, schoolId: string) {
@@ -160,6 +174,8 @@ export class OptimizationQueueService implements OnModuleDestroy {
       name: job?.name ?? OPTIMIZATION_JOB_NAME,
       state,
       result: durableRun?.result ?? job?.returnvalue ?? null,
+      ruleSnapshot: this.ruleSnapshotSummary(durableRun?.solverPayload ?? job?.data.solverPayload, durableRun),
+      appliedRuleCount: this.appliedRuleCount(durableRun?.solverPayload),
       failedReason:
         durableRun?.lastError?.message ?? (job?.failedReason ? "Job failed; xem execution log nội bộ." : null),
       inputChecksum: durableRun?.inputChecksum ?? job?.data.inputChecksum ?? null,
@@ -370,6 +386,53 @@ export class OptimizationQueueService implements OnModuleDestroy {
     } as T;
   }
 
+  private async prepareSolvePayload<T extends SolveJobRequest & OptimizationJobContext>(payload: T): Promise<T> {
+    const enrichedPayload = await this.enrichTeacherEligibility(payload);
+    const resolved = await this.resolveRuleSnapshot(enrichedPayload);
+    if (!resolved.resolved) {
+      throw new BadRequestException({
+        code: "RULE_SNAPSHOT_NOT_APPLICABLE",
+        message: this.preflightService.ruleSnapshotIssue(resolved.reason).message,
+        details: { reason: resolved.reason, schoolId: payload.schoolId, academicPeriodId: resolved.academicPeriodId },
+      });
+    }
+    return resolved.payload as T;
+  }
+
+  private async resolveRuleSnapshot<T extends SolveJobRequest>(
+    payload: T,
+  ): Promise<
+    | { resolved: true; payload: T; academicPeriodId: string | null; snapshot?: RuleSetSnapshot }
+    | Extract<RuleSolveResolution, { resolved: false }>
+  > {
+    const periodId =
+      (payload as T & { academicPeriodId?: string }).academicPeriodId ?? payload.teacherAvailability?.academicPeriodId;
+    if (!this.ruleManagement || !periodId) {
+      return { resolved: true as const, payload, academicPeriodId: periodId ?? null };
+    }
+    const resolution = await this.ruleManagement.resolveForSolve(
+      payload.schoolId,
+      periodId,
+      undefined,
+      payload.ruleSnapshotId,
+    );
+    if (!resolution.resolved) return resolution;
+    const snapshot = resolution.snapshot;
+    return {
+      resolved: true as const,
+      academicPeriodId: periodId,
+      payload: {
+        ...payload,
+        ruleSnapshotId: snapshot.snapshotId,
+        ruleSetVersion: snapshot.ruleSetVersion,
+        ruleSnapshotHash: snapshot.snapshotHash,
+        ruleDefinitions: snapshot.rules,
+        ...(resolution.teacherAvailability ? { teacherAvailability: resolution.teacherAvailability } : {}),
+      },
+      snapshot,
+    };
+  }
+
   private buildRetryPayload(payload: OptimizationSolverPayload, jobId: string, academicPeriodId: string | null) {
     if ("input" in payload) {
       return buildSolverAdapterPayload(
@@ -394,6 +457,8 @@ export class OptimizationQueueService implements OnModuleDestroy {
       jobId: run.jobId,
       runId: run.id,
       retryOfRunId: run.retryOfRunId,
+      ruleSnapshot: this.ruleSnapshotSummary(run.solverPayload, run),
+      appliedRuleCount: this.appliedRuleCount(run.solverPayload),
       state,
       result: run.result,
       failedReason: run.lastError?.message ?? null,
@@ -418,6 +483,35 @@ export class OptimizationQueueService implements OnModuleDestroy {
 
   private progressPercent(state: string) {
     return ["OPTIMAL", "FEASIBLE", "INFEASIBLE", "INVALID", "FAILED", "CANCELLED"].includes(state) ? 100 : null;
+  }
+
+  private appliedRuleCount(payload: OptimizationSolverPayload | null | undefined) {
+    if (!payload) return 0;
+    const request = "input" in payload ? payload.input : payload;
+    return request.ruleDefinitions?.length ?? 0;
+  }
+
+  private ruleSnapshotSummary(
+    payload: OptimizationSolverPayload | null | undefined,
+    run:
+      | Partial<Pick<OptimizationRunSnapshot, "ruleSnapshotId" | "ruleSetVersion" | "ruleSnapshotHash">>
+      | null
+      | undefined,
+  ): OptimizationRuleSnapshotSummary | null {
+    const request = payload && "input" in payload ? payload.input : payload;
+    const snapshotId = run?.ruleSnapshotId ?? request?.ruleSnapshotId;
+    if (!snapshotId) return null;
+    const definitions = request?.ruleDefinitions ?? [];
+    const firstDefinition = definitions[0];
+    return {
+      id: snapshotId,
+      version: run?.ruleSetVersion ?? request?.ruleSetVersion ?? null,
+      hash: run?.ruleSnapshotHash ?? request?.ruleSnapshotHash ?? null,
+      approvedBy: firstDefinition?.approvedBy ?? null,
+      approvedAt: firstDefinition?.approvedAt ?? null,
+      effectiveFrom: firstDefinition?.effectiveFrom ?? null,
+      effectiveTo: firstDefinition?.effectiveTo ?? null,
+    };
   }
 
   private isStalled(run: Awaited<ReturnType<OptimizationRunStore["findByJobId"]>>) {

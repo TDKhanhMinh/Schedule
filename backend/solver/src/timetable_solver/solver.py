@@ -16,7 +16,9 @@ from .contracts import (
 )
 from .teacher_availability import TeacherAvailabilityRule
 from .pre_solve import run_pre_solve_checks
+from .pre_solve_contract import PreSolveIssue
 from .relaxation import build_relaxation_proposals
+from .rule_catalog import find_rule_catalog_entry, is_rule_code_supported
 from .solver_adapter import SolverAdapterPayload
 
 
@@ -110,6 +112,112 @@ def _objective_group_for_rule(rule: TeacherAvailabilityRule) -> str:
     return "preferredDays" if "DAY" in code or "PREFERRED" in code else "undesirableSlots"
 
 
+def _rule_scope_matches(rule, resource: str, resource_id: str) -> bool:
+    scope = rule.scope
+    resource_type = scope.resourceType
+    if resource_type and resource_type != resource:
+        return False
+    if resource == "TEACHER" and scope.actorType == "TEACHER" and scope.actorId:
+        return scope.actorId == resource_id
+    if scope.resourceIds:
+        return resource_id in scope.resourceIds
+    return resource_type == resource or (resource == "TEACHER" and scope.actorType == "TEACHER")
+
+
+def _valid_day_list(value: object) -> bool:
+    if not isinstance(value, list) or not 1 <= len(value) <= 2:
+        return False
+    if any(not isinstance(day, int) or day < 1 or day > 7 for day in value):
+        return False
+    return len(value) == len(set(value))
+
+
+def _rule_definition_issues(request: SolveJobRequest):
+    issues = []
+    for rule in request.ruleDefinitions or []:
+        entry = find_rule_catalog_entry(rule.code)
+        if entry is None:
+            issues.append(
+                {
+                    "code": "UNKNOWN_RULE_CODE",
+                    "severity": "ERROR",
+                    "entity": "RULE",
+                    "message": f"Mã quy tắc chưa được đăng ký: {rule.code}.",
+                    "details": {"ruleCode": rule.code},
+                }
+            )
+            continue
+        if not is_rule_code_supported(rule.code):
+            issues.append(
+                {
+                    "code": "RULE_NOT_SUPPORTED",
+                    "severity": "ERROR",
+                    "entity": "RULE",
+                    "message": f"Rule {rule.code} chưa có compiler được hỗ trợ.",
+                    "details": {"ruleCode": rule.code},
+                }
+            )
+            continue
+        if rule.kind not in entry.supportedKinds:
+            issues.append(
+                {
+                    "code": "RULE_KIND_NOT_SUPPORTED",
+                    "severity": "ERROR",
+                    "entity": "RULE",
+                    "message": f"Rule {rule.code} không hỗ trợ kind {rule.kind}.",
+                    "details": {"ruleCode": rule.code},
+                }
+            )
+        if rule.approvalState != "APPROVED":
+            issues.append(
+                {
+                    "code": "RULE_NOT_APPROVED",
+                    "severity": "ERROR",
+                    "entity": "RULE",
+                    "message": f"Rule {rule.code} chưa được phê duyệt.",
+                    "details": {"ruleCode": rule.code},
+                }
+            )
+        if rule.code == "RULE-TEACHER-PREFERRED-OFF-DAYS":
+            days = rule.parameters.get("daysOfWeek")
+            if (
+                not _valid_day_list(days)
+            ):
+                issues.append(
+                    {
+                        "code": "INVALID_RULE_PARAMETER",
+                        "severity": "ERROR",
+                        "entity": "RULE",
+                        "message": "daysOfWeek phải chứa từ 1 đến 2 thứ khác nhau trong khoảng 1 đến 7.",
+                        "details": {"ruleCode": rule.code},
+                    }
+                )
+        elif rule.code == "RULE-TEACHER-MAX-WORKING-DAYS":
+            max_days = rule.parameters.get("maxDays")
+            if not isinstance(max_days, int) or max_days < 1 or max_days > 7:
+                issues.append(
+                    {
+                        "code": "INVALID_RULE_PARAMETER",
+                        "severity": "ERROR",
+                        "entity": "RULE",
+                        "message": "maxDays phải là số nguyên từ 1 đến 7.",
+                        "details": {"ruleCode": rule.code},
+                    }
+                )
+        elif rule.code == "RULE-SCHEDULE-NO-INTERNAL-GAPS":
+            if rule.parameters.get("granularity") != "DAY_SHIFT":
+                issues.append(
+                    {
+                        "code": "INVALID_RULE_PARAMETER",
+                        "severity": "ERROR",
+                        "entity": "RULE",
+                        "message": "granularity của rule không để trống tiết phải là DAY_SHIFT.",
+                        "details": {"ruleCode": rule.code},
+                    }
+                )
+    return issues
+
+
 def _empty_objective_breakdown() -> dict[str, int]:
     return {group: 0 for group in (*OBJECTIVE_GROUPS, "weightedTotal")}
 
@@ -178,6 +286,10 @@ def solve(
 ) -> SolveJobResult:
     started_at = time.perf_counter()
     pre_solve = run_pre_solve_checks(request)
+    for issue in _rule_definition_issues(request):
+        pre_solve.issues.append(PreSolveIssue.model_validate(issue))
+    if any(issue.severity == "ERROR" for issue in pre_solve.issues):
+        pre_solve.canSolve = False
     local_repair_details = _local_repair_diagnostics(request, [], False)
     relaxation_proposals = build_relaxation_proposals(request, [issue.code for issue in pre_solve.issues])
     if not pre_solve.canSolve:
@@ -235,6 +347,7 @@ def solve(
     variables: dict[tuple[str, int, str, str | None], cp_model.IntVar] = {}
     variables_by_resource_slot: dict[tuple[str, str, str], list[cp_model.IntVar]] = {}
     variables_by_room_slot: dict[tuple[str, str], list[cp_model.IntVar]] = {}
+    occupancy_candidates: dict[tuple[str, str, int, str, int], list[cp_model.IntVar]] = {}
     candidate_pair_count = 0
     domain_pruned_count = 0
     room_domain_count = 0
@@ -285,11 +398,26 @@ def solve(
     availability_rules = _active_availability_rules(request)
     hard_unavailable = [rule for rule in availability_rules if rule.strength == "HARD_UNAVAILABLE"]
     preference_rules = [rule for rule in availability_rules if rule.strength != "HARD_UNAVAILABLE"]
+    rule_definitions = request.ruleDefinitions or []
+    preferred_off_day_rules = [
+        rule for rule in rule_definitions if rule.code == "RULE-TEACHER-PREFERRED-OFF-DAYS"
+    ]
+    max_working_day_rules = [
+        rule for rule in rule_definitions if rule.code == "RULE-TEACHER-MAX-WORKING-DAYS"
+    ]
+    no_internal_gap_rules = [
+        rule for rule in rule_definitions if rule.code == "RULE-SCHEDULE-NO-INTERNAL-GAPS"
+    ]
+    requires_occupancy = bool(no_internal_gap_rules or max_working_day_rules)
     objective_weights = _objective_weights(request)
     objective_scales = {group: round(objective_weights[group] * 1000) for group in OBJECTIVE_GROUPS}
     objective_terms: list[object] = []
     repair_move_terms: list[cp_model.IntVar] = []
     objective_score_terms: dict[str, list[tuple[cp_model.IntVar, int]]] = {
+        group: [] for group in OBJECTIVE_GROUPS
+    }
+    choice_groups: list[list[cp_model.IntVar]] = []
+    rule_objective_score_terms: dict[str, list[tuple[cp_model.IntVar, int]]] = {
         group: [] for group in OBJECTIVE_GROUPS
     }
 
@@ -299,6 +427,12 @@ def solve(
         objective_score_terms[group].append((variable, coefficient))
         if objective_scales[group] > 0:
             objective_terms.append(variable * coefficient * objective_scales[group])
+
+    def register_rule_objective_term(group: str, variable: cp_model.IntVar, coefficient: int) -> None:
+        if coefficient <= 0:
+            return
+        rule_objective_score_terms[group].append((variable, coefficient))
+        objective_terms.append(variable * coefficient)
 
     def add_pair_indicator(left: cp_model.IntVar, right: cp_model.IntVar, name: str) -> cp_model.IntVar:
         indicator = model.NewBoolVar(name)
@@ -428,9 +562,17 @@ def solve(
                     room_label = room_id or "no-room"
                     variable = model.NewBoolVar(f"{lesson.id}_{session_index}_{slot_id}_{room_label}")
                     variables[(lesson.id, session_index, slot_id, room_id)] = variable
-                    for resource in ("classId", "teacherId"):
-                        resource_key = (resource, getattr(lesson, resource), slot_id)
+                    for resource, lesson_attribute in (("CLASS", "classId"), ("TEACHER", "teacherId")):
+                        resource_key = (lesson_attribute, getattr(lesson, lesson_attribute), slot_id)
                         variables_by_resource_slot.setdefault(resource_key, []).append(variable)
+                        occupancy_key = (
+                            resource,
+                            getattr(lesson, lesson_attribute),
+                            slot.day,
+                            slot_shift_code,
+                            slot.period,
+                        )
+                        occupancy_candidates.setdefault(occupancy_key, []).append(variable)
                     if room_id is not None:
                         variables_by_room_slot.setdefault((slot_id, room_id), []).append(variable)
                     candidate_pair_count += 1
@@ -446,8 +588,19 @@ def solve(
                                     variable,
                                     penalty,
                                 )
+                    for rule in preferred_off_day_rules:
+                        if not _rule_scope_matches(rule, "TEACHER", lesson.teacherId):
+                            continue
+                        requested_days = rule.parameters.get("daysOfWeek", [])
+                        if slot.day in requested_days:
+                            register_rule_objective_term(
+                                "preferredDays",
+                                variable,
+                                max(1, round((rule.weight or 0) * 1000)),
+                            )
             if choices:
                 model.AddExactlyOne(choices)
+                choice_groups.append(choices)
                 repair_key = _assignment_key(lesson.id, session_index)
                 if repair and repair_key in affected_repair_keys and repair_key not in frozen_repair_keys:
                     baseline = baseline_by_occurrence[(lesson.id, session_index)]
@@ -476,6 +629,86 @@ def solve(
                         {"lessonId": lesson.id},
                     )
                 )
+
+    resource_ids = {
+        "CLASS": sorted({lesson.classId for lesson in request.lessons}),
+        "TEACHER": sorted({lesson.teacherId for lesson in request.lessons}),
+    }
+    shifts = sorted({slot.shiftCode or "MORNING" for slot in request.timeSlots})
+    periods = sorted({slot.period for slot in request.timeSlots})
+    days = sorted({slot.day for slot in request.timeSlots})
+    occupied: dict[tuple[str, str, int, str, int], cp_model.IntVar] = {}
+    for resource, ids in (resource_ids.items() if requires_occupancy else []):
+        for resource_id in ids:
+            for day in days:
+                for shift in shifts:
+                    for period in periods:
+                        key = (resource, resource_id, day, shift, period)
+                        indicator = model.NewBoolVar(
+                            f"occupied_{resource}_{resource_id}_{day}_{shift}_{period}"
+                        )
+                        choices = occupancy_candidates.get(key, [])
+                        if choices:
+                            model.AddMaxEquality(indicator, choices)
+                        else:
+                            model.Add(indicator == 0)
+                        occupied[key] = indicator
+
+    for rule in (no_internal_gap_rules if requires_occupancy else []):
+        for resource, ids in resource_ids.items():
+            for resource_id in ids:
+                if not _rule_scope_matches(rule, resource, resource_id):
+                    continue
+                for day in days:
+                    for shift in shifts:
+                        for left_index, left_period in enumerate(periods):
+                            for right_period in periods[left_index + 2 :]:
+                                left = occupied[(resource, resource_id, day, shift, left_period)]
+                                right = occupied[(resource, resource_id, day, shift, right_period)]
+                                between = periods[periods.index(left_period) + 1 : periods.index(right_period)]
+                                pair = add_pair_indicator(
+                                    left,
+                                    right,
+                                    f"no_gap_pair_{resource}_{resource_id}_{day}_{shift}_{left_period}_{right_period}",
+                                )
+                                for middle_period in between:
+                                    middle = occupied[(resource, resource_id, day, shift, middle_period)]
+                                    if rule.kind == "HARD":
+                                        model.Add(middle >= pair)
+                                    else:
+                                        violation = model.NewBoolVar(
+                                            f"no_gap_violation_{resource}_{resource_id}_{day}_{shift}_{left_period}_{middle_period}_{right_period}"
+                                        )
+                                        model.Add(violation <= pair)
+                                        model.Add(violation <= 1 - middle)
+                                        model.Add(violation >= pair - middle)
+                                        register_rule_objective_term(
+                                            "compactness",
+                                            violation,
+                                            max(1, round((rule.weight or 0) * 1000)),
+                                        )
+
+    for rule in (max_working_day_rules if requires_occupancy else []):
+        max_days = rule.parameters.get("maxDays")
+        if not isinstance(max_days, int):
+            continue
+        for teacher_id in resource_ids["TEACHER"]:
+            if not _rule_scope_matches(rule, "TEACHER", teacher_id):
+                continue
+            teacher_days = []
+            for day in days:
+                day_indicator = model.NewBoolVar(f"teacher_day_{teacher_id}_{day}")
+                shift_indicators = [
+                    occupied[("TEACHER", teacher_id, day, shift, period)]
+                    for shift in shifts
+                    for period in periods
+                ]
+                if shift_indicators:
+                    model.AddMaxEquality(day_indicator, shift_indicators)
+                else:
+                    model.Add(day_indicator == 0)
+                teacher_days.append(day_indicator)
+            model.Add(sum(teacher_days) <= max_days)
 
     if conflicts:
         return SolveJobResult(
@@ -592,12 +825,21 @@ def solve(
         model.Minimize(sum(repair_move_terms) * 1_000_000 + sum(objective_terms))
 
     solver = cp_model.CpSolver()
+    if not objective_terms and not repair_move_terms and variables:
+        model.AddDecisionStrategy(
+            list(variables.values()),
+            cp_model.CHOOSE_FIRST,
+            cp_model.SELECT_MAX_VALUE,
+        )
+        for choices in choice_groups:
+            model.AddHint(choices[0], 1)
+        solver.parameters.search_branching = cp_model.FIXED_SEARCH
     # The seed is a harness-level control for reproducibility checks; it is not
     # part of the v1 API/Python request contract.
     solver.parameters.random_seed = random_seed
     time_limit_seconds = request.options.timeLimitSeconds if request.options else DEFAULT_TIME_LIMIT_SECONDS
     solver.parameters.max_time_in_seconds = time_limit_seconds
-    solver.parameters.num_search_workers = 2
+    solver.parameters.num_search_workers = 1 if not objective_terms and not repair_move_terms else 2
     status = solver.Solve(model)
     status_name = {
         cp_model.OPTIMAL: "OPTIMAL",
@@ -643,11 +885,16 @@ def solve(
     objective_breakdown = _empty_objective_breakdown()
     if status_name in {"OPTIMAL", "FEASIBLE"}:
         for group in OBJECTIVE_GROUPS:
-            objective_breakdown[group] = sum(
+            base_score = sum(
                 solver.Value(variable) * coefficient
                 for variable, coefficient in objective_score_terms[group]
             )
-            objective_breakdown["weightedTotal"] += objective_breakdown[group] * objective_scales[group]
+            rule_score = sum(
+                solver.Value(variable) * coefficient
+                for variable, coefficient in rule_objective_score_terms[group]
+            )
+            objective_breakdown[group] = base_score + rule_score
+            objective_breakdown["weightedTotal"] += base_score * objective_scales[group] + rule_score
 
     run_metrics = _build_run_metrics(
         started_at,
@@ -663,6 +910,22 @@ def solve(
             slot = slots_by_id[assignment.slotId]
             for rule in preference_rules:
                 if rule.teacherId == lesson.teacherId and _rule_matches_slot(rule, slot):
+                    warnings.append(
+                        f"PREFERENCE_VIOLATED:{rule.code}:teacher={lesson.teacherId}:slot={assignment.slotId}"
+                    )
+                    conflict_details.append(
+                        conflict_diagnostic(
+                            "PREFERENCE_VIOLATED",
+                            f"Ưu tiên {rule.code} của giáo viên {lesson.teacherId} bị vi phạm tại khung tiết {assignment.slotId}.",
+                            {"teacherId": lesson.teacherId, "slotId": assignment.slotId},
+                            "WARNING",
+                        )
+                    )
+            for rule in preferred_off_day_rules:
+                if not _rule_scope_matches(rule, "TEACHER", lesson.teacherId):
+                    continue
+                requested_days = rule.parameters.get("daysOfWeek", [])
+                if slot.day in requested_days:
                     warnings.append(
                         f"PREFERENCE_VIOLATED:{rule.code}:teacher={lesson.teacherId}:slot={assignment.slotId}"
                     )

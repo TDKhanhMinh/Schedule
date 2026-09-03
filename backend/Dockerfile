@@ -20,6 +20,7 @@ ENV NODE_ENV=production
 COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/database ./backend/database
+COPY --from=build /app/backend/contracts ./backend/contracts
 COPY --from=build /app/package.json package.json
 USER node
 EXPOSE 3000

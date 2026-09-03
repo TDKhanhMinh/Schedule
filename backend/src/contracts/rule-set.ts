@@ -11,6 +11,8 @@ export interface RuleScope {
   schoolLevel?: "THCS" | "THPT" | "THCS_THPT";
   actorType?: "SYSTEM" | "SCHOOL" | "TEACHER";
   actorId?: string;
+  resourceType?: "SCHOOL" | "TEACHER" | "CLASS" | "SUBJECT" | "ROOM";
+  resourceIds?: string[];
 }
 
 export interface RuleDefinition {
@@ -47,6 +49,10 @@ export interface RuleSetSnapshot {
   snapshotHash: string;
   capturedAt: string;
   capturedBy: string;
+}
+
+export function ruleDefinitionIdentity(rule: Pick<RuleDefinition, "code" | "scope">) {
+  return `${rule.code}|${JSON.stringify(canonicalize(rule.scope))}`;
 }
 
 function canonicalize(value: unknown): unknown {

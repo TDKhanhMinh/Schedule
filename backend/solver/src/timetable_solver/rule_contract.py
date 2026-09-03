@@ -20,6 +20,8 @@ class RuleScope(BaseModel):
     schoolLevel: Literal["THCS", "THPT", "THCS_THPT"] | None = None
     actorType: Literal["SYSTEM", "SCHOOL", "TEACHER"] | None = None
     actorId: str | None = Field(default=None, min_length=1)
+    resourceType: Literal["SCHOOL", "TEACHER", "CLASS", "SUBJECT", "ROOM"] | None = None
+    resourceIds: list[str] | None = None
 
 
 class RuleDefinition(BaseModel):
@@ -79,9 +81,12 @@ class RuleSetSnapshot(BaseModel):
             raise ValueError("effectiveTo must not be earlier than effectiveFrom")
         if self.approvalState == "APPROVED" and (not self.approvedBy or not self.approvedAt):
             raise ValueError("Bản chụp APPROVED yêu cầu approvedBy và approvedAt")
-        codes = [rule.code for rule in self.rules]
-        if len(codes) != len(set(codes)):
-            raise ValueError("Mã quy tắc phải là duy nhất trong một bản chụp")
+        identities = [
+            f"{rule.code}|{json.dumps(rule.scope.model_dump(exclude_none=True), ensure_ascii=False, sort_keys=True, separators=(',', ':'))}"
+            for rule in self.rules
+        ]
+        if len(identities) != len(set(identities)):
+            raise ValueError("Mã và phạm vi quy tắc phải là duy nhất trong một bản chụp")
         return self
 
 

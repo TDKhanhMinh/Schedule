@@ -46,19 +46,40 @@ const queuedRun: OptimizationRunSnapshot = {
 };
 
 describe("optimization queue producer", () => {
-  function createService(overrides: { run?: OptimizationRunSnapshot; canSolve?: boolean } = {}) {
+  function createService(
+    overrides: {
+      run?: OptimizationRunSnapshot;
+      canSolve?: boolean;
+      ruleManagement?: { resolveForSolve: jest.Mock };
+    } = {},
+  ) {
     const add = jest.fn().mockResolvedValue({ id: "queue-job-001" });
     const runStore = {
       createOrGet: jest.fn().mockResolvedValue(overrides.run ?? queuedRun),
     } as unknown as OptimizationRunStore;
     const preflight = {
-      check: jest.fn().mockReturnValue({ canSolve: overrides.canSolve ?? true }),
+      check: jest.fn().mockImplementation((_payload: SolveJobRequest, issues: unknown[] = []) => ({
+        canSolve: issues.length ? false : (overrides.canSolve ?? true),
+        issues,
+      })),
+      ruleSnapshotIssue: jest.fn().mockImplementation((reason: string) => ({
+        code: "RULE_SNAPSHOT_NOT_APPLICABLE",
+        severity: "ERROR",
+        message: reason,
+      })),
     } as unknown as OptimizationPreflightService;
     const config = {
       getOrThrow: jest.fn().mockReturnValue("redis://localhost:6379"),
       get: jest.fn().mockReturnValue("MVP-0.1.0"),
     } as unknown as ConfigService;
-    const service = new OptimizationQueueService(config, preflight, runStore);
+    const service = new OptimizationQueueService(
+      config,
+      preflight,
+      runStore,
+      undefined,
+      undefined,
+      overrides.ruleManagement as never,
+    );
     (service as unknown as { getQueue: () => { add: typeof add } }).getQueue = () => ({ add });
     return { service, add, runStore };
   }
@@ -131,5 +152,60 @@ describe("optimization queue producer", () => {
     await expect(service.enqueue(basePayload)).rejects.toMatchObject({ response: { code: "PRESOLVE_FAILED" } });
     expect(add).not.toHaveBeenCalled();
     expect(runStore.createOrGet).not.toHaveBeenCalled();
+  });
+
+  it("resolves an approved rule snapshot before preflight", async () => {
+    const ruleManagement = {
+      resolveForSolve: jest.fn().mockResolvedValue({
+        resolved: true,
+        schoolId: "school-001",
+        academicPeriodId: "period-001",
+        effectiveAsOf: "2026-09-01",
+        snapshot: {
+          snapshotId: "snapshot-001",
+          ruleSetVersion: "RULE-SET-1.0.0",
+          snapshotHash: "0".repeat(64),
+          rules: [],
+        },
+        ruleDefinitions: [],
+        appliedRuleCount: 0,
+        appliedRuleCodes: [],
+      }),
+    };
+    const { service } = createService({ ruleManagement });
+
+    await service.preflight({ ...basePayload, academicPeriodId: "period-001" } as SolveJobRequest);
+
+    expect(ruleManagement.resolveForSolve).toHaveBeenCalledWith("school-001", "period-001", undefined, undefined);
+    expect(
+      (service as unknown as { preflightService: { check: jest.Mock } }).preflightService.check,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ruleSnapshotId: "snapshot-001",
+        ruleSetVersion: "RULE-SET-1.0.0",
+        ruleSnapshotHash: "0".repeat(64),
+        ruleDefinitions: [],
+      }),
+    );
+  });
+
+  it("returns a structured preflight error when no approved snapshot exists", async () => {
+    const ruleManagement = {
+      resolveForSolve: jest.fn().mockResolvedValue({
+        resolved: false,
+        schoolId: "school-001",
+        academicPeriodId: "period-001",
+        effectiveAsOf: "2026-09-01",
+        reason: "NO_APPROVED_SNAPSHOT",
+      }),
+    };
+    const { service } = createService({ ruleManagement });
+
+    const report = await service.preflight({ ...basePayload, academicPeriodId: "period-001" } as SolveJobRequest);
+
+    expect(report.canSolve).toBe(false);
+    expect(report.issues).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: "RULE_SNAPSHOT_NOT_APPLICABLE", severity: "ERROR" })]),
+    );
   });
 });
