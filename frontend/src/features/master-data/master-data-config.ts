@@ -129,9 +129,11 @@ export function optionLabel(entity: MasterDataEntity, id: string, names: NameMap
   return names.rooms[id] ?? id;
 }
 
-export function localValidate(entity: MasterDataEntity, form: Record<string, string>) {
+export function localValidate(entity: MasterDataEntity, form: Record<string, string>, creating = false) {
   const errors: Record<string, string> = {};
-  for (const field of fields[entity]) {
+  const autoField = entity === "school" || entity === "class" ? "name" : entity === "teacher" ? "displayName" : null;
+  const visibleFields = fields[entity].filter((field) => !(creating && autoField && field.key !== autoField));
+  for (const field of visibleFields) {
     if (field.required && !form[field.key]?.trim()) errors[field.key] = `${field.label} là bắt buộc.`;
   }
   if (

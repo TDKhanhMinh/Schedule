@@ -384,6 +384,15 @@ export function MasterDataScreen() {
       const name = form.name?.trim() ?? "";
       return { code: deriveSubjectCode(name), name };
     }
+    if (activeEntity === "school" && !editingId) {
+      return { name: form.name?.trim() ?? "" };
+    }
+    if (activeEntity === "teacher" && !editingId) {
+      return { displayName: form.displayName?.trim() ?? "" };
+    }
+    if (activeEntity === "class" && !editingId) {
+      return { name: form.name?.trim() ?? "" };
+    }
     const numericKeys = new Set(["day", "period", "grade", "capacity", "requiredSessions"]);
     const body: Record<string, string | number> = {};
     for (const [key, value] of Object.entries(form)) {
@@ -404,7 +413,11 @@ export function MasterDataScreen() {
       setError("Vai trò hiện tại chỉ có quyền xem; cần ADMIN hoặc SCHEDULER để chỉnh sửa.");
       return;
     }
-    const validationErrors = localValidate(activeEntity, form);
+    const validationErrors = localValidate(
+      activeEntity,
+      form,
+      !editingId && (activeEntity === "school" || activeEntity === "teacher"),
+    );
     if (Object.keys(validationErrors).length > 0) {
       setFieldErrors(validationErrors);
       setError("Vui lòng sửa các trường đang được đánh dấu.");
@@ -1339,7 +1352,28 @@ export function MasterDataScreen() {
             </DialogDescription>
           </DialogHeader>
           <form className="master-editor-form" autoComplete="off" onSubmit={save}>
-            <div className="master-fields">{fields[activeEntity].map(renderField)}</div>
+            <div className="master-fields">
+              {fields[activeEntity]
+                .filter(
+                  (field) =>
+                    !(
+                      !editingId &&
+                      ((activeEntity === "school" && field.key !== "name") ||
+                        (activeEntity === "teacher" && field.key !== "displayName") ||
+                        (activeEntity === "class" && field.key !== "name"))
+                    ),
+                )
+                .map(renderField)}
+            </div>
+            {activeEntity === "school" && !editingId ? (
+              <p className="small-note">Mã trường, múi giờ và trạng thái sẽ được hệ thống tự động thiết lập.</p>
+            ) : null}
+            {activeEntity === "teacher" && !editingId ? (
+              <p className="small-note">Mã giáo viên và trạng thái sẽ được hệ thống tự động thiết lập.</p>
+            ) : null}
+            {activeEntity === "class" && !editingId ? (
+              <p className="small-note">Mã lớp, khối và trạng thái sẽ được hệ thống tự động thiết lập từ tên lớp.</p>
+            ) : null}
             {error ? (
               <div className="alert alert-error master-dialog-alert" role="alert">
                 <strong>Không thể lưu dữ liệu</strong>

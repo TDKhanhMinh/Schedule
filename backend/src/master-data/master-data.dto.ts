@@ -18,7 +18,8 @@ import {
 export class CreateSchoolDto {
   @IsString()
   @IsNotEmpty()
-  code!: string;
+  @IsOptional()
+  code?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -170,7 +171,8 @@ export class UpsertGradeShiftConfigsDto {
 export class CreateTeacherDto {
   @IsString()
   @IsNotEmpty()
-  code!: string;
+  @IsOptional()
+  code?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -192,7 +194,8 @@ export class UpdateTeacherDto {
 export class CreateClassDto {
   @IsString()
   @IsNotEmpty()
-  code!: string;
+  @IsOptional()
+  code?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -201,7 +204,8 @@ export class CreateClassDto {
   @IsInt()
   @Min(6)
   @Max(12)
-  grade!: number;
+  @IsOptional()
+  grade?: number;
 }
 
 export class UpdateClassDto {

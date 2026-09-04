@@ -119,6 +119,38 @@ describe("MasterDataService", () => {
     ]);
   });
 
+  it("derives a teacher code when only the display name is provided", async () => {
+    const autoTeacherRow = {
+      ...teacherRow,
+      id: "teacher-002",
+      code: "GV-NGUYEN-AN",
+      display_name: "Nguyễn An",
+    };
+    query
+      .mockResolvedValueOnce({ rows: [{ id: "school-001" }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [autoTeacherRow] });
+
+    await expect(service.createTeacher("school-001", { displayName: "Nguyễn An" })).resolves.toEqual(
+      expect.objectContaining({
+        id: "teacher-002",
+        code: "GV-NGUYEN-AN",
+        displayName: "Nguyễn An",
+        status: "ACTIVE",
+      }),
+    );
+    expect(query).toHaveBeenNthCalledWith(2, expect.stringContaining("code LIKE $3"), [
+      "school-001",
+      "GV-NGUYEN-AN",
+      "GV-NGUYEN-AN-%",
+    ]);
+    expect(query).toHaveBeenNthCalledWith(3, expect.stringContaining("INSERT INTO teachers"), [
+      "school-001",
+      "GV-NGUYEN-AN",
+      "Nguyễn An",
+    ]);
+  });
+
   it("derives a subject code from its name when creating a subject", async () => {
     query.mockResolvedValueOnce({ rows: [schoolRow] }).mockResolvedValueOnce({
       rows: [
@@ -169,6 +201,40 @@ describe("MasterDataService", () => {
       "Vật lí",
       "subject-001",
       "school-001",
+    ]);
+  });
+
+  it("derives a class code and grade when only the class name is provided", async () => {
+    const autoClassRow = {
+      id: "class-002",
+      school_id: "school-001",
+      code: "7A1",
+      name: "Lớp 7A1",
+      grade: 7,
+      status: "ACTIVE" as const,
+      created_at: timestamp,
+      updated_at: timestamp,
+    };
+    query
+      .mockResolvedValueOnce({ rows: [{ id: "school-001" }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [autoClassRow] });
+
+    await expect(service.createClass("school-001", { name: "Lớp 7A1" })).resolves.toEqual(
+      expect.objectContaining({
+        id: "class-002",
+        code: "7A1",
+        name: "Lớp 7A1",
+        grade: 7,
+        status: "ACTIVE",
+      }),
+    );
+    expect(query).toHaveBeenNthCalledWith(2, expect.stringContaining("code LIKE $3"), ["school-001", "7A1", "7A1-%"]);
+    expect(query).toHaveBeenNthCalledWith(3, expect.stringContaining("INSERT INTO classes"), [
+      "school-001",
+      "7A1",
+      "Lớp 7A1",
+      7,
     ]);
   });
 
@@ -303,6 +369,39 @@ describe("MasterDataService", () => {
     expect(query).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO schools"), [
       "THCS_DEMO",
       "THCS Demo",
+      "Asia/Ho_Chi_Minh",
+    ]);
+  });
+
+  it("derives a unique school code when only the name is provided", async () => {
+    const autoSchoolRow = {
+      ...schoolRow,
+      id: "school-002",
+      code: "TRUONG-THCS-BINH-PHU",
+      name: "Trường THCS Bình Phú",
+    };
+    query
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ tenant_id: "tenant-001" }] })
+      .mockResolvedValueOnce({ rows: [autoSchoolRow] });
+
+    await expect(service.createSchool({ name: "Trường THCS Bình Phú" }, "tenant-001", "school-001")).resolves.toEqual(
+      expect.objectContaining({
+        id: "school-002",
+        code: "TRUONG-THCS-BINH-PHU",
+        name: "Trường THCS Bình Phú",
+        timezone: "Asia/Ho_Chi_Minh",
+        status: "ACTIVE",
+      }),
+    );
+    expect(query).toHaveBeenNthCalledWith(1, expect.stringContaining("code LIKE $2"), [
+      "TRUONG-THCS-BINH-PHU",
+      "TRUONG-THCS-BINH-PHU-%",
+    ]);
+    expect(query).toHaveBeenNthCalledWith(3, expect.stringContaining("INSERT INTO schools (tenant_id, code"), [
+      "tenant-001",
+      "TRUONG-THCS-BINH-PHU",
+      "Trường THCS Bình Phú",
       "Asia/Ho_Chi_Minh",
     ]);
   });

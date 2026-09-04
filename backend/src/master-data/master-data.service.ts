@@ -204,6 +204,52 @@ interface LessonRequirementRow extends QueryResultRow {
   updated_at: string | Date;
 }
 
+function deriveSchoolCode(name: string) {
+  const normalized = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .join("-")
+    .toUpperCase();
+  return normalized.slice(0, 60).replace(/-+$/, "") || "SCHOOL";
+}
+
+function deriveTeacherCode(displayName: string) {
+  const normalized = displayName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .join("-")
+    .toUpperCase();
+  return `GV-${(normalized || "GIAO-VIEN").slice(0, 56).replace(/-+$/, "")}`;
+}
+
+function deriveClassCode(name: string) {
+  const parts = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const withoutPrefix = ["LOP", "CLASS"].includes(parts[0]?.toUpperCase() ?? "") ? parts.slice(1) : parts;
+  return (withoutPrefix.join("-").toUpperCase() || "LOP").slice(0, 60).replace(/-+$/, "");
+}
+
+function deriveClassGrade(name: string) {
+  const match = name.match(/(?:^|[^0-9])(10|11|12|[6-9])(?=[^0-9]|$)/);
+  return match ? Number(match[1]) : null;
+}
+
 @Injectable()
 export class MasterDataService {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
@@ -250,14 +296,22 @@ export class MasterDataService {
     };
   }
 
-  async listSchools(schoolId: string) {
-    const result = await this.pool.query<SchoolRow>(
-      `SELECT id::text, code, name, timezone, status, created_at, updated_at
-         FROM schools
-        WHERE id = $1
-        ORDER BY code`,
-      [schoolId],
-    );
+  async listSchools(schoolId: string, tenantId?: string) {
+    const result = tenantId
+      ? await this.pool.query<SchoolRow>(
+          `SELECT id::text, code, name, timezone, status, created_at, updated_at
+             FROM schools
+            WHERE tenant_id = $1
+            ORDER BY code`,
+          [tenantId],
+        )
+      : await this.pool.query<SchoolRow>(
+          `SELECT id::text, code, name, timezone, status, created_at, updated_at
+             FROM schools
+            WHERE id = $1
+            ORDER BY code`,
+          [schoolId],
+        );
     return result.rows.map((row) => this.toSchool(row));
   }
 
@@ -276,19 +330,58 @@ export class MasterDataService {
     return this.toSchool(school);
   }
 
-  async createSchool(dto: CreateSchoolDto) {
+  async createSchool(dto: CreateSchoolDto, tenantId?: string, currentSchoolId?: string) {
+    const name = this.requiredText(dto.name, "name");
     const timezone = this.validateTimezone(dto.timezone ?? DEFAULT_TIMEZONE);
+    const code = dto.code?.trim() ? this.requiredText(dto.code, "code") : await this.nextSchoolCode(name);
     try {
+      if (tenantId || currentSchoolId) {
+        const scope = currentSchoolId
+          ? await this.pool.query<{ tenant_id: string }>("SELECT tenant_id::text FROM schools WHERE id = $1", [
+              currentSchoolId,
+            ])
+          : { rows: [] };
+        const resolvedTenantId = tenantId ?? scope.rows[0]?.tenant_id;
+        if (!resolvedTenantId) {
+          throw this.notFound("SCHOOL_NOT_FOUND", "Không tìm thấy trường hiện tại để xác định tenant.");
+        }
+        const result = await this.pool.query<SchoolRow>(
+          `INSERT INTO schools (tenant_id, code, name, timezone, status)
+           VALUES ($1, $2, $3, $4, 'ACTIVE')
+           RETURNING id::text, code, name, timezone, status, created_at, updated_at`,
+          [resolvedTenantId, code, name, timezone],
+        );
+        return this.toSchool(result.rows[0]);
+      }
       const result = await this.pool.query<SchoolRow>(
         `INSERT INTO schools (code, name, timezone, status)
          VALUES ($1, $2, $3, 'ACTIVE')
          RETURNING id::text, code, name, timezone, status, created_at, updated_at`,
-        [this.requiredText(dto.code, "code"), this.requiredText(dto.name, "name"), timezone],
+        [code, name, timezone],
       );
       return this.toSchool(result.rows[0]);
     } catch (error) {
+      if (error instanceof NotFoundException) throw error;
       throw this.translateDatabaseError(error, "Mã school đã tồn tại.");
     }
+  }
+
+  private async nextSchoolCode(name: string) {
+    const baseCode = deriveSchoolCode(name);
+    const result = await this.pool.query<{ code: string }>(
+      `SELECT code
+         FROM schools
+        WHERE code = $1 OR code LIKE $2
+        ORDER BY code`,
+      [baseCode, `${baseCode}-%`],
+    );
+    const usedCodes = new Set(result.rows.map((row) => row.code));
+    if (!usedCodes.has(baseCode)) return baseCode;
+    for (let suffix = 2; suffix < 10000; suffix += 1) {
+      const candidate = `${baseCode}-${suffix}`;
+      if (!usedCodes.has(candidate)) return candidate;
+    }
+    throw new ConflictException("Không thể tự sinh mã trường duy nhất.");
   }
 
   async updateSchool(schoolId: string, dto: UpdateSchoolDto) {
@@ -684,6 +777,10 @@ export class MasterDataService {
 
   async createTeacher(schoolId: string, dto: CreateTeacherDto) {
     await this.ensureSchool(schoolId);
+    const displayName = this.requiredText(dto.displayName, "displayName");
+    const code = dto.code?.trim()
+      ? this.requiredText(dto.code, "code")
+      : await this.nextTeacherCode(schoolId, displayName);
     try {
       const result = await this.pool.query<TeacherRow>(
         `INSERT INTO teachers (tenant_id, school_id, code, display_name, status)
@@ -691,12 +788,30 @@ export class MasterDataService {
            FROM schools
           WHERE id = $1
          RETURNING id::text, school_id::text, code, display_name, status, created_at, updated_at`,
-        [schoolId, this.requiredText(dto.code, "code"), this.requiredText(dto.displayName, "displayName")],
+        [schoolId, code, displayName],
       );
       return this.toTeacher(result.rows[0]);
     } catch (error) {
       throw this.translateDatabaseError(error, "Mã giáo viên hoặc tên giáo viên đã tồn tại trong school.");
     }
+  }
+
+  private async nextTeacherCode(schoolId: string, displayName: string) {
+    const baseCode = deriveTeacherCode(displayName);
+    const result = await this.pool.query<{ code: string }>(
+      `SELECT code
+         FROM teachers
+        WHERE school_id = $1 AND (code = $2 OR code LIKE $3)
+        ORDER BY code`,
+      [schoolId, baseCode, `${baseCode}-%`],
+    );
+    const usedCodes = new Set(result.rows.map((row) => row.code));
+    if (!usedCodes.has(baseCode)) return baseCode;
+    for (let suffix = 2; suffix < 10000; suffix += 1) {
+      const candidate = `${baseCode}-${suffix}`;
+      if (!usedCodes.has(candidate)) return candidate;
+    }
+    throw new ConflictException("Không thể tự sinh mã giáo viên duy nhất.");
   }
 
   async updateTeacher(schoolId: string, teacherId: string, dto: UpdateTeacherDto) {
@@ -1097,6 +1212,15 @@ export class MasterDataService {
 
   async createClass(schoolId: string, dto: CreateClassDto) {
     await this.ensureSchool(schoolId);
+    const name = this.requiredText(dto.name, "name");
+    const grade = dto.grade ?? deriveClassGrade(name);
+    if (!grade) {
+      throw new BadRequestException({
+        code: "CLASS_GRADE_REQUIRED",
+        message: "Không thể tự xác định khối từ tên lớp. Hãy dùng tên có khối từ 6 đến 12.",
+      });
+    }
+    const code = dto.code?.trim() ? this.requiredText(dto.code, "code") : await this.nextClassCode(schoolId, name);
     try {
       const result = await this.pool.query<ClassRow>(
         `INSERT INTO classes (tenant_id, school_id, code, name, grade, status)
@@ -1104,12 +1228,30 @@ export class MasterDataService {
            FROM schools
           WHERE id = $1
          RETURNING id::text, school_id::text, code, name, grade, status, created_at, updated_at`,
-        [schoolId, this.requiredText(dto.code, "code"), this.requiredText(dto.name, "name"), dto.grade],
+        [schoolId, code, name, grade],
       );
       return this.toClass(result.rows[0]);
     } catch (error) {
       throw this.translateDatabaseError(error, "Mã hoặc tên lớp đã tồn tại trong school.");
     }
+  }
+
+  private async nextClassCode(schoolId: string, name: string) {
+    const baseCode = deriveClassCode(name);
+    const result = await this.pool.query<{ code: string }>(
+      `SELECT code
+         FROM classes
+        WHERE school_id = $1 AND (code = $2 OR code LIKE $3)
+        ORDER BY code`,
+      [schoolId, baseCode, `${baseCode}-%`],
+    );
+    const usedCodes = new Set(result.rows.map((row) => row.code));
+    if (!usedCodes.has(baseCode)) return baseCode;
+    for (let suffix = 2; suffix < 10000; suffix += 1) {
+      const candidate = `${baseCode}-${suffix}`;
+      if (!usedCodes.has(candidate)) return candidate;
+    }
+    throw new ConflictException("Không thể tự sinh mã lớp duy nhất.");
   }
 
   async updateClass(schoolId: string, classId: string, dto: UpdateClassDto) {

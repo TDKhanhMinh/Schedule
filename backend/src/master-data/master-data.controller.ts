@@ -38,12 +38,12 @@ export class MasterDataController {
 
   @Get()
   listSchools(@Req() request: RequestWithAuth) {
-    return this.masterData.listSchools(request.auth!.schoolId);
+    return this.masterData.listSchools(request.auth!.schoolId, request.auth!.tenantId);
   }
 
   @Post()
-  createSchool(@Body() dto: CreateSchoolDto) {
-    return this.masterData.createSchool(dto);
+  createSchool(@Body() dto: CreateSchoolDto, @Req() request: RequestWithAuth) {
+    return this.masterData.createSchool(dto, request.auth?.tenantId, request.auth?.schoolId);
   }
 
   @Get(":schoolId")
