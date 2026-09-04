@@ -15,7 +15,7 @@ import {
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
-import { useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -95,6 +95,10 @@ export function AppShell({
   const selectedSchool = context?.schools.find((school) => school.id === schoolId);
   const selectedPeriod = periods.find((period) => period.id === academicPeriodId);
   const currentNavigation = navigation.find((item) => item.route === route);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [route]);
 
   return (
     <div className="app-shell min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/20">
@@ -353,7 +357,7 @@ export function AppShell({
           id="primary-navigation"
           className={cn(
             "app-sidebar hidden md:flex flex-col border-r border-border bg-card/60 transition-[width,background-color,border-color] duration-200 ease-in-out shrink-0",
-            sidebarCollapsed ? "w-16 p-2" : "w-60 lg:w-64 p-4",
+            sidebarCollapsed ? "is-collapsed w-16 p-2" : "w-60 lg:w-64 p-4",
           )}
           aria-label="Điều hướng chính"
         >
