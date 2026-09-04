@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Inject, Injectable, NotFoundExc
 import type { Pool, QueryResultRow } from "pg";
 import { PG_POOL } from "../database/database.module";
 import { deriveSubjectCode } from "../contracts/subject-code";
+import type { Role } from "../auth/auth.constants";
 import {
   AssignHomeroomTeacherDto,
   AssignTeacherSubjectGradeDto,
@@ -254,10 +255,20 @@ function deriveClassGrade(name: string) {
 export class MasterDataService {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
-  async getWorkspaceContext(userId: string, schoolId: string, tenantId?: string) {
-    let result = tenantId
-      ? await this.pool.query<SchoolRow>(
-          `SELECT DISTINCT school.id::text, school.code, school.name, school.timezone, school.status,
+  async getWorkspaceContext(userId: string, schoolId: string, tenantId?: string, role?: Role) {
+    let result =
+      tenantId && role === "ADMIN"
+        ? await this.pool.query<SchoolRow>(
+            `SELECT id::text, code, name, timezone, status, created_at, updated_at
+             FROM schools
+            WHERE tenant_id = $1
+              AND (status = 'ACTIVE' OR id = $2)
+            ORDER BY code`,
+            [tenantId, schoolId],
+          )
+        : tenantId
+          ? await this.pool.query<SchoolRow>(
+              `SELECT DISTINCT school.id::text, school.code, school.name, school.timezone, school.status,
                   school.created_at, school.updated_at
              FROM tenant_memberships membership
              JOIN schools school ON school.id = membership.school_id AND school.tenant_id = membership.tenant_id
@@ -267,15 +278,15 @@ export class MasterDataService {
               AND (membership.school_id IS NULL OR membership.school_id = school.id)
               AND school.status = 'ACTIVE'
             ORDER BY school.code`,
-          [tenantId, userId],
-        )
-      : await this.pool.query<SchoolRow>(
-          `SELECT id::text, code, name, timezone, status, created_at, updated_at
+              [tenantId, userId],
+            )
+          : await this.pool.query<SchoolRow>(
+              `SELECT id::text, code, name, timezone, status, created_at, updated_at
              FROM schools
             WHERE id = $1
             ORDER BY code`,
-          [schoolId],
-        );
+              [schoolId],
+            );
 
     if (result.rows.length === 0 && tenantId) {
       result = await this.pool.query<SchoolRow>(

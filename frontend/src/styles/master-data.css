@@ -1237,3 +1237,151 @@
   color: var(--muted-foreground);
   background: var(--secondary);
 }
+
+/* Rule Center uses a neutral black-and-white reading surface. Primary actions
+ * remain blue and destructive/cancel actions keep the shared red treatment. */
+.rule-center-panel {
+  --rule-surface: #ffffff;
+  --rule-surface-soft: #f4f4f5;
+  --rule-ink: #171717;
+  --rule-muted: #525252;
+  --rule-line: #d4d4d4;
+  border-color: var(--rule-line);
+  color: var(--rule-ink);
+  background: var(--rule-surface);
+}
+
+.dark .rule-center-panel {
+  --rule-surface: #171717;
+  --rule-surface-soft: #262626;
+  --rule-ink: #f5f5f5;
+  --rule-muted: #a3a3a3;
+  --rule-line: #404040;
+}
+
+.rule-center-panel .master-section-kicker,
+.rule-center-panel .master-relation-imports-heading h2,
+.rule-center-panel .master-relation-imports-heading p,
+.rule-center-panel .rule-center-status-card,
+.rule-center-panel .rule-center-catalog,
+.rule-center-panel .rule-center-profile,
+.rule-center-panel .rule-center-history,
+.rule-center-panel .rule-center-validation {
+  color: var(--rule-ink);
+}
+
+.rule-center-panel .master-section-kicker,
+.rule-center-panel .master-relation-imports-heading p {
+  color: var(--rule-muted);
+}
+
+.rule-center-panel .rule-center-status-card,
+.rule-center-panel .rule-center-catalog,
+.rule-center-panel .rule-center-profile,
+.rule-center-panel .rule-center-history,
+.rule-center-panel .rule-center-validation {
+  border-color: var(--rule-line);
+  background: var(--rule-surface);
+}
+
+.rule-center-panel .rule-profile-choice:not([aria-pressed="true"]),
+.rule-center-panel [class~="bg-muted/50"] {
+  border-color: var(--rule-line);
+  color: var(--rule-ink);
+  background: var(--rule-surface-soft);
+}
+
+.rule-center-panel .text-muted-foreground {
+  color: var(--rule-muted);
+}
+
+.rule-center-panel .border-border {
+  border-color: var(--rule-line);
+}
+
+.rule-center-panel .bg-card {
+  background: var(--rule-surface);
+}
+
+.rule-center-panel .rule-definition-table-wrap {
+  border-color: var(--rule-line);
+  background: var(--rule-surface);
+}
+
+.rule-center-panel .rule-center-validation {
+  color: var(--rule-ink);
+  background: var(--rule-surface-soft);
+}
+
+.rule-center-panel [data-slot="badge"][data-variant="default"] {
+  border-color: var(--rule-ink);
+  color: var(--rule-surface);
+  background: var(--rule-ink);
+}
+
+.rule-center-panel [data-slot="badge"][data-variant="secondary"],
+.rule-center-panel [data-slot="badge"][data-variant="outline"] {
+  border-color: var(--rule-line);
+  color: var(--rule-ink);
+  background: var(--rule-surface-soft);
+}
+
+.rule-center-panel [data-slot="badge"][data-variant="destructive"] {
+  border-color: var(--rule-ink);
+  color: var(--rule-ink);
+  background: var(--rule-surface);
+}
+
+/* Cấu hình buổi học theo khối dùng cùng bề mặt trung tính với Rule Center. */
+.grade-shift-configuration {
+  --shift-surface: #ffffff;
+  --shift-surface-soft: #f4f4f5;
+  --shift-ink: #171717;
+  --shift-muted: #525252;
+  --shift-line: #d4d4d4;
+  border-color: var(--shift-line);
+  color: var(--shift-ink);
+  background: var(--shift-surface);
+}
+
+.dark .grade-shift-configuration {
+  --shift-surface: #171717;
+  --shift-surface-soft: #262626;
+  --shift-ink: #f5f5f5;
+  --shift-muted: #a3a3a3;
+  --shift-line: #404040;
+}
+
+.grade-shift-configuration .master-section-kicker,
+.grade-shift-configuration .master-relation-imports-heading h2,
+.grade-shift-configuration .master-relation-imports-heading p,
+.grade-shift-configuration article,
+.grade-shift-configuration article h3 {
+  color: var(--shift-ink);
+}
+
+.grade-shift-configuration .master-section-kicker,
+.grade-shift-configuration .master-relation-imports-heading p,
+.grade-shift-configuration .text-muted-foreground {
+  color: var(--shift-muted);
+}
+
+.grade-shift-configuration article {
+  border-color: var(--shift-line);
+  background: var(--shift-surface);
+}
+
+.grade-shift-configuration .border-border {
+  border-color: var(--shift-line);
+}
+
+.grade-shift-configuration .grade-shift-choice:not(:has(input:checked)) {
+  border-color: var(--shift-line);
+  color: var(--shift-ink);
+  background: var(--shift-surface);
+}
+
+.grade-shift-configuration .grade-shift-choice:hover:not(:has(input:disabled)):not(:has(input:checked)) {
+  border-color: var(--shift-ink);
+  background: var(--shift-surface-soft);
+}

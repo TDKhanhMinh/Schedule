@@ -62,7 +62,12 @@ export function GradeShiftConfiguration({
   const rows = useMemo(() => GRADES.map((grade) => draft[grade]), [draft]);
 
   function updateConfig(grade: number, patch: Partial<DraftConfig>) {
-    setDraft((current) => ({ ...current, [grade]: { ...current[grade], ...patch } }));
+    setDraft((current) => {
+      const next = { ...current[grade], ...patch };
+      if (patch.mainShiftCode) next.secondaryShiftCode = oppositeShift(patch.mainShiftCode);
+      if (patch.secondaryShiftCode) next.mainShiftCode = oppositeShift(patch.secondaryShiftCode);
+      return { ...current, [grade]: next };
+    });
     setNotice("");
     setError("");
   }
@@ -83,6 +88,7 @@ export function GradeShiftConfiguration({
           <span className="master-section-kicker">Quy tắc xếp lịch</span>
           <h2 id="grade-shift-title">Cấu hình buổi học theo khối</h2>
           <p>Buổi chính được ưu tiên; buổi phụ chỉ được dùng khi cần để thỏa các ràng buộc xếp lịch.</p>
+          <p>Chọn Sáng hoặc Chiều ở một bên, hệ thống sẽ tự chọn buổi đối nghịch ở bên còn lại.</p>
         </div>
       </div>
       {configsQuery.isPending ? (
@@ -207,4 +213,8 @@ function buildDraft(configs: GradeShiftConfig[]) {
       ];
     }),
   ) as Record<number, DraftConfig>;
+}
+
+function oppositeShift(shift: ShiftCode): ShiftCode {
+  return shift === "MORNING" ? "AFTERNOON" : "MORNING";
 }

@@ -156,7 +156,7 @@ export function RuleCenterPanel({
   if (!periodId) return <div className="master-empty-state">Chọn năm học/kỳ học để quản lý bộ quy tắc.</div>;
 
   return (
-    <section className="master-relation-imports" aria-labelledby="rule-center-title">
+    <section className="master-relation-imports rule-center-panel" aria-labelledby="rule-center-title">
       <div className="master-relation-imports-heading">
         <div>
           <span className="master-section-kicker">Quy tắc vận hành</span>
@@ -241,7 +241,7 @@ export function RuleCenterPanel({
             ))}
           </div>
           {selectedProfile ? (
-            <div className="space-y-4 rounded-xl border border-border bg-card p-4">
+            <div className="rule-center-profile space-y-4 rounded-xl border border-border bg-card p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="text-base font-semibold">{selectedProfile.name}</h3>
@@ -400,7 +400,7 @@ function StatusCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rule-center-status-card rounded-xl border border-border bg-card p-4">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Icon aria-hidden="true" />
         {label}
@@ -415,7 +415,10 @@ function RuleCatalogList({ entries }: { entries: RuleCatalogEntry[] }) {
   const supportedEntries = entries.filter((entry) => entry.implementationStatus === "SUPPORTED");
   const plannedEntries = entries.filter((entry) => entry.implementationStatus === "PLANNED");
   return (
-    <section className="rounded-xl border border-border bg-card p-4" aria-labelledby="rule-catalog-title">
+    <section
+      className="rule-center-catalog rounded-xl border border-border bg-card p-4"
+      aria-labelledby="rule-catalog-title"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 id="rule-catalog-title" className="text-base font-semibold">
@@ -450,7 +453,10 @@ function RuleCatalogList({ entries }: { entries: RuleCatalogEntry[] }) {
 
 function SnapshotHistory({ snapshots }: { snapshots: RuleSnapshot[] }) {
   return (
-    <section className="rounded-xl border border-border bg-card p-4" aria-labelledby="rule-snapshot-history-title">
+    <section
+      className="rule-center-history rounded-xl border border-border bg-card p-4"
+      aria-labelledby="rule-snapshot-history-title"
+    >
       <div className="flex items-center justify-between gap-3">
         <h3 id="rule-snapshot-history-title" className="text-base font-semibold">
           Lịch sử snapshot
@@ -480,7 +486,7 @@ function SnapshotHistory({ snapshots }: { snapshots: RuleSnapshot[] }) {
 function ValidationSummary({ validation }: { validation: RuleValidationResult }) {
   return (
     <div
-      className={`rounded-lg border px-3 py-3 text-sm ${validation.canCreateSnapshot ? "border-emerald-300 bg-emerald-50/70 dark:border-emerald-900 dark:bg-emerald-950/30" : "border-destructive/40 bg-destructive/5"}`}
+      className={`rule-center-validation rounded-lg border px-3 py-3 text-sm ${validation.canCreateSnapshot ? "border-emerald-300 bg-emerald-50/70 dark:border-emerald-900 dark:bg-emerald-950/30" : "border-destructive/40 bg-destructive/5"}`}
     >
       <strong>{validation.canCreateSnapshot ? "Profile hợp lệ để tạo snapshot" : "Profile cần rà soát"}</strong>
       <span className="ml-2 text-muted-foreground">

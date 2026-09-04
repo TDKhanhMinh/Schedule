@@ -89,6 +89,11 @@
   --red-soft: #fff2f0;
   --amber: #a15c00;
   --amber-soft: #fff5df;
+  --table-surface: #ffffff;
+  --table-surface-soft: #f4f4f5;
+  --table-ink: #171717;
+  --table-muted: #525252;
+  --table-line: #d4d4d4;
   --shadow: 0 18px 50px rgb(24 39 75 / 7%);
   --control-height: 36px;
   --control-height-compact: 32px;
@@ -145,6 +150,11 @@
   --red-soft: rgb(180 35 24 / 18%);
   --amber: #fbbf24;
   --amber-soft: rgb(161 92 0 / 18%);
+  --table-surface: #171717;
+  --table-surface-soft: #262626;
+  --table-ink: #f5f5f5;
+  --table-muted: #a3a3a3;
+  --table-line: #404040;
   --shadow: 0 18px 50px rgb(0 0 0 / 24%);
 
   /* shadcn / Tailwind Semantic Theme Tokens (Dark overrides) */

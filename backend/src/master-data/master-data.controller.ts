@@ -32,7 +32,7 @@ export class MasterDataController {
   @Get("context")
   getContext(@Req() request: RequestWithAuth) {
     return this.masterData
-      .getWorkspaceContext(request.auth!.userId, request.auth!.schoolId, request.auth!.tenantId)
+      .getWorkspaceContext(request.auth!.userId, request.auth!.schoolId, request.auth!.tenantId, request.auth!.role)
       .then((context) => ({ ...context, role: request.auth!.role }));
   }
 

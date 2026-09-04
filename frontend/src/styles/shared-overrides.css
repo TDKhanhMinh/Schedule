@@ -172,6 +172,78 @@ td {
   font-variant-numeric: tabular-nums;
 }
 
+/* Dense data tables share a neutral black-and-white reading surface. Action
+ * buttons and semantic status badges keep their own product colors. */
+:is(
+  .master-table-frame,
+  .master-import-preview-table,
+  .teacher-load-table-frame,
+  .timetable-table-frame,
+  .public-table-wrap,
+  .teacher-assignment-proposal-frame
+) {
+  border-color: var(--table-line);
+  color: var(--table-ink);
+  background: var(--table-surface);
+}
+
+:is(
+    .master-table-frame,
+    .master-import-preview-table,
+    .teacher-load-table-frame,
+    .timetable-table-frame,
+    .public-table-wrap,
+    .teacher-assignment-proposal-frame
+  )
+  table {
+  color: var(--table-ink);
+  background: var(--table-surface);
+}
+
+:is(
+    .master-table-frame,
+    .master-import-preview-table,
+    .teacher-load-table-frame,
+    .timetable-table-frame,
+    .public-table-wrap,
+    .teacher-assignment-proposal-frame
+  )
+  thead
+  th {
+  border-color: var(--table-line);
+  color: var(--table-ink);
+  background: var(--table-surface-soft);
+}
+
+:is(
+    .master-table-frame,
+    .master-import-preview-table,
+    .teacher-load-table-frame,
+    .timetable-table-frame,
+    .public-table-wrap,
+    .teacher-assignment-proposal-frame
+  )
+  tbody
+  td {
+  border-color: var(--table-line);
+  color: var(--table-ink);
+  background: var(--table-surface);
+}
+
+:is(
+    .master-table-frame,
+    .master-import-preview-table,
+    .teacher-load-table-frame,
+    .timetable-table-frame,
+    .public-table-wrap,
+    .teacher-assignment-proposal-frame
+  )
+  tbody
+  tr:nth-child(even)
+  td {
+  background: var(--table-surface-soft);
+}
+
 @media (max-width: 767px) {
   .mobile-menu-button {
     display: inline-flex;

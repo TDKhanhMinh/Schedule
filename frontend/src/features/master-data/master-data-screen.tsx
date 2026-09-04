@@ -1,6 +1,20 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { deriveSubjectCode } from "@schedule/backend/subject-code";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BookOpen,
   Building2,
@@ -19,46 +33,28 @@ import {
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { PageHeader } from "../../app/app-shell";
+import { useWorkspace } from "../../app/workspace-provider";
 import { frontendConfig } from "../../config";
 import { navigateTo } from "../../routing";
-import { useWorkspace } from "../../app/workspace-provider";
+import { TeacherLoadSummaryPanel } from "../teacher-load/teacher-load-screen";
+import { GradeShiftConfiguration } from "./grade-shift-configuration";
 import { request } from "./master-data-api";
 import {
   emptyForm,
   entityLabels,
   entityOrder,
-  fields,
   fieldErrorFromServer,
+  fields,
   localValidate,
-  type NameMaps,
   optionLabel,
   recordId,
   recordSearchText,
   statusLabel,
+  type NameMaps,
 } from "./master-data-config";
+import { MasterDataImportActions } from "./master-data-import-dialog";
 import {
   MasterDataApiError,
   type AcademicPeriod,
@@ -72,6 +68,8 @@ import {
   type Teacher,
   type TimeSlot,
 } from "./master-data-types";
+import { RuleCenterPanel } from "./rule-center";
+import { TeacherAssignmentDialog } from "./teacher-assignment-dialog";
 import {
   HomeroomAssignmentDialog,
   TeacherHomeroomAssignmentDialog,
@@ -79,12 +77,7 @@ import {
   type HomeroomAssignment,
   type TeacherSubjectGradeAssignment,
 } from "./teacher-duty-panels";
-import { MasterDataImportActions } from "./master-data-import-dialog";
-import { GradeShiftConfiguration } from "./grade-shift-configuration";
-import { RuleCenterPanel } from "./rule-center";
 import { TeacherPreferredOffDaysDialog } from "./teacher-preferred-off-days-dialog";
-import { TeacherLoadSummaryPanel } from "../teacher-load/teacher-load-screen";
-import { TeacherAssignmentDialog } from "./teacher-assignment-dialog";
 
 type MasterDataPanel = "catalog" | "teacher-load" | "grade-shifts" | "rules";
 
@@ -101,6 +94,7 @@ const entityIcons: Record<MasterDataEntity, LucideIcon> = {
 
 export function MasterDataScreen() {
   const { academicPeriodId: workspacePeriodId, setAcademicPeriodId } = useWorkspace();
+  const queryClient = useQueryClient();
   const [activePanel, setActivePanel] = useState<MasterDataPanel>("catalog");
   const [activeEntity, setActiveEntity] = useState<MasterDataEntity>("teacher");
   const [schools, setSchools] = useState<School[]>([]);
@@ -448,6 +442,9 @@ export function MasterDataScreen() {
       if (activeEntity === "assignment")
         path = `/schools/${frontendConfig.schoolId}/academic-periods/${selectedPeriodId}/lesson-requirements${editingId ? `/${editingId}` : ""}`;
       await saveMutation.mutateAsync({ path, method: editingId ? "PATCH" : "POST", body: JSON.stringify(body) });
+      if (activeEntity === "school") {
+        await queryClient.invalidateQueries({ queryKey: ["workspace-context"] });
+      }
       closeEditor();
       setNotice(
         `${entityLabels[activeEntity]} đã được ${editingId ? "cập nhật" : "tạo mới"}; dữ liệu đã được đọc lại từ API và sẵn sàng cho xem trước hoặc đầu vào bộ tối ưu.`,
@@ -492,8 +489,11 @@ export function MasterDataScreen() {
       if (activeEntity === "assignment")
         path = `/schools/${frontendConfig.schoolId}/academic-periods/${selectedPeriodId}/lesson-requirements/${record.id}`;
       await deleteMutation.mutateAsync(path);
+      if (activeEntity === "school") {
+        await queryClient.invalidateQueries({ queryKey: ["workspace-context"] });
+      }
       resetEditor();
-      setNotice(`${entityLabels[activeEntity]} đã được lưu trữ/xóa theo hợp đồng của API.`);
+      setNotice(`${entityLabels[activeEntity]} đã được lưu trữ/xóa.`);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Không thể xóa dữ liệu.");
     } finally {
@@ -874,7 +874,7 @@ export function MasterDataScreen() {
       <PageHeader
         eyebrow="Dữ liệu danh mục"
         title="Nhập tay và chỉnh sửa dữ liệu"
-        description="Quản lý dữ liệu nguồn trong phạm vi trường. Mọi thay đổi được ghi qua NestJS API và đọc lại từ PostgreSQL."
+        description="Quản lý dữ liệu nguồn trong phạm vi trường."
         action={
           <div className="master-header-actions">
             <Badge variant={canWrite ? "default" : "secondary"}>
@@ -1365,9 +1365,6 @@ export function MasterDataScreen() {
                 ? `Sửa ${entityLabels[activeEntity].toLowerCase()}`
                 : `Thêm ${entityLabels[activeEntity].toLowerCase()}`}
             </DialogTitle>
-            <DialogDescription id="master-editor-description">
-              Nhập thông tin và lưu qua API. Dữ liệu sau đó sẽ được đọc lại từ PostgreSQL.
-            </DialogDescription>
           </DialogHeader>
           <form className="master-editor-form" autoComplete="off" onSubmit={save}>
             <div className="master-fields">

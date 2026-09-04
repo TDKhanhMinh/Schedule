@@ -93,6 +93,23 @@ describe("MasterDataService", () => {
     expect(query).toHaveBeenCalledWith(expect.stringContaining("WHERE id = $1"), ["school-001"]);
   });
 
+  it("lists active tenant schools for an ADMIN workspace context", async () => {
+    const secondSchool = {
+      ...schoolRow,
+      id: "school-002",
+      code: "THPT_DEMO",
+      name: "THPT Demo",
+    };
+    query.mockResolvedValueOnce({ rows: [schoolRow, secondSchool] });
+
+    await expect(service.getWorkspaceContext("user-001", "school-001", "tenant-001", "ADMIN")).resolves.toMatchObject({
+      currentSchoolId: "school-001",
+      canSwitchSchool: true,
+      schools: [expect.objectContaining({ id: "school-001" }), expect.objectContaining({ id: "school-002" })],
+    });
+    expect(query).toHaveBeenCalledWith(expect.stringContaining("WHERE tenant_id = $1"), ["tenant-001", "school-001"]);
+  });
+
   it("lists homeroom assignments within the academic-period scope", async () => {
     query.mockResolvedValueOnce({ rows: [periodRow] }).mockResolvedValueOnce({
       rows: [
