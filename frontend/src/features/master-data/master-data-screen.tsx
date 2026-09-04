@@ -1221,29 +1221,31 @@ export function MasterDataScreen() {
                           <tr key={recordId(record)}>
                             {renderRecord(record)}
                             <td className="row-actions">
-                              {renderTeacherAssignmentActions(record)}
-                              {renderHomeroomAction(record)}
-                              <Button
-                                className="table-action"
-                                variant="outline"
-                                type="button"
-                                onClick={(event) => {
-                                  editorTriggerRef.current = event.currentTarget;
-                                  editRecord(record);
-                                }}
-                                disabled={!canWrite}
-                              >
-                                Sửa
-                              </Button>
-                              <Button
-                                className="table-action danger"
-                                variant="outline"
-                                type="button"
-                                onClick={() => setPendingDelete(record)}
-                                disabled={!canWrite || saving}
-                              >
-                                Xóa
-                              </Button>
+                              <div className="row-action-buttons">
+                                {renderTeacherAssignmentActions(record)}
+                                {renderHomeroomAction(record)}
+                                <Button
+                                  className="table-action"
+                                  variant="outline"
+                                  type="button"
+                                  onClick={(event) => {
+                                    editorTriggerRef.current = event.currentTarget;
+                                    editRecord(record);
+                                  }}
+                                  disabled={!canWrite}
+                                >
+                                  Sửa
+                                </Button>
+                                <Button
+                                  className="table-action danger"
+                                  variant="outline"
+                                  type="button"
+                                  onClick={() => setPendingDelete(record)}
+                                  disabled={!canWrite || saving}
+                                >
+                                  Xóa
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         ))}

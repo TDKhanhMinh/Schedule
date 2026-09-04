@@ -743,9 +743,29 @@
 }
 
 .row-actions {
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.row-action-buttons {
   display: flex;
+  min-height: var(--control-height);
+  align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  white-space: nowrap;
+}
+
+.row-action-buttons > [data-slot="button"] {
+  flex: 0 0 auto;
+  min-height: var(--control-height);
+}
+
+.teacher-table-frame .row-actions {
+  min-width: 500px;
+}
+
+.teacher-table-frame .row-action-buttons {
+  flex-wrap: nowrap;
 }
 
 .table-action {
