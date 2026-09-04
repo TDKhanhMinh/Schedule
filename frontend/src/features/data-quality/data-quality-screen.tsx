@@ -18,6 +18,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "../../app/app-shell";
 import { useWorkspace } from "../../app/workspace-provider";
+import type { WorkspaceScheduleVersion } from "../../app/workspace-types";
 import { navigateTo } from "../../routing";
 import { request } from "../master-data/master-data-api";
 import type {
@@ -69,6 +70,7 @@ interface QualityDataset {
   professionalAssignments: ProfessionalAssignment[];
   profiles: RuleProfile[];
   activeSnapshot: RuleSnapshotResolution;
+  scheduleVersions: WorkspaceScheduleVersion[];
 }
 
 interface QualityReport {
@@ -167,6 +169,7 @@ async function fetchQualityDataset(schoolId: string, periodId: string, signal: A
     professionalAssignments,
     profiles,
     activeSnapshot,
+    scheduleVersions,
   ] = await Promise.all([
     request<AcademicPeriod[]>(`${base}/academic-periods`, { signal }),
     request<Teacher[]>(`${base}/teachers`, { signal }),
@@ -180,6 +183,7 @@ async function fetchQualityDataset(schoolId: string, periodId: string, signal: A
     request<ProfessionalAssignment[]>(`${periodBase}/teacher-subject-grade-assignments`, { signal }),
     request<RuleProfile[]>(`${periodBase}/rule-profiles`, { signal }),
     request<RuleSnapshotResolution>(`${periodBase}/rule-snapshots/active`, { signal }),
+    request<WorkspaceScheduleVersion[]>(`${periodBase}/schedule-versions`, { signal }),
   ]);
   return {
     periods,
@@ -194,6 +198,7 @@ async function fetchQualityDataset(schoolId: string, periodId: string, signal: A
     professionalAssignments,
     profiles,
     activeSnapshot,
+    scheduleVersions,
   };
 }
 
@@ -206,6 +211,7 @@ function evaluateQuality(dataset: QualityDataset, period: { status: string } | u
   const activeLessons = dataset.lessons.filter((item) => item.status === "ACTIVE");
   const activeHomerooms = dataset.homerooms;
   const activeProfessionalAssignments = dataset.professionalAssignments.filter((item) => item.status === "ACTIVE");
+  const usableScheduleVersions = dataset.scheduleVersions.filter((version) => version.status !== "ARCHIVED");
 
   checkRequiredCollection(issues, "teachers", "Giáo viên", activeTeachers.length);
   checkRequiredCollection(issues, "classes", "Lớp học", activeClasses.length);
@@ -367,6 +373,15 @@ function evaluateQuality(dataset: QualityDataset, period: { status: string } | u
       description: "Cần approve baseline production trong Rule Center trước khi chạy bộ tối ưu.",
     });
   }
+  if (usableScheduleVersions.length === 0) {
+    issues.push({
+      id: "schedule-version",
+      severity: "ERROR",
+      area: "Phiên bản TKB",
+      title: "Chưa có phiên bản thời khóa biểu",
+      description: "Khởi tạo một phiên bản DRAFT trong trang Thời khóa biểu trước khi chạy bộ tối ưu.",
+    });
+  }
   if (!period || period.status !== "ACTIVE") {
     issues.push({
       id: "academic-period",
@@ -383,7 +398,7 @@ function evaluateQuality(dataset: QualityDataset, period: { status: string } | u
     counts: {
       errors: issues.filter((issue) => issue.severity === "ERROR").length,
       warnings: issues.filter((issue) => issue.severity === "WARNING").length,
-      checks: 10,
+      checks: 11,
     },
   };
 }
@@ -452,6 +467,8 @@ function QualityReportView({ report }: { report: QualityReport }) {
     ) : (
       <CheckCircle2 aria-hidden="true" />
     );
+  const missingScheduleVersion = report.issues.some((issue) => issue.id === "schedule-version");
+  const nextRoute = status === "ready" || missingScheduleVersion ? "timetable" : "master-data";
   return (
     <>
       <section className={`data-quality-status is-${status}`} aria-live="polite">
@@ -510,19 +527,24 @@ function QualityReportView({ report }: { report: QualityReport }) {
           {status === "ready" ? <CalendarCheck aria-hidden="true" /> : <RefreshCw aria-hidden="true" />}
         </div>
         <div>
-          <strong>{status === "ready" ? "Có thể chuyển sang thời khóa biểu" : "Sửa dữ liệu rồi quét lại"}</strong>
+          <strong>
+            {status === "ready"
+              ? "Có thể chuyển sang thời khóa biểu"
+              : missingScheduleVersion
+                ? "Cần khởi tạo phiên bản thời khóa biểu"
+                : "Sửa dữ liệu rồi quét lại"}
+          </strong>
           <p>
             {status === "ready"
               ? "Kiểm tra này không thay đổi dữ liệu. Bạn có thể mở thời khóa biểu để tiếp tục."
-              : "Mở Dữ liệu danh mục, chỉnh sửa các mục được nêu và thực hiện lại lượt quét."}
+              : missingScheduleVersion
+                ? "Mở Thời khóa biểu để tạo bản DRAFT, sau đó quay lại quét dữ liệu."
+                : "Mở Dữ liệu danh mục, chỉnh sửa các mục được nêu và thực hiện lại lượt quét."}
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigateTo(status === "ready" ? "timetable" : "master-data")}
-        >
-          {status === "ready" ? "Mở thời khóa biểu" : "Chỉnh sửa ngay"} <ArrowRight aria-hidden="true" />
+        <Button type="button" variant="outline" onClick={() => navigateTo(nextRoute)}>
+          {status === "ready" ? "Mở thời khóa biểu" : missingScheduleVersion ? "Khởi tạo phiên bản" : "Chỉnh sửa ngay"}{" "}
+          <ArrowRight aria-hidden="true" />
         </Button>
       </section>
     </>

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, ChevronLeft, Download, RefreshCw, Search, ServerCrash, Table2, UsersRound } from "lucide-react";
 import type { SolveJobResult } from "@schedule/backend/contracts";
 import { useCallback, useEffect, useState } from "react";
@@ -8,14 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "../../app/app-shell";
+import { useWorkspace } from "../../app/workspace-provider";
 import { frontendConfig } from "../../config";
-import { apiBlob } from "../../lib/api-client";
+import { apiBlob, apiRequest } from "../../lib/api-client";
 import { navigateTo } from "../../routing";
 import { OptimizationJobPanel } from "./optimization-job-panel";
 import { ReleasePanel } from "./release-panel";
 import { buildTimetableAssignments, loadTimetable, type TimetableSolveInput } from "./timetable-api";
 import { TimetableGrid } from "./timetable-grid";
 import type { TimetableView } from "./timetable-types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { WorkspaceScheduleVersion } from "../../app/workspace-types";
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Bản nháp",
@@ -36,14 +39,45 @@ const viewOptions: Array<{ value: TimetableView; label: string; icon: typeof Tab
 const TIMETABLE_SOLVE_TIME_LIMIT_SECONDS = 120;
 
 export function TimetableScreen() {
+  const {
+    schoolId,
+    academicPeriodId,
+    scheduleVersionId,
+    scheduleVersions,
+    scheduleVersionsPending,
+    scheduleVersionsError,
+    setScheduleVersionId,
+  } = useWorkspace();
+  const queryClient = useQueryClient();
   const [view, setView] = useState<TimetableView>("school");
   const [query, setQuery] = useState("");
   const [exportNotice, setExportNotice] = useState("");
+  const [versionNotice, setVersionNotice] = useState("");
   const [solverPreview, setSolverPreview] = useState<SolveJobResult | null>(null);
   const timetableQuery = useQuery({
-    queryKey: ["timetable", frontendConfig.schoolId, frontendConfig.scheduleVersionId],
-    queryFn: ({ signal }) => loadTimetable(signal),
-    enabled: Boolean(frontendConfig.schoolId && frontendConfig.scheduleVersionId),
+    queryKey: ["timetable", schoolId, academicPeriodId, scheduleVersionId],
+    queryFn: ({ signal }) => loadTimetable(signal, { schoolId, academicPeriodId, scheduleVersionId }),
+    enabled: Boolean(schoolId && academicPeriodId && scheduleVersionId),
+  });
+  const availableScheduleVersions = scheduleVersions.filter((version) => version.status !== "ARCHIVED");
+  const canWrite = frontendConfig.actorRole === "ADMIN" || frontendConfig.actorRole === "SCHEDULER";
+  const createScheduleVersionMutation = useMutation({
+    mutationFn: () =>
+      apiRequest<WorkspaceScheduleVersion>(`/schools/${schoolId}/schedule-versions`, {
+        method: "POST",
+        body: JSON.stringify({ academicPeriodId }),
+      }),
+    onSuccess: async (version) => {
+      queryClient.setQueryData<WorkspaceScheduleVersion[]>(
+        ["workspace-schedule-versions", schoolId, academicPeriodId],
+        (current) => [version, ...(current ?? []).filter((item) => item.id !== version.id)],
+      );
+      setScheduleVersionId(version.id);
+      setVersionNotice(`Đã khởi tạo phiên bản TKB DRAFT số ${version.versionNumber}.`);
+      await queryClient.invalidateQueries({ queryKey: ["workspace-schedule-versions", schoolId, academicPeriodId] });
+    },
+    onError: (error) =>
+      setVersionNotice(error instanceof Error ? error.message : "Không thể khởi tạo phiên bản thời khóa biểu."),
   });
   const data = timetableQuery.data ?? null;
   const activeLessonRequirements = data?.lessonRequirements.filter(({ status }) => status !== "ARCHIVED") ?? [];
@@ -51,10 +85,10 @@ export function TimetableScreen() {
   const classGradeEntries =
     data?.classes.flatMap((item) => (item.grade === undefined ? [] : [[item.id, item.grade] as const])) ?? [];
   const solveInput: TimetableSolveInput | null =
-    data && frontendConfig.schoolId && data.timeSlots.length > 0 && activeLessonRequirements.length > 0
+    data && schoolId && data.timeSlots.length > 0 && activeLessonRequirements.length > 0
       ? {
           schemaVersion: "1.0",
-          schoolId: frontendConfig.schoolId,
+          schoolId,
           academicPeriodId: data.snapshot.academicPeriodId,
           timeSlots: data.timeSlots.map(({ id, day, period, shiftCode }) => ({
             id,
@@ -110,25 +144,31 @@ export function TimetableScreen() {
     setSolverPreview(null);
   }, [data?.snapshot.id, data?.snapshot.revision]);
   const state =
-    !frontendConfig.schoolId || !frontendConfig.scheduleVersionId
+    !schoolId || !academicPeriodId
       ? "empty"
-      : timetableQuery.isPending
+      : scheduleVersionsPending
         ? "loading"
-        : timetableQuery.isError
+        : scheduleVersionsError || timetableQuery.isError
           ? "error"
-          : data?.assignments.length
-            ? "ready"
-            : "empty";
+          : !scheduleVersionId
+            ? "empty"
+            : timetableQuery.isPending
+              ? "loading"
+              : data?.assignments.length
+                ? "ready"
+                : "empty";
   const notice =
-    !frontendConfig.schoolId || !frontendConfig.scheduleVersionId
-      ? "Chưa cấu hình VITE_SCHOOL_ID và VITE_SCHEDULE_VERSION_ID. Thời khóa biểu chỉ hiển thị dữ liệu từ API."
-      : timetableQuery.error instanceof Error
-        ? timetableQuery.error.message
-        : exportNotice;
+    !schoolId || !academicPeriodId
+      ? "Chọn trường và năm học để tải phiên bản thời khóa biểu."
+      : scheduleVersionsError
+        ? scheduleVersionsError.message
+        : timetableQuery.error instanceof Error
+          ? timetableQuery.error.message
+          : versionNotice || exportNotice;
   const exportMutation = useMutation({
     mutationFn: () =>
       apiBlob(
-        `/schools/${frontendConfig.schoolId}/schedule-versions/${frontendConfig.scheduleVersionId}/export.xlsx?view=${view === "school" ? "all" : view}`,
+        `/schools/${schoolId}/schedule-versions/${scheduleVersionId}/export.xlsx?view=${view === "school" ? "all" : view}`,
       ),
     onSuccess: (blob) => {
       const url = URL.createObjectURL(blob);
@@ -217,6 +257,25 @@ export function TimetableScreen() {
               </span>
               <span>Buổi và tiết được hiển thị riêng trong lưới.</span>
             </div>
+            <label className="timetable-version-field">
+              <span className="timetable-control-label">Phiên bản TKB</span>
+              <Select
+                value={scheduleVersionId}
+                onValueChange={setScheduleVersionId}
+                disabled={scheduleVersionsPending || availableScheduleVersions.length === 0}
+              >
+                <SelectTrigger aria-label="Chọn phiên bản thời khóa biểu">
+                  <SelectValue placeholder={scheduleVersionsPending ? "Đang tải phiên bản" : "Chưa có phiên bản"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableScheduleVersions.map((version) => (
+                    <SelectItem value={version.id} key={version.id}>
+                      {scheduleVersionLabel(version)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
           </div>
 
           <div className="timetable-filter-row">
@@ -250,7 +309,10 @@ export function TimetableScreen() {
         </div>
 
         {notice ? (
-          <Alert className="timetable-inline-alert" variant={timetableQuery.isError ? "destructive" : "default"}>
+          <Alert
+            className="timetable-inline-alert"
+            variant={timetableQuery.isError || scheduleVersionsError ? "destructive" : "default"}
+          >
             <ServerCrash />
             <AlertDescription>{notice}</AlertDescription>
           </Alert>
@@ -274,6 +336,35 @@ export function TimetableScreen() {
             <Button variant="outline" type="button" onClick={() => void timetableQuery.refetch()}>
               Thử lại
             </Button>
+          </div>
+        ) : state === "empty" ? (
+          <div className="timetable-state timetable-empty-state" role="status">
+            <span className="timetable-state-icon" aria-hidden="true">
+              <Table2 />
+            </span>
+            <h3>
+              {!schoolId || !academicPeriodId
+                ? "Chưa đủ bối cảnh làm việc"
+                : !scheduleVersionId
+                  ? "Chưa có phiên bản TKB"
+                  : "Phiên bản chưa có phân công"}
+            </h3>
+            <p>
+              {!schoolId || !academicPeriodId
+                ? "Chọn trường và năm học ở phần đầu trang để tiếp tục."
+                : !scheduleVersionId
+                  ? "Khởi tạo một phiên bản DRAFT để nạp dữ liệu và bắt đầu xếp thời khóa biểu."
+                  : "Phiên bản hiện tại chưa có phân công được lưu từ máy chủ."}
+            </p>
+            {!schoolId || !academicPeriodId || scheduleVersionId ? null : (
+              <Button
+                type="button"
+                onClick={() => void createScheduleVersionMutation.mutateAsync()}
+                disabled={!canWrite || createScheduleVersionMutation.isPending}
+              >
+                {createScheduleVersionMutation.isPending ? "Đang khởi tạo…" : "Khởi tạo phiên bản TKB"}
+              </Button>
+            )}
           </div>
         ) : (
           <div className="timetable-grid-content">
@@ -315,6 +406,18 @@ export function TimetableScreen() {
       {data ? <ReleasePanel versionId={data.snapshot.id} status={data.snapshot.status} /> : null}
     </div>
   );
+}
+
+function scheduleVersionLabel(version: WorkspaceScheduleVersion) {
+  const statusLabels: Record<WorkspaceScheduleVersion["status"], string> = {
+    DRAFT: "Bản nháp",
+    IN_REVIEW: "Đang rà soát",
+    APPROVED: "Đã phê duyệt",
+    LOCKED: "Đã khóa",
+    PUBLISHED: "Đã công bố",
+    ARCHIVED: "Đã lưu trữ",
+  };
+  return `V${version.versionNumber} · ${statusLabels[version.status]}`;
 }
 
 function isTimetableView(value: string): value is TimetableView {

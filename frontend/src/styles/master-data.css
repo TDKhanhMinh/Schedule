@@ -776,6 +776,10 @@
   min-width: 82px;
 }
 
+.subject-shift-action {
+  min-width: 96px;
+}
+
 .table-action.danger {
   color: var(--destructive);
 }

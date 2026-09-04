@@ -124,6 +124,30 @@ describe("RuleManagementService", () => {
     });
   });
 
+  it("validates a subject-scoped shift preference", async () => {
+    const subjectShiftRule = {
+      ...availabilityRule,
+      code: "RULE-SUBJECT-SHIFT-PREFERENCE",
+      kind: "SOFT" as const,
+      weight: 10,
+      scope: {
+        schoolId: "school-001",
+        academicPeriodId: "period-001",
+        resourceType: "SUBJECT",
+        resourceIds: ["subject-001"],
+      },
+      parameters: { preferredShift: "MAIN" },
+    };
+    query.mockResolvedValueOnce({ rows: [profileRow] }).mockResolvedValueOnce({ rows: [subjectShiftRule] });
+
+    await expect(service.validateProfile("school-001", "profile-001")).resolves.toMatchObject({
+      valid: true,
+      canCreateSnapshot: true,
+      counts: { total: 1, hard: 0, soft: 1, supported: 1 },
+      issues: [],
+    });
+  });
+
   it("captures current homeroom assignments as derived snapshot rules", async () => {
     const baselineRule = {
       ...availabilityRule,

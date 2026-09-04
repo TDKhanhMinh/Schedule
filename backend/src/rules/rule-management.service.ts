@@ -1419,6 +1419,12 @@ export class RuleManagementService {
         message: `Scope ${resourceType} không hợp lệ cho rule ${entry.code}.`,
       });
     }
+    if (entry.code === "RULE-SUBJECT-SHIFT-PREFERENCE" && (resourceType !== "SUBJECT" || !scope.resourceIds?.length)) {
+      throw new BadRequestException({
+        code: "RULE_SUBJECT_SCOPE_REQUIRED",
+        message: "Rule ưu tiên buổi dạy theo môn phải giới hạn theo ít nhất một môn học.",
+      });
+    }
     const requiresSpecificTeacher =
       entry.targetResources.includes("TEACHER") &&
       entry.code !== "RULE-TEACHER-MAX-WORKING-DAYS" &&

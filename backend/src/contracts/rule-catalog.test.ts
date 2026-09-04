@@ -39,5 +39,11 @@ describe("Rule Catalog", () => {
       implementationStatus: "SUPPORTED",
       handlerKey: "TEACHER_LOAD_REDUCTION",
     });
+    expect(findRuleCatalogEntry("RULE-SUBJECT-SHIFT-PREFERENCE")).toMatchObject({
+      implementationStatus: "SUPPORTED",
+      targetResources: ["SUBJECT"],
+      defaultKind: "SOFT",
+      parameters: [{ key: "preferredShift", options: ["MAIN", "SECONDARY"] }],
+    });
   });
 });

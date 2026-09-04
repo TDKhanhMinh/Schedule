@@ -45,6 +45,12 @@ export interface TimetableLoadedData extends TimetableSourceData {
   gradeShiftConfigs: GradeShiftConfig[];
 }
 
+export interface TimetableLoadContext {
+  schoolId: string;
+  academicPeriodId: string;
+  scheduleVersionId: string;
+}
+
 function label(record: MasterRecord | undefined, fallback: string) {
   if (!record) return fallback;
   return record.code && record.name
@@ -52,13 +58,19 @@ function label(record: MasterRecord | undefined, fallback: string) {
     : (record.displayName ?? record.name ?? record.code ?? record.id);
 }
 
-export async function loadTimetable(signal?: AbortSignal) {
-  if (!frontendConfig.schoolId || !frontendConfig.scheduleVersionId) return null;
+export async function loadTimetable(signal?: AbortSignal, context?: TimetableLoadContext) {
+  const schoolId = context?.schoolId ?? frontendConfig.schoolId;
+  const scheduleVersionId = context?.scheduleVersionId ?? frontendConfig.scheduleVersionId;
+  const academicPeriodId = context?.academicPeriodId;
+  if (!schoolId || !scheduleVersionId) return null;
   const snapshot = await getJson<ScheduleVersionSnapshot>(
-    `/schools/${frontendConfig.schoolId}/schedule-versions/${frontendConfig.scheduleVersionId}`,
+    `/schools/${schoolId}/schedule-versions/${scheduleVersionId}`,
     signal,
   );
-  const base = `/schools/${frontendConfig.schoolId}`;
+  if (academicPeriodId && snapshot.academicPeriodId !== academicPeriodId) {
+    throw new Error("Phiên bản thời khóa biểu không thuộc năm học đang chọn.");
+  }
+  const base = `/schools/${schoolId}`;
   const [periodSlots, lessonRequirements, classes, subjects, teachers, rooms, history, homerooms, gradeShiftConfigs] =
     await Promise.all([
       getJson<TimeSlot[]>(`${base}/academic-periods/${snapshot.academicPeriodId}/time-slots`, signal),

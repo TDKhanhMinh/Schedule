@@ -39,6 +39,7 @@ DEFAULT_OBJECTIVE_WEIGHTS = {
     "preferredDays": 1.0,
     "fairness": 0.0,
 }
+SUBJECT_SHIFT_PREFERENCE_VALUES = {"MAIN", "SECONDARY"}
 
 
 def _build_metadata(
@@ -122,6 +123,15 @@ def _rule_scope_matches(rule, resource: str, resource_id: str) -> bool:
     if scope.resourceIds:
         return resource_id in scope.resourceIds
     return resource_type == resource or (resource == "TEACHER" and scope.actorType == "TEACHER")
+
+
+def _subject_preferred_shift(rule, shift_policy):
+    preference = rule.parameters.get("preferredShift")
+    if preference == "MAIN" and shift_policy:
+        return shift_policy.mainShiftCode
+    if preference == "SECONDARY" and shift_policy:
+        return shift_policy.secondaryShiftCode
+    return None
 
 
 def _valid_day_list(value: object) -> bool:
@@ -215,6 +225,52 @@ def _rule_definition_issues(request: SolveJobRequest):
                         "details": {"ruleCode": rule.code},
                     }
                 )
+        elif rule.code == "RULE-SUBJECT-SHIFT-PREFERENCE":
+            if rule.parameters.get("preferredShift") not in SUBJECT_SHIFT_PREFERENCE_VALUES:
+                issues.append(
+                    {
+                        "code": "INVALID_RULE_PARAMETER",
+                        "severity": "ERROR",
+                        "entity": "RULE",
+                        "message": "preferredShift phải là MAIN hoặc SECONDARY.",
+                        "details": {"ruleCode": rule.code},
+                    }
+                )
+            if rule.scope.resourceType != "SUBJECT" or not rule.scope.resourceIds:
+                issues.append(
+                    {
+                        "code": "INVALID_RULE_SCOPE",
+                        "severity": "ERROR",
+                        "entity": "RULE",
+                        "message": "Rule ưu tiên buổi dạy theo môn phải giới hạn theo môn học.",
+                        "details": {"ruleCode": rule.code},
+                    }
+                )
+            preferred_shift = rule.parameters.get("preferredShift")
+            if preferred_shift in {"MAIN", "SECONDARY"}:
+                scoped_lessons = [
+                    lesson
+                    for lesson in request.lessons
+                    if _rule_scope_matches(rule, "SUBJECT", lesson.subjectId)
+                ]
+                missing_policies = [
+                    lesson.classId
+                    for lesson in scoped_lessons
+                    if lesson.classId not in (request.classShiftPolicies or {})
+                ]
+                if missing_policies:
+                    issues.append(
+                        {
+                            "code": "SUBJECT_SHIFT_POLICY_REQUIRED",
+                            "severity": "ERROR" if rule.kind == "HARD" else "WARNING",
+                            "entity": "RULE",
+                            "message": "Rule ưu tiên buổi chính/buổi phụ của môn cần cấu hình buổi học cho lớp.",
+                            "details": {
+                                "ruleCode": rule.code,
+                                "classIds": sorted(set(missing_policies)),
+                            },
+                        }
+                    )
     return issues
 
 
@@ -408,6 +464,9 @@ def solve(
     no_internal_gap_rules = [
         rule for rule in rule_definitions if rule.code == "RULE-SCHEDULE-NO-INTERNAL-GAPS"
     ]
+    subject_shift_rules = [
+        rule for rule in rule_definitions if rule.code == "RULE-SUBJECT-SHIFT-PREFERENCE"
+    ]
     requires_occupancy = bool(no_internal_gap_rules or max_working_day_rules)
     objective_weights = _objective_weights(request)
     objective_scales = {group: round(objective_weights[group] * 1000) for group in OBJECTIVE_GROUPS}
@@ -497,6 +556,9 @@ def solve(
             allowed_shift_codes = {shift_policy.mainShiftCode}
             if shift_policy.allowSecondary:
                 allowed_shift_codes.add(shift_policy.secondaryShiftCode)
+        subject_shift_rules_for_lesson = [
+            rule for rule in subject_shift_rules if _rule_scope_matches(rule, "SUBJECT", lesson.subjectId)
+        ]
 
         for session_index in range(lesson.requiredSessions):
             locked_assignment = locked_by_occurrence.get((lesson.id, session_index))
@@ -529,10 +591,20 @@ def solve(
             class_blocked_slots = 0
             teacher_blocked_slots = 0
             room_blocked_slots = 0
+            subject_shift_blocked_slots = 0
             for slot_id in sorted(session_allowed):
                 slot = slots_by_id[slot_id]
                 slot_shift_code = slot.shiftCode or "MORNING"
                 if allowed_shift_codes is not None and slot_shift_code not in allowed_shift_codes:
+                    domain_pruned_count += len(eligible_room_ids)
+                    continue
+                if any(
+                    rule.kind == "HARD"
+                    and (preferred_shift := _subject_preferred_shift(rule, shift_policy)) is not None
+                    and slot_shift_code != preferred_shift
+                    for rule in subject_shift_rules_for_lesson
+                ):
+                    subject_shift_blocked_slots += 1
                     domain_pruned_count += len(eligible_room_ids)
                     continue
                 if slot_id in class_blocked:
@@ -598,6 +670,14 @@ def solve(
                                 variable,
                                 max(1, round((rule.weight or 0) * 1000)),
                             )
+                    for rule in subject_shift_rules_for_lesson:
+                        preferred_shift = _subject_preferred_shift(rule, shift_policy)
+                        if rule.kind == "SOFT" and preferred_shift and slot_shift_code != preferred_shift:
+                            register_rule_objective_term(
+                                "undesirableSlots",
+                                variable,
+                                max(1, round((rule.weight or 0) * 1000)),
+                            )
             if choices:
                 model.AddExactlyOne(choices)
                 choice_groups.append(choices)
@@ -612,7 +692,12 @@ def solve(
                         model.Add(moved + baseline_variable == 1)
                     repair_move_terms.append(moved)
             else:
-                if class_blocked_slots == len(session_allowed) and session_allowed:
+                if subject_shift_blocked_slots == len(session_allowed) and session_allowed:
+                    code = "SUBJECT_SHIFT_CONFLICT"
+                    message = (
+                        f"Yêu cầu tiết học {lesson.id}, buổi {session_index}, không còn khung tiết phù hợp với buổi dạy của môn"
+                    )
+                elif class_blocked_slots == len(session_allowed) and session_allowed:
                     code = "CLASS_AVAILABILITY_CONFLICT"
                     message = f"Yêu cầu tiết học {lesson.id}, buổi {session_index}, không còn khung tiết sau khi áp dụng quy tắc lớp không khả dụng"
                 elif room_blocked_slots == len(session_allowed) and session_allowed and room_model_enabled:
@@ -935,6 +1020,23 @@ def solve(
                             "PREFERENCE_VIOLATED",
                             f"Ưu tiên {rule.code} của giáo viên {lesson.teacherId} bị vi phạm tại khung tiết {assignment.slotId}.",
                             {"teacherId": lesson.teacherId, "slotId": assignment.slotId},
+                            "WARNING",
+                        )
+                    )
+            for rule in subject_shift_rules:
+                if not _rule_scope_matches(rule, "SUBJECT", lesson.subjectId):
+                    continue
+                shift_policy = (request.classShiftPolicies or {}).get(lesson.classId)
+                preferred_shift = _subject_preferred_shift(rule, shift_policy)
+                if rule.kind == "SOFT" and preferred_shift and (slot.shiftCode or "MORNING") != preferred_shift:
+                    warnings.append(
+                        f"PREFERENCE_VIOLATED:{rule.code}:subject={lesson.subjectId}:slot={assignment.slotId}"
+                    )
+                    conflict_details.append(
+                        conflict_diagnostic(
+                            "PREFERENCE_VIOLATED",
+                            f"Ưu tiên {rule.code} của môn {lesson.subjectId} bị vi phạm tại khung tiết {assignment.slotId}.",
+                            {"subjectId": lesson.subjectId, "slotId": assignment.slotId},
                             "WARNING",
                         )
                     )

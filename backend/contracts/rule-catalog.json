@@ -168,6 +168,27 @@
       ]
     },
     {
+      "code": "RULE-SUBJECT-SHIFT-PREFERENCE",
+      "name": "Ưu tiên buổi dạy theo môn",
+      "group": "SUBJECT",
+      "targetResources": ["SUBJECT"],
+      "supportedKinds": ["HARD", "SOFT"],
+      "defaultKind": "SOFT",
+      "defaultWeight": 10,
+      "implementationStatus": "SUPPORTED",
+      "handlerKey": "SUBJECT_SHIFT_PREFERENCE",
+      "description": "Ưu tiên xếp môn học vào buổi chính hoặc buổi phụ theo cấu hình của khối lớp.",
+      "parameters": [
+        {
+          "key": "preferredShift",
+          "label": "Buổi ưu tiên",
+          "type": "GRANULARITY",
+          "required": true,
+          "options": ["MAIN", "SECONDARY"]
+        }
+      ]
+    },
+    {
       "code": "RULE-SCHEDULE-NO-INTERNAL-GAPS",
       "name": "Không để trống tiết giữa buổi",
       "group": "SCHEDULE",

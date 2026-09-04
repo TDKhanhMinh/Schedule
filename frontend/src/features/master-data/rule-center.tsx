@@ -23,6 +23,7 @@ import type {
   RuleSnapshot,
   RuleSnapshotResolution,
   RuleValidationResult,
+  Subject,
   Teacher,
 } from "./master-data-types";
 
@@ -39,12 +40,14 @@ export function RuleCenterPanel({
   schoolId,
   periodId,
   teachers,
+  subjects,
   canWrite,
   onSaved,
 }: {
   schoolId: string;
   periodId: string;
   teachers: Teacher[];
+  subjects: Subject[];
   canWrite: boolean;
   onSaved: (message: string) => void;
 }) {
@@ -361,6 +364,7 @@ export function RuleCenterPanel({
           profile={selectedProfile}
           periodId={periodId}
           teachers={teachers}
+          subjects={subjects}
           catalog={catalogQuery.data?.ruleTypes ?? []}
           canWrite={canWrite}
           onSaved={onSaved}

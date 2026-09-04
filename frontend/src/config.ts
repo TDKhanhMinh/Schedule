@@ -9,9 +9,14 @@ export const frontendConfig = {
   academicPeriodId: "",
 };
 
-export function setFrontendContext(context: { schoolId?: string; academicPeriodId?: string }) {
+export function setFrontendContext(context: {
+  schoolId?: string;
+  academicPeriodId?: string;
+  scheduleVersionId?: string;
+}) {
   if (context.schoolId !== undefined) frontendConfig.schoolId = context.schoolId;
   if (context.academicPeriodId !== undefined) frontendConfig.academicPeriodId = context.academicPeriodId;
+  if (context.scheduleVersionId !== undefined) frontendConfig.scheduleVersionId = context.scheduleVersionId;
 }
 
 export function authHeaders() {

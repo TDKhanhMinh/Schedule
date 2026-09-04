@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { frontendConfig } from "../../config";
 import { request } from "./master-data-api";
-import type { RuleCatalogEntry, RuleCatalogParameter, RuleProfile, Teacher } from "./master-data-types";
+import type { RuleCatalogEntry, RuleCatalogParameter, RuleProfile, Subject, Teacher } from "./master-data-types";
 
 const DAY_LABELS: Record<number, string> = {
   1: "Thứ 2",
@@ -32,6 +32,7 @@ export function RuleDefinitionDialog({
   profile,
   periodId,
   teachers,
+  subjects,
   catalog,
   canWrite,
   onSaved,
@@ -41,6 +42,7 @@ export function RuleDefinitionDialog({
   profile: RuleProfile;
   periodId: string;
   teachers: Teacher[];
+  subjects: Subject[];
   catalog: RuleCatalogEntry[];
   canWrite: boolean;
   onSaved: (message: string) => void;
@@ -51,10 +53,12 @@ export function RuleDefinitionDialog({
   );
   const [code, setCode] = useState(supportedEntries[0]?.code ?? "");
   const [teacherId, setTeacherId] = useState(teachers[0]?.id ?? "");
+  const [subjectId, setSubjectId] = useState(subjects[0]?.id ?? "");
   const [parameters, setParameters] = useState<Record<string, unknown>>({});
   const queryClient = useQueryClient();
   const selectedEntry = supportedEntries.find((entry) => entry.code === code) ?? supportedEntries[0];
   const teacherScopeRequired = selectedEntry?.targetResources.includes("TEACHER") ?? false;
+  const subjectScopeRequired = selectedEntry?.targetResources.includes("SUBJECT") ?? false;
   const mutation = useMutation({
     mutationFn: () => {
       if (!selectedEntry) throw new Error("Chưa có loại rule được hỗ trợ để thêm.");
@@ -72,7 +76,9 @@ export function RuleDefinitionDialog({
           effectiveTo: profile.effectiveTo,
           scope: teacherScopeRequired
             ? { actorType: "TEACHER", actorId: teacherId, resourceType: "TEACHER" }
-            : { schoolLevel: profile.scope.schoolLevel ?? "THCS" },
+            : subjectScopeRequired
+              ? { resourceType: "SUBJECT", resourceIds: [subjectId] }
+              : { schoolLevel: profile.scope.schoolLevel ?? "THCS" },
           parameters,
         }),
       });
@@ -90,8 +96,9 @@ export function RuleDefinitionDialog({
     const firstEntry = supportedEntries[0];
     setCode(firstEntry?.code ?? "");
     setTeacherId(teachers[0]?.id ?? "");
+    setSubjectId(subjects[0]?.id ?? "");
     setParameters(defaultParameters(firstEntry));
-  }, [open, supportedEntries, teachers]);
+  }, [open, subjects, supportedEntries, teachers]);
 
   function selectEntry(nextCode: string) {
     setCode(nextCode);
@@ -150,6 +157,24 @@ export function RuleDefinitionDialog({
                 </select>
               </label>
             ) : null}
+            {subjectScopeRequired ? (
+              <label>
+                <span>Môn học</span>
+                <select
+                  className="master-select"
+                  value={subjectId}
+                  onChange={(event) => setSubjectId(event.target.value)}
+                >
+                  {subjects
+                    .filter((subject) => subject.status !== "ARCHIVED")
+                    .map((subject) => (
+                      <option value={subject.id} key={subject.id}>
+                        {subject.code} · {subject.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            ) : null}
             {selectedEntry?.parameters.map((parameter) => (
               <RuleParameterField
                 key={parameter.key}
@@ -171,7 +196,13 @@ export function RuleDefinitionDialog({
           </Button>
           <Button
             type="button"
-            disabled={!canWrite || !selectedEntry || (teacherScopeRequired && !teacherId) || mutation.isPending}
+            disabled={
+              !canWrite ||
+              !selectedEntry ||
+              (teacherScopeRequired && !teacherId) ||
+              (subjectScopeRequired && !subjectId) ||
+              mutation.isPending
+            }
             onClick={() => void mutation.mutateAsync()}
           >
             {mutation.isPending ? "Đang lưu…" : "Thêm rule"}

@@ -158,6 +158,17 @@
   height: 14px;
 }
 
+.timetable-version-field {
+  display: grid;
+  width: min(100%, 240px);
+  gap: 7px;
+  margin-left: auto;
+}
+
+.timetable-version-field [data-slot="select-trigger"] {
+  width: 100%;
+}
+
 .timetable-filter-row {
   border-top: 1px solid var(--border);
   padding-top: 14px;
@@ -735,6 +746,11 @@
   .timetable-view-row > div:first-child {
     width: 100%;
     min-width: 0;
+  }
+
+  .timetable-version-field {
+    width: 100%;
+    margin-left: 0;
   }
 
   .timetable-view-row > div:first-child > [data-slot="tabs"] {

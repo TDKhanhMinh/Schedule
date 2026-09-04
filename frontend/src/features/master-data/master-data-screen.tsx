@@ -80,6 +80,7 @@ import {
   type TeacherSubjectGradeAssignment,
 } from "./teacher-duty-panels";
 import { TeacherPreferredOffDaysDialog } from "./teacher-preferred-off-days-dialog";
+import { SubjectShiftPreferenceDialog } from "./subject-shift-preference-dialog";
 
 type MasterDataPanel = "catalog" | "teacher-load" | "grade-shifts" | "rules";
 
@@ -124,10 +125,12 @@ export function MasterDataScreen() {
     kind: "homeroom" | "professional";
   } | null>(null);
   const [preferredOffDaysTeacherId, setPreferredOffDaysTeacherId] = useState<string | null>(null);
+  const [subjectShiftPreferenceSubjectId, setSubjectShiftPreferenceSubjectId] = useState<string | null>(null);
   const [teacherAssignmentDialogOpen, setTeacherAssignmentDialogOpen] = useState(false);
   const homeroomTriggerRef = useRef<HTMLButtonElement | null>(null);
   const teacherAssignmentTriggerRef = useRef<HTMLButtonElement | null>(null);
   const editorTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const subjectShiftTriggerRef = useRef<HTMLButtonElement | null>(null);
 
   const canWrite = frontendConfig.actorRole === "ADMIN" || frontendConfig.actorRole === "SCHEDULER";
 
@@ -195,6 +198,7 @@ export function MasterDataScreen() {
   const homeroomDialogAssignment = homeroomAssignments.find((item) => item.classId === homeroomDialogClassId);
   const teacherAssignmentDialogTeacher = teachers.find((item) => item.id === teacherAssignmentDialog?.teacherId);
   const preferredOffDaysTeacher = teachers.find((item) => item.id === preferredOffDaysTeacherId);
+  const subjectShiftPreferenceSubject = subjects.find((item) => item.id === subjectShiftPreferenceSubjectId);
 
   const saveMutation = useMutation({
     mutationFn: ({ path, body, method }: { path: string; body: string; method: "POST" | "PATCH" }) =>
@@ -324,6 +328,7 @@ export function MasterDataScreen() {
     setHomeroomDialogClassId(null);
     setTeacherAssignmentDialog(null);
     setPreferredOffDaysTeacherId(null);
+    setSubjectShiftPreferenceSubjectId(null);
   }
 
   function closeEditor() {
@@ -919,6 +924,26 @@ export function MasterDataScreen() {
     );
   }
 
+  function renderSubjectShiftPreferenceAction(record: MasterRecord) {
+    if (activeEntity !== "subject" || !selectedPeriodId) return null;
+    const subject = record as Subject;
+    return (
+      <Button
+        className="table-action subject-shift-action"
+        variant="outline"
+        type="button"
+        onClick={(event) => {
+          subjectShiftTriggerRef.current = event.currentTarget;
+          setSubjectShiftPreferenceSubjectId(subject.id);
+        }}
+        disabled={!canWrite || saving || subject.status === "ARCHIVED"}
+        aria-label={`Cấu hình buổi dạy ưu tiên cho ${subject.code}`}
+      >
+        <Clock3 /> Buổi dạy
+      </Button>
+    );
+  }
+
   const headers: Record<MasterDataEntity, string[]> = {
     school: ["Mã", "Tên", "Múi giờ", "Trạng thái"],
     period: ["Học kỳ", "Tên", "Năm học", "Khoảng ngày", "Trạng thái"],
@@ -1009,6 +1034,7 @@ export function MasterDataScreen() {
                 setHomeroomDialogClassId(null);
                 setTeacherAssignmentDialog(null);
                 setPreferredOffDaysTeacherId(null);
+                setSubjectShiftPreferenceSubjectId(null);
               }}
             >
               <ClipboardList />
@@ -1032,6 +1058,7 @@ export function MasterDataScreen() {
                 setHomeroomDialogClassId(null);
                 setTeacherAssignmentDialog(null);
                 setPreferredOffDaysTeacherId(null);
+                setSubjectShiftPreferenceSubjectId(null);
               }}
             >
               <CalendarRange />
@@ -1055,6 +1082,7 @@ export function MasterDataScreen() {
                 setHomeroomDialogClassId(null);
                 setTeacherAssignmentDialog(null);
                 setPreferredOffDaysTeacherId(null);
+                setSubjectShiftPreferenceSubjectId(null);
               }}
             >
               <SlidersHorizontal />
@@ -1106,6 +1134,7 @@ export function MasterDataScreen() {
               schoolId={frontendConfig.schoolId}
               periodId={selectedPeriodId}
               teachers={teachers}
+              subjects={subjects}
               canWrite={canWrite}
               onSaved={(message) => {
                 setError("");
@@ -1287,6 +1316,7 @@ export function MasterDataScreen() {
                                 {renderAcademicPeriodStatusAction(record)}
                                 {renderTeacherAssignmentActions(record)}
                                 {renderHomeroomAction(record)}
+                                {renderSubjectShiftPreferenceAction(record)}
                                 <Button
                                   className="table-action"
                                   variant="outline"
@@ -1397,6 +1427,23 @@ export function MasterDataScreen() {
           onNeedDraftProfile={() => {
             setPreferredOffDaysTeacherId(null);
             setActivePanel("rules");
+          }}
+        />
+      ) : null}
+      {subjectShiftPreferenceSubject && selectedPeriodId ? (
+        <SubjectShiftPreferenceDialog
+          subject={subjectShiftPreferenceSubject}
+          periodId={selectedPeriodId}
+          canWrite={canWrite}
+          open
+          onOpenChange={(open) => {
+            if (open) return;
+            setSubjectShiftPreferenceSubjectId(null);
+            window.requestAnimationFrame(() => subjectShiftTriggerRef.current?.focus());
+          }}
+          onSaved={(message) => {
+            setError("");
+            setNotice(message);
           }}
         />
       ) : null}
