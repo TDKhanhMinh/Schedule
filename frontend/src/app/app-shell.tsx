@@ -5,9 +5,11 @@ import {
   CircleAlert,
   ChevronRight,
   Database,
-  FileSpreadsheet,
   LayoutDashboard,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ScanSearch,
   School,
   Table2,
   UsersRound,
@@ -33,7 +35,7 @@ const navigation: Array<{
 }> = [
   { route: "dashboard", label: "Tổng quan", description: "Trạng thái vận hành", icon: LayoutDashboard },
   { route: "master-data", label: "Dữ liệu danh mục", description: "Lớp, giáo viên, phòng", icon: Database },
-  { route: "imports", label: "Nhập dữ liệu", description: "Upload và kiểm tra Excel", icon: FileSpreadsheet },
+  { route: "data-quality", label: "Kiểm tra dữ liệu", description: "Quét dữ liệu vận hành", icon: ScanSearch },
   { route: "timetable", label: "Thời khóa biểu", description: "Xem và chỉnh lịch học", icon: CalendarDays },
 ];
 
@@ -70,6 +72,9 @@ export function AppShell({
 }) {
   const { context, periods, schoolId, academicPeriodId, setSchoolId, setAcademicPeriodId } = useWorkspace();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => globalThis.localStorage?.getItem("schedule-sidebar-collapsed") === "true",
+  );
   const selectedSchool = context?.schools.find((school) => school.id === schoolId);
   const selectedPeriod = periods.find((period) => period.id === academicPeriodId);
   const currentNavigation = navigation.find((item) => item.route === route);
@@ -166,7 +171,7 @@ export function AppShell({
         </div>
       </header>
 
-      <div className="app-shell-body">
+      <div className={cn("app-shell-body", sidebarCollapsed && "sidebar-collapsed")}>
         {mobileNavOpen ? (
           <button
             className="mobile-nav-backdrop"
@@ -178,13 +183,36 @@ export function AppShell({
 
         <aside
           id="primary-navigation"
-          className={cn("app-sidebar", mobileNavOpen && "mobile-open")}
+          className={cn("app-sidebar", mobileNavOpen && "mobile-open", sidebarCollapsed && "is-collapsed")}
           aria-label="Điều hướng chính"
         >
           <div className="app-sidebar-heading">
-            <span className="app-sidebar-kicker">Điều hướng</span>
-            <strong>{selectedSchool?.name ?? "Không gian làm việc"}</strong>
-            <small>{selectedPeriod?.name ?? "Chọn trường và năm học để bắt đầu"}</small>
+            <div className="app-sidebar-heading-top">
+              <div className="app-sidebar-heading-copy">
+                <span className="app-sidebar-kicker">Điều hướng</span>
+                <strong>{selectedSchool?.name ?? "Không gian làm việc"}</strong>
+                <small>{selectedPeriod?.name ?? "Chọn trường và năm học để bắt đầu"}</small>
+              </div>
+              <Button
+                className="app-sidebar-toggle"
+                variant="ghost"
+                size="icon"
+                type="button"
+                title={sidebarCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+                aria-label={sidebarCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+                aria-expanded={!sidebarCollapsed}
+                aria-controls="primary-navigation"
+                onClick={() => {
+                  setSidebarCollapsed((collapsed) => {
+                    const next = !collapsed;
+                    globalThis.localStorage?.setItem("schedule-sidebar-collapsed", String(next));
+                    return next;
+                  });
+                }}
+              >
+                {sidebarCollapsed ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}
+              </Button>
+            </div>
           </div>
 
           <nav className="app-nav" aria-label="Các khu vực chính">
@@ -195,6 +223,7 @@ export function AppShell({
                 <a
                   className={cn("app-nav-link", isActive && "is-active")}
                   href={item.route === "dashboard" ? "/" : `/${item.route}`}
+                  title={sidebarCollapsed ? item.label : undefined}
                   aria-current={isActive ? "page" : undefined}
                   key={item.route}
                   onClick={(event) => {

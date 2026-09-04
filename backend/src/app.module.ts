@@ -12,6 +12,7 @@ import { MasterDataImportModule } from "./master-data-import/master-data-import.
 import { RulesModule } from "./rules/rules.module";
 import { TimetableModule } from "./timetable/timetable.module";
 import { ObservabilityModule } from "./observability/observability.module";
+import { TeacherAssignmentModule } from "./teacher-assignment/teacher-assignment.module";
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { ObservabilityModule } from "./observability/observability.module";
     HealthModule,
     DatabaseModule,
     ObservabilityModule,
+    TeacherAssignmentModule,
   ],
 })
 export class AppModule implements NestModule {

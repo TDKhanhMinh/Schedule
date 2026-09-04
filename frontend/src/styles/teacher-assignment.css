@@ -1,0 +1,223 @@
+.teacher-assignment-auto-dialog {
+  width: min(1000px, calc(100% - 2rem));
+  max-width: min(1000px, calc(100% - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+}
+
+.teacher-assignment-auto-dialog [data-slot="dialog-title"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.teacher-assignment-auto-dialog [data-slot="dialog-title"] svg {
+  color: var(--primary);
+}
+
+.teacher-assignment-auto-content {
+  display: grid;
+  gap: 14px;
+}
+
+.teacher-assignment-auto-section {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--card);
+}
+
+.teacher-assignment-auto-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.teacher-assignment-auto-section-heading > div {
+  display: grid;
+  gap: 4px;
+}
+
+.teacher-assignment-auto-section-heading strong {
+  color: var(--foreground);
+  font-size: 0.88rem;
+}
+
+.teacher-assignment-auto-section-heading span,
+.teacher-assignment-run-note {
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+}
+
+.teacher-assignment-demand-form,
+.teacher-assignment-run-controls {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(90px, 120px) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.teacher-assignment-run-controls {
+  grid-template-columns: minmax(170px, 220px) 1fr auto auto;
+}
+
+.teacher-assignment-demand-form label,
+.teacher-assignment-run-controls label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.teacher-assignment-run-controls .teacher-assignment-run-note {
+  align-self: center;
+}
+
+.teacher-assignment-auto-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.teacher-assignment-summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in oklch, var(--summary-color) 30%, var(--border));
+  border-radius: 8px;
+  color: var(--summary-color);
+  background: color-mix(in oklch, var(--summary-color) 10%, var(--card));
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+
+.teacher-assignment-summary-item.is-demand {
+  --summary-color: var(--blue);
+}
+
+.teacher-assignment-summary-item.is-locked {
+  --summary-color: var(--green);
+}
+
+.teacher-assignment-summary-item.is-candidate {
+  --summary-color: var(--amber);
+}
+
+.teacher-assignment-summary-item.is-candidate.is-checked {
+  --summary-color: var(--blue);
+}
+
+.teacher-assignment-summary-item.is-limit {
+  --summary-color: var(--primary);
+}
+
+.teacher-assignment-summary-item b {
+  color: currentColor;
+  font-weight: 800;
+}
+
+.teacher-assignment-feedback {
+  display: grid;
+  gap: 6px;
+}
+
+.teacher-assignment-feedback p,
+.teacher-assignment-auto-notice,
+.teacher-assignment-confirm-ready,
+.teacher-assignment-running {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 8px;
+  color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 10%, var(--card));
+  font-size: 0.74rem;
+}
+
+.teacher-assignment-feedback p.is-warning {
+  color: var(--foreground);
+  background: color-mix(in oklch, var(--muted) 70%, var(--card));
+}
+
+.teacher-assignment-feedback p.is-error,
+.teacher-assignment-feedback.is-error {
+  color: var(--destructive);
+  background: color-mix(in oklch, var(--destructive) 10%, var(--card));
+}
+
+.teacher-assignment-running svg {
+  flex: 0 0 auto;
+}
+
+.teacher-assignment-proposal-frame {
+  max-height: min(45vh, 420px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.teacher-assignment-proposal-frame table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.teacher-assignment-proposal-frame th,
+.teacher-assignment-proposal-frame td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.teacher-assignment-proposal-frame th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  font-size: 0.66rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.teacher-assignment-proposal-frame td strong,
+.teacher-assignment-proposal-frame td small {
+  display: block;
+}
+
+.teacher-assignment-proposal-frame td small {
+  margin-top: 3px;
+  color: var(--muted-foreground);
+}
+
+.teacher-assignment-confirm-ready {
+  color: var(--chart-2);
+  background: color-mix(in oklch, var(--chart-2) 10%, var(--card));
+}
+
+@media (max-width: 720px) {
+  .teacher-assignment-auto-dialog {
+    width: calc(100% - 1rem);
+    max-width: calc(100% - 1rem);
+    max-height: calc(100vh - 1rem);
+  }
+
+  .teacher-assignment-demand-form,
+  .teacher-assignment-run-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-assignment-demand-form > button,
+  .teacher-assignment-run-controls > button {
+    width: 100%;
+  }
+}

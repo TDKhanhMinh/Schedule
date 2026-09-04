@@ -77,6 +77,7 @@ export interface Room {
 
 export interface LessonRequirement {
   id: string;
+  demandId?: string | null;
   classId: string;
   subjectId: string;
   teacherId: string;
@@ -85,6 +86,9 @@ export interface LessonRequirement {
   fixedSlotId?: string | null;
   activityType?: "LESSON" | "FLAG_CEREMONY";
   status: Status;
+  assignmentSource?: "MANUAL" | "AUTO";
+  assignmentLocked?: boolean;
+  assignmentRunId?: string | null;
 }
 
 export type RuleKind = "HARD" | "SOFT";

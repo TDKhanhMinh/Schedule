@@ -185,6 +185,7 @@ interface RoomRow extends QueryResultRow {
 
 interface LessonRequirementRow extends QueryResultRow {
   id: string;
+  tenant_id?: string;
   school_id: string;
   academic_period_id: string;
   class_id: string;
@@ -195,6 +196,10 @@ interface LessonRequirementRow extends QueryResultRow {
   fixed_slot_id: string | null;
   activity_type: "LESSON" | "FLAG_CEREMONY";
   status: "ACTIVE" | "ARCHIVED";
+  demand_id?: string | null;
+  assignment_source?: "MANUAL" | "AUTO";
+  assignment_locked?: boolean;
+  assignment_run_id?: string | null;
   created_at: string | Date;
   updated_at: string | Date;
 }
@@ -375,8 +380,10 @@ export class MasterDataService {
     try {
       const result = await this.pool.query<AcademicPeriodRow>(
         `INSERT INTO academic_periods
-          (school_id, academic_year, term_code, name, starts_on, ends_on, status)
-         VALUES ($1, $2, $3, $4, $5, $6, 'DRAFT')
+          (tenant_id, school_id, academic_year, term_code, name, starts_on, ends_on, status)
+         SELECT tenant_id, $1, $2, $3, $4, $5, $6, 'DRAFT'
+           FROM schools
+          WHERE id = $1
          RETURNING id::text, school_id::text, academic_year, term_code, name,
                    starts_on, ends_on, status, created_at, updated_at`,
         [
@@ -472,8 +479,10 @@ export class MasterDataService {
     try {
       const result = await this.pool.query<TimeSlotRow>(
         `INSERT INTO time_slots
-          (school_id, academic_period_id, day, period, shift_code, starts_at, ends_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+          (tenant_id, school_id, academic_period_id, day, period, shift_code, starts_at, ends_at)
+         SELECT tenant_id, $1, $2, $3, $4, $5, $6, $7
+           FROM academic_periods
+          WHERE id = $2 AND school_id = $1
          RETURNING id::text, school_id::text, academic_period_id::text, day, period,
                    shift_code, starts_at::text, ends_at::text, created_at, updated_at`,
         [schoolId, periodId, dto.day, dto.period, dto.shiftCode ?? "MORNING", dto.startsAt ?? null, dto.endsAt ?? null],
@@ -677,8 +686,10 @@ export class MasterDataService {
     await this.ensureSchool(schoolId);
     try {
       const result = await this.pool.query<TeacherRow>(
-        `INSERT INTO teachers (school_id, code, display_name, status)
-         VALUES ($1, $2, $3, 'ACTIVE')
+        `INSERT INTO teachers (tenant_id, school_id, code, display_name, status)
+         SELECT tenant_id, $1, $2, $3, 'ACTIVE'
+           FROM schools
+          WHERE id = $1
          RETURNING id::text, school_id::text, code, display_name, status, created_at, updated_at`,
         [schoolId, this.requiredText(dto.code, "code"), this.requiredText(dto.displayName, "displayName")],
       );
@@ -1088,8 +1099,10 @@ export class MasterDataService {
     await this.ensureSchool(schoolId);
     try {
       const result = await this.pool.query<ClassRow>(
-        `INSERT INTO classes (school_id, code, name, grade, status)
-         VALUES ($1, $2, $3, $4, 'ACTIVE')
+        `INSERT INTO classes (tenant_id, school_id, code, name, grade, status)
+         SELECT tenant_id, $1, $2, $3, $4, 'ACTIVE'
+           FROM schools
+          WHERE id = $1
          RETURNING id::text, school_id::text, code, name, grade, status, created_at, updated_at`,
         [schoolId, this.requiredText(dto.code, "code"), this.requiredText(dto.name, "name"), dto.grade],
       );
@@ -1176,8 +1189,10 @@ export class MasterDataService {
     const code = this.requiredText(deriveSubjectCode(name), "code");
     try {
       const result = await this.pool.query<SubjectRow>(
-        `INSERT INTO subjects (school_id, code, name, status)
-         VALUES ($1, $2, $3, 'ACTIVE')
+        `INSERT INTO subjects (tenant_id, school_id, code, name, status)
+         SELECT tenant_id, $1, $2, $3, 'ACTIVE'
+           FROM schools
+          WHERE id = $1
          RETURNING id::text, school_id::text, code, name, status, created_at, updated_at`,
         [schoolId, code, name],
       );
@@ -1260,8 +1275,10 @@ export class MasterDataService {
     await this.ensureSchool(schoolId);
     try {
       const result = await this.pool.query<RoomRow>(
-        `INSERT INTO rooms (school_id, code, name, room_type, capacity, status)
-         VALUES ($1, $2, $3, $4, $5, 'ACTIVE')
+        `INSERT INTO rooms (tenant_id, school_id, code, name, room_type, capacity, status)
+         SELECT tenant_id, $1, $2, $3, $4, $5, 'ACTIVE'
+           FROM schools
+          WHERE id = $1
          RETURNING id::text, school_id::text, code, name, room_type, capacity, status, created_at, updated_at`,
         [
           schoolId,
@@ -1383,16 +1400,38 @@ export class MasterDataService {
       await this.ensureActiveReference("rooms", roomId, schoolId, "ROOM_NOT_FOUND", "ROOM_ARCHIVED", "Phòng học");
     if (fixedSlotId) await this.getTimeSlotRow(schoolId, periodId, fixedSlotId);
     await this.assertLessonNotDuplicate(schoolId, periodId, classId, subjectId, teacherId);
+    const demandId = await this.upsertClassSubjectDemand(
+      schoolId,
+      periodId,
+      classId,
+      subjectId,
+      roomId,
+      fixedSlotId,
+      dto.requiredSessions,
+      activityType,
+    );
     try {
       const result = await this.pool.query<LessonRequirementRow>(
         `INSERT INTO lesson_requirements
           (school_id, academic_period_id, class_id, subject_id, teacher_id, room_id, required_sessions,
-           fixed_slot_id, activity_type, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'ACTIVE')
+           fixed_slot_id, activity_type, status, demand_id, assignment_source, assignment_locked)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'ACTIVE', $10, 'MANUAL', TRUE)
          RETURNING id::text, school_id::text, academic_period_id::text, class_id::text,
                    subject_id::text, teacher_id::text, room_id::text, required_sessions,
-                   fixed_slot_id::text, activity_type, status, created_at, updated_at`,
-        [schoolId, periodId, classId, subjectId, teacherId, roomId, dto.requiredSessions, fixedSlotId, activityType],
+                   fixed_slot_id::text, activity_type, status, demand_id::text, assignment_source,
+                   assignment_locked, assignment_run_id::text, created_at, updated_at`,
+        [
+          schoolId,
+          periodId,
+          classId,
+          subjectId,
+          teacherId,
+          roomId,
+          dto.requiredSessions,
+          fixedSlotId,
+          activityType,
+          demandId,
+        ],
       );
       return this.toLessonRequirement(result.rows[0]);
     } catch (error) {
@@ -1436,6 +1475,16 @@ export class MasterDataService {
       await this.ensureActiveReference("rooms", roomId, schoolId, "ROOM_NOT_FOUND", "ROOM_ARCHIVED", "Phòng học");
     if (fixedSlotId) await this.getTimeSlotRow(schoolId, periodId, fixedSlotId);
     await this.assertLessonNotDuplicate(schoolId, periodId, classId, subjectId, teacherId, lessonId);
+    const demandId = await this.upsertClassSubjectDemand(
+      schoolId,
+      periodId,
+      classId,
+      subjectId,
+      roomId,
+      fixedSlotId,
+      dto.requiredSessions ?? current.required_sessions,
+      activityType,
+    );
 
     const updates: string[] = [];
     const values: unknown[] = [];
@@ -1450,6 +1499,14 @@ export class MasterDataService {
     if (dto.requiredSessions !== undefined) add("required_sessions", dto.requiredSessions);
     if (dto.fixedSlotId !== undefined) add("fixed_slot_id", fixedSlotId);
     if (dto.activityType !== undefined) add("activity_type", activityType);
+    if (
+      current.demand_id !== demandId ||
+      dto.classId !== undefined ||
+      dto.subjectId !== undefined ||
+      dto.requiredSessions !== undefined
+    ) {
+      add("demand_id", demandId);
+    }
     if (updates.length === 0) throw this.noFieldsToUpdate();
     values.push(lessonId, schoolId, periodId);
     try {
@@ -1461,7 +1518,8 @@ export class MasterDataService {
             AND academic_period_id = $${values.length}
         RETURNING id::text, school_id::text, academic_period_id::text, class_id::text,
                   subject_id::text, teacher_id::text, room_id::text, required_sessions,
-                  fixed_slot_id::text, activity_type, status, created_at, updated_at`,
+                  fixed_slot_id::text, activity_type, status, demand_id::text, assignment_source,
+                  assignment_locked, assignment_run_id::text, created_at, updated_at`,
         values,
       );
       const lesson = result.rows[0];
@@ -1539,9 +1597,10 @@ export class MasterDataService {
   }
 
   private lessonRequirementSelect() {
-    return `SELECT id::text, school_id::text, academic_period_id::text, class_id::text,
+    return `SELECT id::text, tenant_id::text, school_id::text, academic_period_id::text, class_id::text,
                    subject_id::text, teacher_id::text, room_id::text, required_sessions,
-                   fixed_slot_id::text, activity_type, status, created_at, updated_at
+                   fixed_slot_id::text, activity_type, status, demand_id::text, assignment_source,
+                   assignment_locked, assignment_run_id::text, created_at, updated_at
               FROM lesson_requirements`;
   }
 
@@ -1576,6 +1635,38 @@ export class MasterDataService {
         message: `Không thể tham chiếu ${label.toLowerCase()} đã lưu trữ.`,
       });
     }
+  }
+
+  private async upsertClassSubjectDemand(
+    schoolId: string,
+    periodId: string,
+    classId: string,
+    subjectId: string,
+    roomId: string | null,
+    fixedSlotId: string | null,
+    requiredSessions: number,
+    activityType: "LESSON" | "FLAG_CEREMONY",
+  ) {
+    const result = await this.pool.query<{ id: string }>(
+      `INSERT INTO class_subject_demands
+         (tenant_id, school_id, academic_period_id, class_id, subject_id, room_id, fixed_slot_id,
+          required_sessions, activity_type, status, source_ref)
+       SELECT tenant_id, $1, $2, $3, $4, $5, $6, $7, $8, 'ACTIVE', 'MANUAL_CRUD'
+         FROM academic_periods
+        WHERE id = $2 AND school_id = $1
+       ON CONFLICT (tenant_id, school_id, academic_period_id, class_id, subject_id, activity_type)
+       DO UPDATE SET room_id = EXCLUDED.room_id,
+                     fixed_slot_id = EXCLUDED.fixed_slot_id,
+                     required_sessions = EXCLUDED.required_sessions,
+                     status = 'ACTIVE',
+                     revision = class_subject_demands.revision + 1,
+                     updated_at = now()
+       RETURNING id::text`,
+      [schoolId, periodId, classId, subjectId, roomId, fixedSlotId, requiredSessions, activityType],
+    );
+    const demand = result.rows[0];
+    if (!demand) throw new NotFoundException("Không thể tạo nhu cầu lớp-môn trong kỳ học.");
+    return demand.id;
   }
 
   private async assertLessonNotDuplicate(
@@ -1822,6 +1913,7 @@ export class MasterDataService {
   private toLessonRequirement(row: LessonRequirementRow) {
     return {
       id: row.id,
+      demandId: row.demand_id ?? null,
       schoolId: row.school_id,
       academicPeriodId: row.academic_period_id,
       classId: row.class_id,
@@ -1832,6 +1924,9 @@ export class MasterDataService {
       fixedSlotId: row.fixed_slot_id,
       activityType: row.activity_type,
       status: row.status,
+      assignmentSource: row.assignment_source ?? "MANUAL",
+      assignmentLocked: row.assignment_locked ?? true,
+      assignmentRunId: row.assignment_run_id ?? null,
       createdAt: new Date(row.created_at).toISOString(),
       updatedAt: new Date(row.updated_at).toISOString(),
     };

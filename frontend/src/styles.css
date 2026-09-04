@@ -12,5 +12,8 @@
 @import "./styles/dashboard.css";
 @import "./styles/timetable.css";
 @import "./styles/master-data.css";
+@import "./styles/teacher-load.css";
+@import "./styles/teacher-assignment.css";
+@import "./styles/data-quality.css";
 @import "./styles/workflow.css";
 @import "./styles/shared-overrides.css";

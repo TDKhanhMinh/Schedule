@@ -204,7 +204,9 @@
         "solverVersion": { "type": "string", "minLength": 1 },
         "contractVersion": { "const": "1.0" },
         "randomSeed": { "type": "integer" },
-        "timeLimitSeconds": { "type": "number", "exclusiveMinimum": 0 },
+        "timeLimitSeconds": {
+          "anyOf": [{ "type": "number", "exclusiveMinimum": 0 }, { "type": "null" }]
+        },
         "adapterContractVersion": { "const": "SOLVER-ADAPTER-1.0.0" },
         "templateVersion": { "type": "string", "minLength": 1 },
         "academicPeriodId": { "type": "string", "minLength": 1 },

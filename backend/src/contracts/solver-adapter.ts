@@ -16,7 +16,7 @@ export interface SolverAdapterSource {
 
 export interface SolverAdapterReproducibility {
   randomSeed: number;
-  timeLimitSeconds: number;
+  timeLimitSeconds: number | null;
 }
 
 export interface SolverAdapterPayload {
@@ -31,7 +31,7 @@ export interface SolverAdapterContext {
   academicPeriodId: string;
   templateVersion: string;
   randomSeed?: number;
-  timeLimitSeconds?: number;
+  timeLimitSeconds?: number | null;
 }
 
 function canonicalize(value: unknown): unknown {
@@ -39,7 +39,7 @@ function canonicalize(value: unknown): unknown {
   if (value && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)
-        .filter(([, nested]) => nested !== null && nested !== undefined)
+        .filter(([key, nested]) => nested !== undefined && (nested !== null || key === "timeLimitSeconds"))
         .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
         .map(([key, nested]) => [key, canonicalize(nested)]),
     );
@@ -82,7 +82,11 @@ export function buildSolverAdapterPayload(input: SolveJobRequest, context: Solve
     reproducibility: {
       randomSeed: context.randomSeed ?? 0,
       timeLimitSeconds:
-        context.timeLimitSeconds ?? input.options?.timeLimitSeconds ?? DEFAULT_SOLVER_TIME_LIMIT_SECONDS,
+        context.timeLimitSeconds !== undefined
+          ? context.timeLimitSeconds
+          : input.options?.timeLimitSeconds !== undefined
+            ? input.options.timeLimitSeconds
+            : DEFAULT_SOLVER_TIME_LIMIT_SECONDS,
     },
     input,
   } satisfies Omit<SolverAdapterPayload, "inputChecksum">;

@@ -55,4 +55,24 @@ describe("solver adapter contract", () => {
       }),
     ).toThrow("bản chụp quy tắc đã phê duyệt");
   });
+
+  it("preserves an explicit unlimited time limit in the adapter checksum", async () => {
+    const fixture = await readFixture();
+    const payload = buildSolverAdapterPayload(fixture.input, {
+      academicPeriodId: fixture.source.academicPeriodId,
+      templateVersion: fixture.source.templateVersion,
+      randomSeed: fixture.reproducibility.randomSeed,
+      timeLimitSeconds: null,
+    });
+    const boundedPayload = buildSolverAdapterPayload(fixture.input, {
+      academicPeriodId: fixture.source.academicPeriodId,
+      templateVersion: fixture.source.templateVersion,
+      randomSeed: fixture.reproducibility.randomSeed,
+      timeLimitSeconds: 120,
+    });
+
+    expect(payload.reproducibility.timeLimitSeconds).toBeNull();
+    expect(verifySolverAdapterChecksum(payload)).toBe(true);
+    expect(payload.inputChecksum).not.toBe(boundedPayload.inputChecksum);
+  });
 });

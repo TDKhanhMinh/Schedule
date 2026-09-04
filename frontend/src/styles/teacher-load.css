@@ -1,0 +1,118 @@
+.teacher-load-table-title {
+  margin: calc(var(--card-spacing) * -1) calc(var(--card-spacing) * -1) 0;
+  padding: 12px var(--card-spacing);
+  color: var(--primary-foreground);
+  background: var(--primary);
+  font-weight: 700;
+}
+
+.teacher-load-summary-content {
+  display: grid;
+  gap: 14px;
+}
+
+.teacher-load-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(190px, 0.5fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.teacher-load-filters label,
+.teacher-load-rule-summary > div {
+  display: grid;
+  gap: 5px;
+}
+
+.teacher-load-filters label > span,
+.teacher-load-rule-summary span {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.teacher-load-result-count {
+  align-self: center;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.teacher-load-rule-summary {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1.4fr) minmax(165px, 1fr) minmax(170px, 1fr);
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  background: color-mix(in oklch, var(--muted) 34%, var(--card));
+}
+
+.teacher-load-rule-summary code {
+  color: var(--foreground);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.teacher-load-rule-summary a,
+.teacher-load-rule-summary strong {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-load-rule-summary a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.teacher-load-rule-summary .inline-flex {
+  margin-top: 2px;
+}
+
+.teacher-load-subjects {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.teacher-load-empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.teacher-load-table-frame {
+  max-height: min(65vh, 620px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.teacher-load-table-frame table {
+  min-width: 1120px;
+}
+
+.teacher-load-table-frame thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  box-shadow: inset 0 -1px 0 var(--border);
+}
+
+@media (max-width: 600px) {
+  .teacher-load-filters,
+  .teacher-load-rule-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-load-result-count {
+    align-self: start;
+  }
+}

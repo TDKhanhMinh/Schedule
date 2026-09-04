@@ -320,7 +320,7 @@ export class SolveJobOptionsDto {
   @IsNumber()
   @Min(0.1)
   @IsOptional()
-  timeLimitSeconds?: number;
+  timeLimitSeconds?: number | null;
 }
 
 export class LocalRepairAssignmentDto {

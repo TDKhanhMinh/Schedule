@@ -1,4 +1,4 @@
-/* Workflow T05: one status rail shared by import, solve and release. */
+/* Workflow T05: one status rail shared by solve and release. */
 .workflow-stepper {
   display: grid;
   grid-template-columns: repeat(9, minmax(104px, 1fr));

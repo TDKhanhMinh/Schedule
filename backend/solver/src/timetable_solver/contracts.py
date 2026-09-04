@@ -72,7 +72,7 @@ class RoomCapability(BaseModel):
 class SolveJobOptions(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    timeLimitSeconds: float = Field(default=DEFAULT_TIME_LIMIT_SECONDS, gt=0)
+    timeLimitSeconds: float | None = Field(default=DEFAULT_TIME_LIMIT_SECONDS, gt=0)
 
 
 class LockedAssignment(BaseModel):
@@ -286,7 +286,7 @@ class SolverMetadata(BaseModel):
     solverVersion: str = Field(min_length=1)
     contractVersion: Literal["1.0"]
     randomSeed: int
-    timeLimitSeconds: float = Field(gt=0)
+    timeLimitSeconds: float | None = Field(gt=0)
     adapterContractVersion: Literal["SOLVER-ADAPTER-1.0.0"] | None = None
     templateVersion: str | None = Field(default=None, min_length=1)
     academicPeriodId: str | None = Field(default=None, min_length=1)

@@ -85,9 +85,15 @@
 }
 
 .master-tab.active {
-  border-color: color-mix(in oklch, var(--primary) 30%, var(--border));
-  color: var(--primary);
-  background: color-mix(in oklch, var(--primary) 9%, var(--card));
+  border-color: var(--blue) !important;
+  color: #ffffff !important;
+  background: var(--blue) !important;
+}
+
+.master-tab.active:hover:not(:disabled) {
+  border-color: var(--blue-dark) !important;
+  color: #ffffff !important;
+  background: var(--blue-dark) !important;
 }
 
 .master-tab svg {
@@ -278,20 +284,33 @@
 
 .master-table-frame {
   min-width: 0;
+  max-height: min(62vh, 560px);
   overflow: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--card);
+  scrollbar-gutter: stable both-edges;
   scrollbar-color: color-mix(in oklch, var(--primary) 42%, var(--border)) transparent;
+}
+
+.teacher-table-frame {
+  max-height: min(65vh, 620px);
+  scrollbar-gutter: stable both-edges;
+}
+
+.teacher-table-frame table {
+  min-width: 1080px;
 }
 
 .master-relation-imports {
   display: grid;
   gap: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--blue-dark);
   border-radius: 14px;
   padding: 14px;
-  background: color-mix(in oklch, var(--primary) 3%, var(--card));
+  color: #ffffff;
+  background: var(--blue);
 }
 
 .master-relation-imports-heading {
@@ -301,16 +320,38 @@
 
 .master-relation-imports-heading h2 {
   margin: 3px 0 0;
-  color: var(--foreground);
+  color: #ffffff;
   font-size: 1rem;
 }
 
-.master-relation-imports-heading p,
+.master-relation-imports-heading .master-section-kicker {
+  color: rgb(255 255 255 / 82%);
+}
+
+.master-relation-imports-heading p {
+  margin: 0;
+  color: rgb(255 255 255 / 82%);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
 .master-relation-import-card small {
   margin: 0;
   color: var(--muted-foreground);
   font-size: 0.74rem;
   line-height: 1.45;
+}
+
+.master-relation-imports-heading > [data-slot="button"] {
+  border-color: #ffffff;
+  color: var(--blue);
+  background: #ffffff;
+}
+
+.master-relation-imports-heading > [data-slot="button"]:hover:not(:disabled) {
+  border-color: var(--blue-soft);
+  color: var(--blue-dark);
+  background: var(--blue-soft);
 }
 
 .master-relation-import-grid {
@@ -342,6 +383,71 @@
 
 .master-relation-import-card .master-import-actions {
   justify-content: flex-start;
+}
+
+.grade-shift-configuration article {
+  color: var(--foreground);
+}
+
+.grade-shift-choice {
+  min-height: var(--control-height);
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  padding: 6px 10px;
+  color: #111827;
+  background: #ffffff;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease;
+}
+
+.grade-shift-choice:hover:not(:has(input:disabled)) {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.grade-shift-choice:has(input:checked) {
+  border-color: var(--blue);
+  color: #ffffff;
+  background: var(--blue);
+}
+
+.grade-shift-choice:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.grade-shift-choice input {
+  accent-color: var(--blue);
+}
+
+.grade-shift-choice:has(input:checked) input {
+  accent-color: #ffffff;
+}
+
+.grade-shift-save[data-slot="button"] {
+  border-color: var(--line) !important;
+  color: #111827 !important;
+  background: #ffffff !important;
+}
+
+.grade-shift-save[data-slot="button"]:hover:not(:disabled) {
+  border-color: #cbd5e1 !important;
+  color: #111827 !important;
+  background: #f1f5f9 !important;
+}
+
+.master-template-download[data-slot="button"] {
+  border-color: var(--line) !important;
+  color: #111827 !important;
+  background: #ffffff !important;
+}
+
+.master-template-download[data-slot="button"]:hover:not(:disabled) {
+  border-color: #cbd5e1 !important;
+  color: #111827 !important;
+  background: #f1f5f9 !important;
 }
 
 .master-import-dialog {
@@ -889,6 +995,40 @@
   width: 100%;
 }
 
+.rule-definition-table-wrap {
+  max-height: min(62vh, 560px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  scrollbar-gutter: stable both-edges;
+}
+
+.rule-definition-table-wrap thead {
+  background: var(--secondary);
+}
+
+.rule-definition-table-wrap thead th {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  background: var(--secondary);
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.rule-definition-table-wrap th {
+  white-space: nowrap;
+}
+
+.rule-definition-table-wrap td,
+.rule-definition-table-wrap th {
+  min-width: 150px;
+}
+
+.rule-definition-table-wrap th:first-child,
+.rule-definition-table-wrap td:first-child {
+  min-width: 240px;
+}
+
 .master-rule-day-list {
   display: grid;
   gap: 10px;
@@ -964,86 +1104,6 @@
   line-height: 1.4;
 }
 
-.teacher-load-summary-content {
-  display: grid;
-  gap: 14px;
-}
-
-.teacher-load-filters {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(190px, 0.5fr) auto;
-  align-items: end;
-  gap: 12px;
-}
-
-.teacher-load-filters label,
-.teacher-load-rule-summary > div {
-  display: grid;
-  gap: 5px;
-}
-
-.teacher-load-filters label > span,
-.teacher-load-rule-summary span {
-  color: var(--muted-foreground);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.teacher-load-result-count {
-  align-self: center;
-  color: var(--muted-foreground);
-  font-size: 0.72rem;
-  white-space: nowrap;
-}
-
-.teacher-load-rule-summary {
-  display: grid;
-  grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1.4fr) minmax(165px, 1fr) minmax(170px, 1fr);
-  gap: 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 11px 12px;
-  background: color-mix(in oklch, var(--muted) 34%, var(--card));
-}
-
-.teacher-load-rule-summary code {
-  color: var(--foreground);
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
-.teacher-load-rule-summary a,
-.teacher-load-rule-summary strong {
-  overflow: hidden;
-  color: var(--foreground);
-  font-size: 0.76rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.teacher-load-rule-summary a {
-  color: var(--primary);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.teacher-load-rule-summary .inline-flex {
-  margin-top: 2px;
-}
-
-.teacher-load-subjects {
-  color: var(--foreground);
-  font-weight: 600;
-}
-
-.teacher-load-empty {
-  margin: 0;
-  padding: 16px;
-  color: var(--muted-foreground);
-  text-align: center;
-}
-
 @media (max-width: 600px) {
   .master-duty-header,
   .master-duty-summary {
@@ -1054,15 +1114,6 @@
 
   .master-duty-summary > [data-slot="button"] {
     width: 100%;
-  }
-
-  .teacher-load-filters,
-  .teacher-load-rule-summary {
-    grid-template-columns: 1fr;
-  }
-
-  .teacher-load-result-count {
-    align-self: start;
   }
 
   .teacher-assignment-dialog {

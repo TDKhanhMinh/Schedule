@@ -18,19 +18,25 @@ const bundle = javascriptAssets.map((asset) => readFileSync(join(dist, "assets",
 for (const marker of [
   "Thời khóa biểu trường học",
   "/master-data",
-  "/imports",
+  "/data-quality",
   "/timetable",
-  "Tải lên và xem trước",
-  "Tải báo cáo lỗi Excel",
+  "Quét dữ liệu trước khi xếp TKB",
+  "Lỗi chặn",
   "Chọn trường",
   "Chưa có phân công để hiển thị",
   "Theo dõi và điều khiển tác vụ",
+  "Tổng hợp tải dạy giáo viên",
+  "Tự động phân công giáo viên vào lớp",
+  "Xác nhận phân công",
   "Xuất Excel",
   "CHỈ ĐỌC CÔNG KHAI",
 ]) {
   assert.ok(bundle.includes(marker), `bundle marker missing: ${marker}`);
 }
+for (const removedMarker of ["Tải lên và xem trước", "Xác nhận nhập dữ liệu", "Tải báo cáo lỗi Excel"]) {
+  assert.ok(!bundle.includes(removedMarker), `legacy import marker still present: ${removedMarker}`);
+}
 
 console.log(
-  `Frontend smoke passed: ${javascriptAssets.join(", ")} + ${stylesheet}; dashboard/master-data/import/timetable markers present.`,
+  `Frontend smoke passed: ${javascriptAssets.join(", ")} + ${stylesheet}; dashboard/master-data/data-quality/timetable markers present.`,
 );

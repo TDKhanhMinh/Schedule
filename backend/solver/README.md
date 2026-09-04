@@ -52,8 +52,10 @@ and writes a machine-readable error to stderr with `INVALID_JSON` or
 `INVALID_SOLVE_REQUEST`.
 
 Defaults are explicit: `options.timeLimitSeconds` is `10.0` seconds when the
-request omits `options`, and the CLI/library random seed is `0`. The seed is a
-runner control and is intentionally not part of the `schemaVersion: "1.0"`
-request payload.
+request omits `options`. Set it to `null` to disable the CP-SAT solver time
+limit and let the run continue until CP-SAT returns a definitive result. The
+worker heartbeat and cancellation controls remain active in this mode. The
+CLI/library random seed is `0`; the seed is a runner control and is
+intentionally not part of the `schemaVersion: "1.0"` request payload.
 
 Runner này là seam kiểm thử deterministic cho solver. API đã có BullMQ enqueue boundary; queue consumer, kết nối worker production và ghi kết quả về PostgreSQL là phần việc tiếp theo, không được đánh dấu hoàn tất trong task scope/setup này.

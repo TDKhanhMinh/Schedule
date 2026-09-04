@@ -226,8 +226,9 @@ export function RuleCenterPanel({
             <p className="text-sm font-semibold">Bộ quy tắc</p>
             {profiles.map((profile) => (
               <button
-                className={`w-full rounded-lg border px-3 py-3 text-left transition-colors ${selectedProfile?.id === profile.id ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/40"}`}
+                className={`rule-profile-choice w-full rounded-lg border px-3 py-3 text-left transition-colors ${selectedProfile?.id === profile.id ? "selected" : "border-border bg-card hover:bg-muted/40"}`}
                 type="button"
+                aria-pressed={selectedProfile?.id === profile.id}
                 key={profile.id}
                 onClick={() => setSelectedProfileId(profile.id)}
               >
@@ -279,8 +280,8 @@ export function RuleCenterPanel({
               </div>
               {validationQuery.data ? <ValidationSummary validation={validationQuery.data} /> : null}
               {selectedProfile.rules.length ? (
-                <div className="overflow-x-auto rounded-lg border border-border">
-                  <table className="w-full min-w-[720px] text-sm">
+                <div className="rule-definition-table-wrap">
+                  <table className="rule-definition-table w-full min-w-[780px] text-sm">
                     <caption className="sr-only">Các rule trong bộ quy tắc</caption>
                     <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
                       <tr>

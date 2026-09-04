@@ -221,11 +221,10 @@
     "options": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Optional solver controls. If omitted, timeLimitSeconds defaults to 10 seconds and the runner random seed defaults to 0.",
+      "description": "Optional solver controls. If omitted, timeLimitSeconds defaults to 10 seconds. Set timeLimitSeconds to null to run without a solver time limit. The runner random seed defaults to 0.",
       "properties": {
         "timeLimitSeconds": {
-          "type": "number",
-          "exclusiveMinimum": 0,
+          "anyOf": [{ "type": "number", "exclusiveMinimum": 0 }, { "type": "null" }],
           "default": 10
         }
       }

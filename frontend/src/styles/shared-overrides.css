@@ -17,6 +17,51 @@ body {
   color: var(--foreground);
 }
 
+/* A selected control always uses the product blue with white text. */
+[data-slot="button"][aria-pressed="true"],
+[data-slot="button"][aria-selected="true"],
+[data-slot="tabs-trigger"][data-state="active"],
+.view-tab.active,
+.master-tab.active,
+.app-nav-link.is-active,
+.rule-profile-choice[aria-pressed="true"] {
+  border-color: var(--blue) !important;
+  color: #ffffff !important;
+  background: var(--blue) !important;
+}
+
+[data-slot="button"][aria-pressed="true"]:hover:not(:disabled),
+[data-slot="button"][aria-selected="true"]:hover:not(:disabled),
+[data-slot="tabs-trigger"][data-state="active"]:hover:not(:disabled),
+.view-tab.active:hover:not(:disabled),
+.master-tab.active:hover:not(:disabled),
+.app-nav-link.is-active:hover,
+.rule-profile-choice[aria-pressed="true"]:hover {
+  border-color: var(--blue-dark) !important;
+  color: #ffffff !important;
+  background: var(--blue-dark) !important;
+}
+
+.app-nav-link.is-active .app-nav-icon {
+  border-color: rgb(255 255 255 / 42%);
+  color: var(--blue);
+  background: #ffffff;
+}
+
+.app-nav-link.is-active .app-nav-copy small,
+.app-nav-link.is-active .app-nav-chevron {
+  color: #ffffff;
+}
+
+.master-tab.active small {
+  color: var(--blue);
+  background: #ffffff;
+}
+
+.rule-profile-choice[aria-pressed="true"] .text-muted-foreground {
+  color: rgb(255 255 255 / 78%) !important;
+}
+
 .skip-link {
   position: fixed;
   z-index: 100;

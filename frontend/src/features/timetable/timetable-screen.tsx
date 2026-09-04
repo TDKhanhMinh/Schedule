@@ -33,7 +33,7 @@ const viewOptions: Array<{ value: TimetableView; label: string; icon: typeof Tab
   { value: "room", label: "Theo phòng", icon: Table2 },
 ];
 
-const TIMETABLE_SOLVE_TIME_LIMIT_SECONDS = 30;
+const TIMETABLE_SOLVE_TIME_LIMIT_SECONDS = 120;
 
 export function TimetableScreen() {
   const [view, setView] = useState<TimetableView>("school");
@@ -148,8 +148,8 @@ export function TimetableScreen() {
         title="Thời khóa biểu"
         description="Xem lịch học theo lớp, giáo viên, phòng hoặc toàn trường trong cùng một phiên bản dữ liệu."
         action={
-          <Button variant="outline" type="button" onClick={() => navigateTo("imports")}>
-            <ChevronLeft /> Nhập dữ liệu
+          <Button variant="outline" type="button" onClick={() => navigateTo("data-quality")}>
+            <ChevronLeft /> Kiểm tra dữ liệu
           </Button>
         }
       />

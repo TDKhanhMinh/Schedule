@@ -9,6 +9,7 @@ import {
   Layers3,
   ListChecks,
   RefreshCw,
+  ScanSearch,
   Server,
   School,
   ShieldCheck,
@@ -52,8 +53,8 @@ interface DashboardAction {
 }
 
 const auditActionLabels: Record<string, string> = {
-  IMPORT_CONFIRMED: "Đã xác nhận nhập dữ liệu",
-  IMPORT: "Nhập dữ liệu",
+  IMPORT_CONFIRMED: "Đã xác nhận nhập Excel",
+  IMPORT: "Nhập Excel",
   APPROVE: "Phê duyệt",
   PUBLISH: "Công bố",
   LOCK: "Khóa",
@@ -123,8 +124,8 @@ export function DashboardScreen() {
         description="Theo dõi dữ liệu, tác vụ và phiên bản theo trường và năm học đã chọn."
         action={
           <div className="dashboard-header-actions">
-            <Button onClick={() => navigateTo("imports")} disabled={!canImport}>
-              <FileSpreadsheet /> Nhập dữ liệu
+            <Button onClick={() => navigateTo("data-quality")} disabled={!schoolId}>
+              <ScanSearch /> Kiểm tra dữ liệu
             </Button>
             <Button variant="outline" onClick={() => navigateTo("timetable")}>
               <CalendarDays /> Xem lịch
@@ -202,7 +203,7 @@ export function DashboardScreen() {
       <section className="dashboard-metric-strip" aria-label="Chỉ số vận hành">
         <MetricCell
           icon={<FileSpreadsheet />}
-          label="Nhập dữ liệu"
+          label="Sự kiện nhập Excel"
           value={isLoading ? null : `${importAudits} sự kiện`}
           hint="Nhật ký hiện tại"
         />

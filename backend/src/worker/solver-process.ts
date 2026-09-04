@@ -1,7 +1,13 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { SolveJobRequest, SolveJobResult, SolverAdapterPayload } from "../contracts";
+import type {
+  SolveJobRequest,
+  SolveJobResult,
+  SolverAdapterPayload,
+  TeacherAssignmentSolveRequest,
+  TeacherAssignmentSolveResult,
+} from "../contracts";
 
 export type SolverProcessErrorCode = "SOLVER_CANCELLED" | "SOLVER_SYSTEM_ERROR";
 
@@ -42,7 +48,7 @@ function invalidResult(
 ): SolveJobResult {
   const request = "input" in payload ? payload.input : payload;
   const randomSeed = "reproducibility" in payload ? payload.reproducibility.randomSeed : 0;
-  const timeLimitSeconds = request.options?.timeLimitSeconds ?? 10;
+  const timeLimitSeconds = request.options?.timeLimitSeconds !== undefined ? request.options.timeLimitSeconds : 10;
   return {
     schemaVersion: "1.0",
     jobId: request.jobId ?? "invalid-solve-job",
@@ -160,6 +166,77 @@ export function runPythonSolver(
       }
     });
 
+    child.stdin.end(JSON.stringify(payload));
+  });
+}
+
+export function runPythonTeacherAssignmentSolver(
+  payload: TeacherAssignmentSolveRequest,
+  options: RunPythonSolverOptions = {},
+): Promise<TeacherAssignmentSolveResult> {
+  if (options.signal?.aborted) {
+    return Promise.reject(
+      new SolverProcessError("SOLVER_CANCELLED", "Tiến trình phân công giáo viên đã được hủy an toàn."),
+    );
+  }
+  const { python, solverRoot } = getSolverRuntime();
+
+  return new Promise((resolveResult, reject) => {
+    const child = spawn(python, ["-m", "timetable_solver.teacher_assignment_main"], {
+      cwd: solverRoot,
+      env: {
+        ...process.env,
+        PYTHONPATH: resolve(solverRoot, "src"),
+      },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+    const abortHandler = () => {
+      if (settled) return;
+      child.kill();
+      settled = true;
+      reject(new SolverProcessError("SOLVER_CANCELLED", "Tiến trình phân công giáo viên đã được hủy an toàn."));
+    };
+    options.signal?.addEventListener("abort", abortHandler, { once: true });
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", (error) => {
+      if (settled) return;
+      settled = true;
+      reject(new SolverProcessError("SOLVER_SYSTEM_ERROR", error.message));
+    });
+    child.on("close", (code) => {
+      options.signal?.removeEventListener("abort", abortHandler);
+      if (settled) return;
+      if (code !== 0) {
+        settled = true;
+        reject(
+          new SolverProcessError(
+            "SOLVER_SYSTEM_ERROR",
+            `Python teacher assignment solver exited with code ${code}: ${stderr.trim()}`,
+          ),
+        );
+        return;
+      }
+      try {
+        settled = true;
+        resolveResult(JSON.parse(stdout.trim()) as TeacherAssignmentSolveResult);
+      } catch (error) {
+        settled = true;
+        reject(
+          new SolverProcessError(
+            "SOLVER_SYSTEM_ERROR",
+            `Bộ phân công Python trả về JSON không hợp lệ: ${String(error)}; stdout=${stdout}`,
+          ),
+        );
+      }
+    });
     child.stdin.end(JSON.stringify(payload));
   });
 }

@@ -4,9 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WorkflowStepper, type WorkflowStepKey } from "@/components/workflow-stepper";
 import { apiRequest } from "../../lib/api-client";
 import type { TimetableSolveInput } from "./timetable-api";
+
+type SolverTimeLimitOption = "60" | "120" | "300" | "unlimited";
+
+const solverTimeLimitOptions: Array<{ value: SolverTimeLimitOption; label: string }> = [
+  { value: "60", label: "1 phút" },
+  { value: "120", label: "2 phút" },
+  { value: "300", label: "5 phút" },
+  { value: "unlimited", label: "Không giới hạn" },
+];
 
 interface OptimizationJobStatus {
   jobId: string;
@@ -52,6 +62,7 @@ export function OptimizationJobPanel({
   const queryClient = useQueryClient();
   const [jobId, setJobId] = useState(() => new URLSearchParams(window.location.search).get("jobId") ?? "");
   const [trackedJobId, setTrackedJobId] = useState(jobId);
+  const [timeLimitOption, setTimeLimitOption] = useState<SolverTimeLimitOption>("120");
   const [notice, setNotice] = useState("");
   const [preflight, setPreflight] = useState<PreSolveReport | null>(null);
   const activeSolveJobRef = useRef<string | null>(null);
@@ -71,7 +82,14 @@ export function OptimizationJobPanel({
     mutationFn: async () => {
       if (!solveInput) throw new Error("Chưa đủ dữ liệu để kiểm tra và xếp thời khóa biểu.");
       const generatedJobId = createJobId();
-      const payload = { ...solveInput, jobId: generatedJobId };
+      const payload = {
+        ...solveInput,
+        jobId: generatedJobId,
+        options: {
+          ...(solveInput.options ?? {}),
+          timeLimitSeconds: timeLimitOption === "unlimited" ? null : Number(timeLimitOption),
+        },
+      };
       const report = await apiRequest<PreSolveReport>("/optimization-jobs/preflight", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -204,6 +222,27 @@ export function OptimizationJobPanel({
               ? "Đang xếp TKB…"
               : "Kiểm tra và xếp TKB"}
         </Button>
+        <label className="optimization-time-limit-field">
+          <span>Thời gian chạy cho lần xếp mới</span>
+          <Select
+            value={timeLimitOption}
+            onValueChange={(value) => setTimeLimitOption(value as SolverTimeLimitOption)}
+            disabled={
+              !solveInput || solveMutation.isPending || status?.state === "QUEUED" || status?.state === "RUNNING"
+            }
+          >
+            <SelectTrigger aria-label="Chọn thời gian chạy bộ tối ưu">
+              <SelectValue placeholder="Chọn thời gian chạy" />
+            </SelectTrigger>
+            <SelectContent>
+              {solverTimeLimitOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </label>
         <label>
           <span>Mã tác vụ tối ưu</span>
           <Input
@@ -222,6 +261,12 @@ export function OptimizationJobPanel({
           Làm mới
         </Button>
       </div>
+      {timeLimitOption === "unlimited" ? (
+        <p className="optimization-job-warning">
+          Không giới hạn: bộ tối ưu sẽ chạy đến khi có kết quả xác định hoặc chứng minh vô nghiệm. Bạn vẫn có thể hủy
+          tác vụ.
+        </p>
+      ) : null}
       {notice || statusQuery.error ? (
         <p className="optimization-job-notice">
           {notice ||

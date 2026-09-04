@@ -118,6 +118,7 @@ export function MasterDataImportActions({
   return (
     <div className="master-import-actions">
       <Button
+        className="master-template-download"
         variant="outline"
         type="button"
         onClick={() => templateMutation.mutate()}

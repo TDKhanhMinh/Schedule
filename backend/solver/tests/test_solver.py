@@ -99,6 +99,31 @@ class SolverTest(unittest.TestCase):
         self.assertEqual(result.metadata.ruleSnapshotHash, "0" * 64)
         self.assertEqual(result.diagnostics.hardConstraintViolations, [])
 
+    def test_explicit_unlimited_time_limit_is_preserved(self):
+        request = SolveJobRequest.model_validate(
+            {
+                "schemaVersion": "1.0",
+                "jobId": "job-unlimited-time-limit",
+                "schoolId": "school-1",
+                "timeSlots": [{"id": "mon-1", "day": 1, "period": 1}],
+                "lessons": [
+                    {
+                        "id": "lesson-a",
+                        "classId": "class-7a",
+                        "subjectId": "math",
+                        "teacherId": "teacher-1",
+                        "requiredSessions": 1,
+                    }
+                ],
+                "options": {"timeLimitSeconds": None},
+            }
+        )
+
+        result = solve(request)
+
+        self.assertEqual(result.status, "OPTIMAL")
+        self.assertIsNone(result.metadata.timeLimitSeconds)
+
     def test_reports_infeasible_hard_teacher_conflict(self):
         request = SolveJobRequest.model_validate(
             {

@@ -16,6 +16,7 @@ Nền tảng web-first cho trường THCS/THPT Việt Nam, với phạm vi MVP �
 - `docs/solver-benchmark-rubric.md`: tiêu chí đạt/trượt, thời gian chạy/tính tối ưu/độ ổn định hạt giống và cách ghi báo cáo hồi quy cho bộ tối ưu.
 - `backend/database/migrations`: hợp đồng lưu trữ PostgreSQL theo migration tiến về phía trước.
 - `backend/solver`: Python + OR-Tools CP-SAT, chạy độc lập theo hợp đồng JSON.
+- `docs/teacher-assignment-automation.md`: workflow phân công giáo viên tự động vào lớp trước solver thời khóa biểu; phân công thủ công luôn được giữ nguyên.
 - `docker-compose.yml`: PostgreSQL và Redis cho môi trường local.
 - `backend/src/imports`: tải Excel, xem trước/kiểm tra, xác nhận nhập dữ liệu và nhật ký kiểm toán.
 - `docs/excel-workbook-contract.md` và `outputs/P1.3-T01/school-timetable-mvp-0.1.0-template-v1.0.xlsx`: hợp đồng sổ làm việc v1.0 và mẫu chuẩn có phiên bản/lịch sử thay đổi cho việc nhập yêu cầu tiết học.

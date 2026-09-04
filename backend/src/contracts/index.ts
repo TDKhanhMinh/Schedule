@@ -31,6 +31,7 @@ export * from "./pre-solve";
 export * from "./solver-adapter";
 export * from "./teacher-availability";
 export * from "./teacher-load";
+export * from "./teacher-assignment";
 export * from "./schedule-export";
 export * from "./master-data-import";
 
@@ -65,7 +66,8 @@ export interface TeacherSubjectGradeAssignment {
 }
 
 export interface SolveJobOptions {
-  timeLimitSeconds?: number;
+  /** Null disables the solver time limit for this run. */
+  timeLimitSeconds?: number | null;
 }
 
 export type LockScope = "LESSON" | "TEACHER" | "DAY";
@@ -202,7 +204,7 @@ export interface SolverMetadata {
   solverVersion: string;
   contractVersion: typeof CONTRACT_VERSION;
   randomSeed: number;
-  timeLimitSeconds: number;
+  timeLimitSeconds: number | null;
   adapterContractVersion?: "SOLVER-ADAPTER-1.0.0";
   templateVersion?: string;
   academicPeriodId?: string;

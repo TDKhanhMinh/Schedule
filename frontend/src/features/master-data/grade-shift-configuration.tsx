@@ -77,7 +77,7 @@ export function GradeShiftConfiguration({
   if (!periodId) return <div className="master-empty-state">Chọn năm học/kỳ học để cấu hình buổi học theo khối.</div>;
 
   return (
-    <section className="master-relation-imports" aria-labelledby="grade-shift-title">
+    <section className="master-relation-imports grade-shift-configuration" aria-labelledby="grade-shift-title">
       <div className="master-relation-imports-heading">
         <div>
           <span className="master-section-kicker">Quy tắc xếp lịch</span>
@@ -122,7 +122,7 @@ export function GradeShiftConfiguration({
                 <legend className="text-sm font-semibold">Buổi chính</legend>
                 {SHIFTS.map((shift) => (
                   <label
-                    className="flex cursor-pointer items-center gap-2 text-sm"
+                    className="grade-shift-choice flex cursor-pointer items-center gap-2 text-sm"
                     key={"main-" + config.grade + "-" + shift}
                   >
                     <input
@@ -141,7 +141,7 @@ export function GradeShiftConfiguration({
                 <legend className="text-sm font-semibold">Buổi phụ</legend>
                 {SHIFTS.map((shift) => (
                   <label
-                    className="flex cursor-pointer items-center gap-2 text-sm"
+                    className="grade-shift-choice flex cursor-pointer items-center gap-2 text-sm"
                     key={"secondary-" + config.grade + "-" + shift}
                   >
                     <input
@@ -172,6 +172,7 @@ export function GradeShiftConfiguration({
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <p className="text-sm text-muted-foreground">Thay đổi chỉ tác động đến lần xếp thời khóa biểu tiếp theo.</p>
         <Button
+          className="grade-shift-save"
           type="button"
           onClick={save}
           disabled={

@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "teacher-assignment-request.schema.json",
+  "title": "TeacherAssignmentRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "algorithmVersion",
+    "jobId",
+    "schoolId",
+    "academicPeriodId",
+    "ruleSnapshotId",
+    "ruleSetVersion",
+    "ruleSnapshotHash",
+    "randomSeed",
+    "options",
+    "demands",
+    "teachers",
+    "eligibility",
+    "manualAssignments"
+  ],
+  "properties": {
+    "contractVersion": { "const": "TEACHER-ASSIGNMENT-1.0.0" },
+    "algorithmVersion": { "const": "TEACHER-ASSIGNMENT-1.0.0" },
+    "jobId": { "type": "string", "minLength": 1 },
+    "schoolId": { "type": "string", "minLength": 1 },
+    "academicPeriodId": { "type": "string", "minLength": 1 },
+    "ruleSnapshotId": { "type": "string", "minLength": 1 },
+    "ruleSetVersion": { "type": "string", "pattern": "^RULE-SET-[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "ruleSnapshotHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "randomSeed": { "type": "integer" },
+    "options": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "timeLimitSeconds": {
+          "anyOf": [{ "type": "number", "exclusiveMinimum": 0 }, { "type": "null" }],
+          "default": 120
+        }
+      }
+    },
+    "demands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "classId", "grade", "subjectId", "requiredSessions", "activityType"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "classId": { "type": "string", "minLength": 1 },
+          "grade": { "type": "integer", "minimum": 6, "maximum": 12 },
+          "subjectId": { "type": "string", "minLength": 1 },
+          "requiredSessions": { "type": "integer", "exclusiveMinimum": 0 },
+          "roomId": { "type": ["string", "null"] },
+          "fixedSlotId": { "type": ["string", "null"] },
+          "activityType": { "enum": ["LESSON", "FLAG_CEREMONY"] }
+        }
+      }
+    },
+    "teachers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "code", "name", "assignedWeeklySessions", "adjustedWeeklyTarget", "hardWeeklyLimitSessions"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "code": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "assignedWeeklySessions": { "type": "number", "minimum": 0 },
+          "adjustedWeeklyTarget": { "type": "number", "minimum": 0 },
+          "hardWeeklyLimitSessions": { "type": ["number", "null"], "minimum": 0 }
+        }
+      }
+    },
+    "eligibility": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["teacherId", "subjectId", "grade"],
+        "properties": {
+          "teacherId": { "type": "string", "minLength": 1 },
+          "subjectId": { "type": "string", "minLength": 1 },
+          "grade": { "type": "integer", "minimum": 6, "maximum": 12 }
+        }
+      }
+    },
+    "manualAssignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["demandId", "teacherId", "requiredSessions", "locked"],
+        "properties": {
+          "demandId": { "type": "string", "minLength": 1 },
+          "teacherId": { "type": "string", "minLength": 1 },
+          "requiredSessions": { "type": "integer", "exclusiveMinimum": 0 },
+          "locked": { "const": true }
+        }
+      }
+    }
+  }
+}

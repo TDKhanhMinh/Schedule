@@ -1,6 +1,6 @@
 import { AppShell, useApiStatus } from "./app/app-shell";
 import { DashboardScreen } from "./features/dashboard/dashboard-screen";
-import { ImportScreen } from "./features/imports/import-screen";
+import { DataQualityScreen } from "./features/data-quality/data-quality-screen";
 import { MasterDataScreen } from "./features/master-data/master-data-screen";
 import { PublicScheduleScreen } from "./features/public-schedule/public-schedule-screen";
 import { TimetableScreen } from "./features/timetable";
@@ -14,8 +14,8 @@ export default function App() {
   const content =
     route === "master-data" ? (
       <MasterDataScreen />
-    ) : route === "imports" ? (
-      <ImportScreen />
+    ) : route === "data-quality" ? (
+      <DataQualityScreen />
     ) : route === "timetable" ? (
       <TimetableScreen />
     ) : route === "public" ? (

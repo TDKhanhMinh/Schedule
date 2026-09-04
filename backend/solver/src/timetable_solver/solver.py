@@ -44,7 +44,7 @@ DEFAULT_OBJECTIVE_WEIGHTS = {
 def _build_metadata(
     request: SolveJobRequest,
     random_seed: int,
-    time_limit_seconds: float,
+    time_limit_seconds: float | None,
     adapter_payload: SolverAdapterPayload | None,
 ) -> dict[str, object]:
     metadata: dict[str, object] = {
@@ -838,7 +838,8 @@ def solve(
     # part of the v1 API/Python request contract.
     solver.parameters.random_seed = random_seed
     time_limit_seconds = request.options.timeLimitSeconds if request.options else DEFAULT_TIME_LIMIT_SECONDS
-    solver.parameters.max_time_in_seconds = time_limit_seconds
+    if time_limit_seconds is not None:
+        solver.parameters.max_time_in_seconds = time_limit_seconds
     solver.parameters.num_search_workers = 1 if not objective_terms and not repair_move_terms else 2
     status = solver.Solve(model)
     status_name = {

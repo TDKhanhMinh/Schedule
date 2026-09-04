@@ -40,6 +40,22 @@ class SolverAdapterTest(unittest.TestCase):
         with self.assertRaises(ValidationError):
             SolverAdapterPayload.model_validate(payload)
 
+    def test_unlimited_time_limit_round_trips_and_is_used_by_solver(self):
+        payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        payload["reproducibility"]["timeLimitSeconds"] = None
+        payload["input"]["options"] = {"timeLimitSeconds": None}
+        payload["inputChecksum"] = compute_solver_adapter_checksum(payload)
+
+        adapter = SolverAdapterPayload.model_validate(payload)
+        result = solve(
+            adapter.input,
+            random_seed=adapter.reproducibility.randomSeed,
+            adapter_payload=adapter,
+        )
+
+        self.assertIsNone(adapter.reproducibility.timeLimitSeconds)
+        self.assertIsNone(result.metadata.timeLimitSeconds)
+
 
 if __name__ == "__main__":
     unittest.main()

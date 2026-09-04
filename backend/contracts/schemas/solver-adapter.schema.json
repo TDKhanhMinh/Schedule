@@ -35,7 +35,9 @@
       "required": ["randomSeed", "timeLimitSeconds"],
       "properties": {
         "randomSeed": { "type": "integer" },
-        "timeLimitSeconds": { "type": "number", "exclusiveMinimum": 0 }
+        "timeLimitSeconds": {
+          "anyOf": [{ "type": "number", "exclusiveMinimum": 0 }, { "type": "null" }]
+        }
       }
     },
     "input": { "$ref": "solve-job-request.schema.json" },

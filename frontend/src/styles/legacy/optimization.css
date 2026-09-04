@@ -33,19 +33,29 @@
   margin: 3px 0 0;
 }
 .optimization-job-controls {
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: max-content minmax(210px, 250px) minmax(320px, 1fr) max-content max-content;
+  align-items: end;
+  gap: 10px;
 }
 .optimization-job-controls label {
   display: grid;
   gap: 5px;
-  min-width: min(420px, 100%);
-  flex: 1;
+  min-width: 0;
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 800;
 }
+.optimization-job-controls .optimization-time-limit-field {
+  width: 100%;
+}
 .optimization-job-controls input {
   min-width: 0;
+}
+.optimization-job-controls > button {
+  align-self: end;
+  justify-self: start;
+  white-space: nowrap;
 }
 .optimization-job-metrics {
   flex-wrap: wrap;
@@ -58,6 +68,28 @@
   background: #fbfcff;
   font-size: 0.7rem;
 }
+
+@media (max-width: 1100px) {
+  .optimization-job-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .optimization-job-controls > label:nth-of-type(2) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .optimization-job-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .optimization-job-controls > * {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
 .optimization-job-metrics b {
   color: var(--ink);
 }

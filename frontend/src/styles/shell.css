@@ -163,6 +163,11 @@
   width: min(100%, 1440px);
   min-height: calc(100dvh - 72px);
   margin: 0 auto;
+  transition: grid-template-columns 180ms ease;
+}
+
+.app-shell-body.sidebar-collapsed {
+  grid-template-columns: 76px minmax(0, 1fr);
 }
 
 .app-sidebar {
@@ -181,6 +186,28 @@
   display: grid;
   gap: 4px;
   padding: 0 10px;
+}
+
+.app-sidebar-heading-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.app-sidebar-heading-copy {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.app-sidebar-toggle {
+  flex: 0 0 auto;
+  color: var(--muted-foreground);
+}
+
+.app-sidebar-toggle:hover {
+  color: var(--foreground);
 }
 
 .app-sidebar-kicker,
@@ -208,6 +235,29 @@
   white-space: nowrap;
 }
 
+.app-sidebar.is-collapsed {
+  padding-inline: 10px;
+}
+
+.app-sidebar.is-collapsed .app-sidebar-heading {
+  padding-inline: 0;
+}
+
+.app-sidebar.is-collapsed .app-sidebar-heading-top {
+  justify-content: center;
+}
+
+.app-sidebar.is-collapsed .app-sidebar-heading-copy,
+.app-sidebar.is-collapsed .app-nav-copy,
+.app-sidebar.is-collapsed .app-nav-chevron,
+.app-sidebar.is-collapsed .app-sidebar-footer-copy {
+  display: none;
+}
+
+.app-sidebar.is-collapsed .app-sidebar-toggle {
+  margin-inline: auto;
+}
+
 .app-nav {
   display: grid;
   gap: 6px;
@@ -230,6 +280,12 @@
     background-color 160ms ease,
     border-color 160ms ease,
     transform 160ms ease;
+}
+
+.app-sidebar.is-collapsed .app-nav-link {
+  grid-template-columns: 34px;
+  justify-content: center;
+  padding-inline: 0;
 }
 
 .app-nav-link:hover {
@@ -303,6 +359,11 @@
   border-radius: 12px;
   padding: 12px;
   background: var(--card);
+}
+
+.app-sidebar.is-collapsed .app-sidebar-footer {
+  justify-content: center;
+  padding: 8px;
 }
 
 .app-sidebar-footer-icon {
@@ -441,6 +502,10 @@
   .app-shell-body {
     grid-template-columns: 224px minmax(0, 1fr);
   }
+
+  .app-shell-body.sidebar-collapsed {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 767px) {
@@ -499,6 +564,40 @@
 
   .app-sidebar.mobile-open {
     display: flex;
+  }
+
+  .app-shell-body.sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .app-sidebar.is-collapsed {
+    padding: 16px;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-heading {
+    padding: 0 10px;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-heading-top {
+    justify-content: space-between;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-heading-copy,
+  .app-sidebar.is-collapsed .app-nav-copy,
+  .app-sidebar.is-collapsed .app-nav-chevron,
+  .app-sidebar.is-collapsed .app-sidebar-footer-copy {
+    display: grid;
+  }
+
+  .app-sidebar.is-collapsed .app-nav-link {
+    grid-template-columns: 34px minmax(0, 1fr) 16px;
+    justify-content: initial;
+    padding: 12px;
+  }
+
+  .app-sidebar.is-collapsed .app-sidebar-footer {
+    justify-content: initial;
+    padding: 12px;
   }
 
   .mobile-nav-backdrop {

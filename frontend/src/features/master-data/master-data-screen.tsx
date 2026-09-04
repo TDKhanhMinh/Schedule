@@ -13,6 +13,7 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
+  Sparkles,
   Upload,
   UserRoundPlus,
   UsersRound,
@@ -74,7 +75,6 @@ import {
 import {
   HomeroomAssignmentDialog,
   TeacherHomeroomAssignmentDialog,
-  TeacherLoadSummaryPanel,
   TeacherProfessionalAssignmentDialog,
   type HomeroomAssignment,
   type TeacherSubjectGradeAssignment,
@@ -83,8 +83,10 @@ import { MasterDataImportActions } from "./master-data-import-dialog";
 import { GradeShiftConfiguration } from "./grade-shift-configuration";
 import { RuleCenterPanel } from "./rule-center";
 import { TeacherPreferredOffDaysDialog } from "./teacher-preferred-off-days-dialog";
+import { TeacherLoadSummaryPanel } from "../teacher-load/teacher-load-screen";
+import { TeacherAssignmentDialog } from "./teacher-assignment-dialog";
 
-type MasterDataPanel = "catalog" | "grade-shifts" | "rules";
+type MasterDataPanel = "catalog" | "teacher-load" | "grade-shifts" | "rules";
 
 const entityIcons: Record<MasterDataEntity, LucideIcon> = {
   school: Building2,
@@ -126,6 +128,7 @@ export function MasterDataScreen() {
     kind: "homeroom" | "professional";
   } | null>(null);
   const [preferredOffDaysTeacherId, setPreferredOffDaysTeacherId] = useState<string | null>(null);
+  const [teacherAssignmentDialogOpen, setTeacherAssignmentDialogOpen] = useState(false);
   const homeroomTriggerRef = useRef<HTMLButtonElement | null>(null);
   const teacherAssignmentTriggerRef = useRef<HTMLButtonElement | null>(null);
   const editorTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -863,8 +866,8 @@ export function MasterDataScreen() {
             <Badge variant={canWrite ? "default" : "secondary"}>
               {canWrite ? "Có quyền chỉnh sửa" : "Chỉ xem"} - {frontendConfig.actorRole}
             </Badge>
-            <Button variant="outline" type="button" onClick={() => navigateTo("imports")}>
-              <Upload /> Mở nhập dữ liệu
+            <Button variant="outline" type="button" onClick={() => navigateTo("data-quality")}>
+              <Upload /> Kiểm tra dữ liệu
             </Button>
           </div>
         }
@@ -883,11 +886,11 @@ export function MasterDataScreen() {
           <div className="master-tabs" role="tablist" aria-label="Loại dữ liệu danh mục">
             {entityOrder.map((entity) => {
               const Icon = entityIcons[entity];
-              const isActive = activeEntity === entity;
+              const isActive = activePanel === "catalog" && activeEntity === entity;
               return (
                 <Button
                   className={isActive ? "master-tab active" : "master-tab"}
-                  variant={isActive ? "secondary" : "ghost"}
+                  variant={isActive ? "default" : "ghost"}
                   type="button"
                   role="tab"
                   aria-selected={isActive}
@@ -912,8 +915,29 @@ export function MasterDataScreen() {
               );
             })}
             <Button
+              className={activePanel === "teacher-load" ? "master-tab active" : "master-tab"}
+              variant={activePanel === "teacher-load" ? "default" : "ghost"}
+              type="button"
+              role="tab"
+              aria-selected={activePanel === "teacher-load"}
+              onClick={() => {
+                setActivePanel("teacher-load");
+                setQuery("");
+                setError("");
+                setNotice("");
+                setEditorOpen(false);
+                setHomeroomDialogClassId(null);
+                setTeacherAssignmentDialog(null);
+                setPreferredOffDaysTeacherId(null);
+              }}
+            >
+              <ClipboardList />
+              <span>Tải dạy giáo viên</span>
+              <small>Báo cáo tuần</small>
+            </Button>
+            <Button
               className={activePanel === "grade-shifts" ? "master-tab active" : "master-tab"}
-              variant={activePanel === "grade-shifts" ? "secondary" : "ghost"}
+              variant={activePanel === "grade-shifts" ? "default" : "ghost"}
               type="button"
               role="tab"
               aria-selected={activePanel === "grade-shifts"}
@@ -934,7 +958,7 @@ export function MasterDataScreen() {
             </Button>
             <Button
               className={activePanel === "rules" ? "master-tab active" : "master-tab"}
-              variant={activePanel === "rules" ? "secondary" : "ghost"}
+              variant={activePanel === "rules" ? "default" : "ghost"}
               type="button"
               role="tab"
               aria-selected={activePanel === "rules"}
@@ -956,7 +980,8 @@ export function MasterDataScreen() {
           </div>
         </div>
 
-        {activePanel === "grade-shifts" ||
+        {activePanel === "teacher-load" ||
+        activePanel === "grade-shifts" ||
         activePanel === "rules" ||
         activeEntity === "slot" ||
         activeEntity === "assignment" ||
@@ -998,6 +1023,20 @@ export function MasterDataScreen() {
               setNotice(message);
             }}
           />
+        ) : null}
+
+        {activePanel === "teacher-load" ? (
+          selectedPeriodId ? (
+            <TeacherLoadSummaryPanel
+              periodId={selectedPeriodId}
+              periodLabel={periods.find((period) => period.id === selectedPeriodId)?.name}
+            />
+          ) : (
+            <div className="master-empty-state">
+              <strong>Chưa chọn năm học</strong>
+              <p>Hãy chọn năm học/kỳ học ở phía trên để xem tổng hợp tải dạy.</p>
+            </div>
+          )
         ) : null}
 
         {activePanel === "catalog" ? (
@@ -1071,6 +1110,16 @@ export function MasterDataScreen() {
                   <Button variant="outline" type="button" onClick={() => void loadBaseData()} disabled={loading}>
                     Làm mới
                   </Button>
+                  {activeEntity === "assignment" ? (
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => setTeacherAssignmentDialogOpen(true)}
+                      disabled={!canWrite || !selectedPeriodId}
+                    >
+                      <Sparkles /> Tự động phân công
+                    </Button>
+                  ) : null}
                   {activeEntity === "class" ||
                   activeEntity === "teacher" ||
                   activeEntity === "subject" ||
@@ -1123,7 +1172,11 @@ export function MasterDataScreen() {
                   <p>Thử đổi bộ lọc hoặc bấm Thêm mới để tạo dòng đầu tiên.</p>
                 </div>
               ) : (
-                <div className="master-table-frame">
+                <div
+                  className={
+                    activeEntity === "teacher" ? "master-table-frame teacher-table-frame" : "master-table-frame"
+                  }
+                >
                   <table>
                     <thead>
                       <tr>
@@ -1169,12 +1222,6 @@ export function MasterDataScreen() {
                 </div>
               )}
             </div>
-            {selectedPeriodId ? (
-              <TeacherLoadSummaryPanel
-                periodId={selectedPeriodId}
-                periodLabel={periods.find((period) => period.id === selectedPeriodId)?.name}
-              />
-            ) : null}
           </>
         ) : null}
       </section>
@@ -1254,6 +1301,21 @@ export function MasterDataScreen() {
           onNeedDraftProfile={() => {
             setPreferredOffDaysTeacherId(null);
             setActivePanel("rules");
+          }}
+        />
+      ) : null}
+      {selectedPeriodId ? (
+        <TeacherAssignmentDialog
+          periodId={selectedPeriodId}
+          classes={classes}
+          subjects={subjects}
+          canWrite={canWrite}
+          open={teacherAssignmentDialogOpen}
+          onOpenChange={setTeacherAssignmentDialogOpen}
+          onSaved={(message) => {
+            setError("");
+            setNotice(message);
+            void periodDataQuery.refetch();
           }}
         />
       ) : null}

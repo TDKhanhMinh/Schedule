@@ -27,7 +27,7 @@ class SolverAdapterReproducibility(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     randomSeed: int
-    timeLimitSeconds: float = Field(gt=0)
+    timeLimitSeconds: float | None = Field(gt=0)
 
 
 class SolverAdapterPayload(BaseModel):
@@ -58,7 +58,7 @@ def canonicalize(value: object) -> object:
         return {
             key: canonicalize(nested)
             for key, nested in sorted(value.items())
-            if nested is not None
+            if nested is not None or key == "timeLimitSeconds"
         }
     if isinstance(value, float) and value.is_integer():
         return int(value)
@@ -69,8 +69,8 @@ def _unsigned_payload(payload: SolverAdapterPayload) -> dict[str, object]:
     return {
         "adapterContractVersion": payload.adapterContractVersion,
         "source": payload.source.model_dump(mode="json", exclude_none=True),
-        "reproducibility": payload.reproducibility.model_dump(mode="json", exclude_none=True),
-        "input": payload.input.model_dump(mode="json", exclude_none=True),
+        "reproducibility": payload.reproducibility.model_dump(mode="json", exclude_none=False),
+        "input": payload.input.model_dump(mode="json", exclude_none=False),
     }
 
 

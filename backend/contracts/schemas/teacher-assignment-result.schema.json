@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "teacher-assignment-result.schema.json",
+  "title": "TeacherAssignmentResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "jobId", "status", "proposals", "diagnostics", "metadata"],
+  "properties": {
+    "contractVersion": { "const": "TEACHER-ASSIGNMENT-1.0.0" },
+    "jobId": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["OPTIMAL", "FEASIBLE", "PARTIAL", "INFEASIBLE", "UNKNOWN"] },
+    "proposals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["demandId", "teacherId", "requiredSessions", "source", "isLocked", "status"],
+        "properties": {
+          "demandId": { "type": "string", "minLength": 1 },
+          "teacherId": { "type": ["string", "null"] },
+          "requiredSessions": { "type": "integer", "exclusiveMinimum": 0 },
+          "source": { "enum": ["AUTO", "MANUAL"] },
+          "isLocked": { "type": "boolean" },
+          "status": { "enum": ["PROPOSED", "ACCEPTED", "REJECTED", "UNASSIGNED"] },
+          "score": { "type": ["number", "null"] },
+          "reasonCode": { "type": ["string", "null"] },
+          "reason": { "type": ["string", "null"] },
+          "loadBefore": { "type": ["number", "null"] },
+          "loadAfter": { "type": ["number", "null"] },
+          "adjustedTarget": { "type": ["number", "null"] }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["warnings", "conflicts", "unassignedDemandIds", "modelMetrics", "runMetrics"],
+      "properties": {
+        "warnings": { "type": "array", "items": { "type": "string" } },
+        "conflicts": { "type": "array", "items": { "type": "string" } },
+        "unassignedDemandIds": { "type": "array", "items": { "type": "string" } },
+        "modelMetrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["variableCount", "candidatePairCount", "unassignedVariableCount"],
+          "properties": {
+            "variableCount": { "type": "integer", "minimum": 0 },
+            "candidatePairCount": { "type": "integer", "minimum": 0 },
+            "unassignedVariableCount": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "runMetrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["wallTimeMs"],
+          "properties": { "wallTimeMs": { "type": "number", "minimum": 0 } }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "solverVersion",
+        "contractVersion",
+        "algorithmVersion",
+        "randomSeed",
+        "timeLimitSeconds",
+        "ruleSnapshotId",
+        "ruleSetVersion",
+        "ruleSnapshotHash"
+      ],
+      "properties": {
+        "solverVersion": { "type": "string", "minLength": 1 },
+        "contractVersion": { "const": "TEACHER-ASSIGNMENT-1.0.0" },
+        "algorithmVersion": { "const": "TEACHER-ASSIGNMENT-1.0.0" },
+        "randomSeed": { "type": "integer" },
+        "timeLimitSeconds": {
+          "anyOf": [{ "type": "number", "exclusiveMinimum": 0 }, { "type": "null" }]
+        },
+        "ruleSnapshotId": { "type": "string", "minLength": 1 },
+        "ruleSetVersion": { "type": "string", "pattern": "^RULE-SET-[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "ruleSnapshotHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}
