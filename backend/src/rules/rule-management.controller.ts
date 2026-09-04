@@ -39,6 +39,12 @@ export class RuleManagementController {
     return this.rules.createProfile(schoolId, academicPeriodId, dto);
   }
 
+  @Post("academic-periods/:academicPeriodId/rule-profiles/ensure-draft")
+  @RequirePermission("WRITE")
+  ensureDraftProfile(@Param("schoolId") schoolId: string, @Param("academicPeriodId") academicPeriodId: string) {
+    return this.rules.ensureDraftProfileForPeriod(schoolId, academicPeriodId);
+  }
+
   @Get("rule-profiles/:profileId")
   @RequirePermission("READ")
   getProfile(@Param("schoolId") schoolId: string, @Param("profileId") profileId: string) {

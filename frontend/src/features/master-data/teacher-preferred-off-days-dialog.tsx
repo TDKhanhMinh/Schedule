@@ -57,12 +57,17 @@ export function TeacherPreferredOffDaysDialog({
   const queryClient = useQueryClient();
   const selectedProfile = draftProfiles.find((profile) => profile.id === profileId) ?? draftProfiles[0];
   const mutation = useMutation({
-    mutationFn: () => {
-      if (!selectedProfile) throw new Error("Cần tạo bộ quy tắc DRAFT trước.");
+    mutationFn: async () => {
+      const profile =
+        selectedProfile ??
+        (await request<RuleProfile>(
+          `/schools/${frontendConfig.schoolId}/academic-periods/${periodId}/rule-profiles/ensure-draft`,
+          { method: "POST" },
+        ));
       if (days.length === 0 || days.length > 2) throw new Error("Chọn từ 1 đến 2 ngày nghỉ mong muốn.");
-      const sourceUrl = selectedProfile.sourceUrl?.trim();
+      const sourceUrl = profile.sourceUrl?.trim();
       if (!sourceUrl) throw new Error("Bộ quy tắc cần có nguồn trước khi lưu ngày nghỉ.");
-      return request(`/schools/${frontendConfig.schoolId}/rule-profiles/${selectedProfile.id}/rules`, {
+      return request(`/schools/${frontendConfig.schoolId}/rule-profiles/${profile.id}/rules`, {
         method: "POST",
         body: JSON.stringify({
           code: "RULE-TEACHER-PREFERRED-OFF-DAYS",
@@ -70,8 +75,8 @@ export function TeacherPreferredOffDaysDialog({
           weight: 10,
           sourceUrl,
           sourceLocator: "Rule Center · Giáo viên",
-          effectiveFrom: selectedProfile.effectiveFrom,
-          effectiveTo: selectedProfile.effectiveTo,
+          effectiveFrom: profile.effectiveFrom,
+          effectiveTo: profile.effectiveTo,
           scope: { actorType: "TEACHER", actorId: teacher.id, resourceType: "TEACHER" },
           parameters: { daysOfWeek: [...days].sort((a, b) => a - b) },
         }),
@@ -118,7 +123,7 @@ export function TeacherPreferredOffDaysDialog({
         {!profilesQuery.isPending && !profilesQuery.error && !selectedProfile ? (
           <div className="master-empty-state">
             <strong>Chưa có bộ quy tắc DRAFT</strong>
-            <p>Tạo một bộ quy tắc DRAFT trong Rule Center rồi quay lại cấu hình ngày nghỉ.</p>
+            <p>Hệ thống sẽ tự tạo một bản nháp khi bạn lưu ngày nghỉ mong muốn.</p>
             <Button type="button" variant="outline" onClick={onNeedDraftProfile}>
               Mở Rule Center
             </Button>
@@ -170,7 +175,7 @@ export function TeacherPreferredOffDaysDialog({
           </Button>
           <Button
             type="button"
-            disabled={!canWrite || !selectedProfile || days.length === 0 || mutation.isPending}
+            disabled={!canWrite || days.length === 0 || mutation.isPending}
             onClick={() => void mutation.mutateAsync()}
           >
             {mutation.isPending ? "Đang lưu…" : "Lưu ngày nghỉ"}

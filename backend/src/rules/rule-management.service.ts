@@ -28,6 +28,13 @@ import {
 import { AuditLogService } from "../auth/audit-log.service";
 import type { Role } from "../auth/auth.constants";
 import { PG_POOL } from "../database/database.module";
+import {
+  BASELINE_PROFILE_NAME,
+  BASELINE_PROFILE_VERSION,
+  BASELINE_SOURCE_LOCATOR,
+  BASELINE_SOURCE_URL,
+  buildBaselineRuleDefinitions,
+} from "./rule-baseline";
 import { TeacherAvailabilityCalculationService } from "./teacher-availability.service";
 import type {
   ApproveRuleSnapshotDto,
@@ -108,6 +115,13 @@ interface RuleSnapshotRow extends QueryResultRow {
   captured_by: string;
 }
 
+interface HomeroomRuleSourceRow extends QueryResultRow {
+  class_code: string;
+  teacher_id: string;
+  weekly_reduction_periods: number;
+  rule_code: string;
+}
+
 export interface RuleIssue {
   code: string;
   severity: "ERROR" | "WARNING";
@@ -158,6 +172,20 @@ function parseJson<T>(value: T | string): T {
   return typeof value === "string" ? (JSON.parse(value) as T) : value;
 }
 
+function nextProfileVersion(version: string, usedVersions: Set<string>) {
+  const match = version.match(/^(.*?)(\d+)\.(\d+)\.(\d+)$/);
+  const prefix = match?.[1] ?? `${version}-`;
+  const major = match ? Number(match[2]) : 0;
+  const minor = match ? Number(match[3]) : 1;
+  let patch = match ? Number(match[4]) + 1 : 0;
+  let candidate = `${prefix}${major}.${minor}.${patch}`;
+  while (usedVersions.has(candidate)) {
+    patch += 1;
+    candidate = `${prefix}${major}.${minor}.${patch}`;
+  }
+  return candidate;
+}
+
 @Injectable()
 export class RuleManagementService {
   constructor(
@@ -172,6 +200,155 @@ export class RuleManagementService {
       schemaVersion: RULE_CATALOG_SCHEMA_VERSION,
       ruleTypes: RULE_CATALOG.ruleTypes,
     };
+  }
+
+  async provisionBaselineProfile(schoolId: string, academicPeriodId: string) {
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const periodResult = await client.query<{
+        id: string;
+        tenant_id: string;
+        starts_on: string | Date;
+        ends_on: string | Date;
+      }>(
+        `SELECT id::text, tenant_id::text, starts_on::text, ends_on::text
+           FROM academic_periods
+          WHERE id = $1 AND school_id = $2`,
+        [academicPeriodId, schoolId],
+      );
+      const period = periodResult.rows[0];
+      if (!period) throw new NotFoundException("Khung năm học không tồn tại trong phạm vi trường.");
+
+      const profileResult = await client.query<{ id: string }>(
+        `INSERT INTO rule_profiles
+           (tenant_id, school_id, academic_period_id, version, name, status,
+            register_version, source_url, source_locator, effective_from, effective_to,
+            scope, approval_state)
+         VALUES ($1, $2, $3, $4, $5, 'DRAFT', $6, $7, $8, $9, NULL, $10::jsonb, 'PENDING_STAKEHOLDER')
+         ON CONFLICT (academic_period_id, version) DO NOTHING
+         RETURNING id::text`,
+        [
+          period.tenant_id,
+          schoolId,
+          academicPeriodId,
+          BASELINE_PROFILE_VERSION,
+          BASELINE_PROFILE_NAME,
+          RULE_REGISTER_VERSION,
+          BASELINE_SOURCE_URL,
+          BASELINE_SOURCE_LOCATOR,
+          this.dateString(period.starts_on),
+          JSON.stringify({ schoolId, academicPeriodId }),
+        ],
+      );
+      const profileId =
+        profileResult.rows[0]?.id ??
+        (
+          await client.query<{ id: string }>(
+            `SELECT id::text
+               FROM rule_profiles
+              WHERE school_id = $1 AND academic_period_id = $2 AND version = $3`,
+            [schoolId, academicPeriodId, BASELINE_PROFILE_VERSION],
+          )
+        ).rows[0]?.id;
+      if (!profileId) throw new ConflictException("Không thể khởi tạo bộ quy tắc nền cho kỳ học.");
+
+      const baselineRules = buildBaselineRuleDefinitions({
+        schoolId,
+        academicPeriodId,
+        effectiveFrom: this.dateString(period.starts_on)!,
+      });
+      for (const rule of baselineRules) {
+        await client.query(
+          `INSERT INTO rule_definitions
+             (tenant_id, rule_profile_id, code, kind, weight, source_url, source_locator,
+              effective_from, effective_to, scope, approval_state, parameters)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12::jsonb)
+           ON CONFLICT (rule_profile_id, code) DO NOTHING`,
+          [
+            period.tenant_id,
+            profileId,
+            rule.code,
+            rule.kind,
+            rule.weight,
+            rule.sourceUrl,
+            rule.sourceLocator ?? null,
+            rule.effectiveFrom,
+            rule.effectiveTo ?? null,
+            JSON.stringify(rule.scope),
+            rule.approvalState,
+            JSON.stringify(rule.parameters),
+          ],
+        );
+      }
+      await client.query("COMMIT");
+      return { profileId, createdRuleCodes: baselineRules.map((rule) => rule.code) };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async ensureDraftProfileForPeriod(schoolId: string, academicPeriodId: string) {
+    let profiles = await this.listProfiles(schoolId, academicPeriodId);
+    const existingDraft = profiles.find((profile) => profile.status === "DRAFT");
+    if (existingDraft) return existingDraft;
+    if (profiles.length === 0) {
+      await this.provisionBaselineProfile(schoolId, academicPeriodId);
+      profiles = await this.listProfiles(schoolId, academicPeriodId);
+    }
+
+    const sourceProfile = profiles.find((profile) => profile.status === "ACTIVE") ?? profiles[0];
+    if (!sourceProfile) throw new ConflictException("Không thể tạo profile DRAFT cho kỳ học.");
+    const source = await this.getProfileRow(schoolId, sourceProfile.id);
+    const version = nextProfileVersion(source.version, new Set(profiles.map((profile) => profile.version)));
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const profileResult = await client.query<{ id: string }>(
+        `INSERT INTO rule_profiles
+           (tenant_id, school_id, academic_period_id, version, name, status,
+            register_version, source_url, source_locator, effective_from, effective_to,
+            scope, approval_state)
+         VALUES ($1, $2, $3, $4, $5, 'DRAFT', $6, $7, $8, $9, $10, $11::jsonb, 'PENDING_STAKEHOLDER')
+         RETURNING id::text`,
+        [
+          source.tenant_id,
+          schoolId,
+          academicPeriodId,
+          version,
+          `${source.name} · Bản nháp cập nhật`,
+          source.register_version,
+          source.source_url,
+          source.source_locator,
+          this.dateString(source.effective_from),
+          this.dateString(source.effective_to),
+          JSON.stringify(parseJson<RuleScope>(source.scope)),
+        ],
+      );
+      const profileId = profileResult.rows[0]?.id;
+      if (!profileId) throw new ConflictException("Không thể tạo profile DRAFT cho kỳ học.");
+      await client.query(
+        `INSERT INTO rule_definitions
+           (tenant_id, rule_profile_id, code, kind, weight, source_url, source_locator,
+            effective_from, effective_to, scope, approval_state, parameters)
+         SELECT tenant_id, $1, code, kind, weight, source_url, source_locator,
+                effective_from, effective_to, scope, 'PENDING_STAKEHOLDER', parameters
+           FROM rule_definitions
+          WHERE rule_profile_id = $2
+            AND code NOT LIKE 'RULE-TEACH-REDUCTION-HOMEROOM-%'`,
+        [profileId, source.id],
+      );
+      await client.query("COMMIT");
+      return this.getProfile(schoolId, profileId);
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw this.translateDatabaseError(error, "Không thể tạo profile DRAFT mới.");
+    } finally {
+      client.release();
+    }
   }
 
   async listProfiles(schoolId: string, academicPeriodId: string) {
@@ -239,7 +416,7 @@ export class RuleManagementService {
 
   async updateProfile(schoolId: string, profileId: string, dto: UpdateRuleProfileDto) {
     const current = await this.getProfileRow(schoolId, profileId);
-    this.ensureDraftProfile(current);
+    this.ensureEditableDraftProfile(current);
     const effectiveFrom = dto.effectiveFrom ?? this.dateString(current.effective_from) ?? "";
     const effectiveTo = dto.effectiveTo === undefined ? this.dateString(current.effective_to) : dto.effectiveTo;
     this.validateDateRange(effectiveFrom, effectiveTo);
@@ -303,7 +480,7 @@ export class RuleManagementService {
 
   async createRule(schoolId: string, profileId: string, dto: CreateRuleDefinitionDto) {
     const profile = await this.getProfileRow(schoolId, profileId);
-    this.ensureDraftProfile(profile);
+    this.ensureEditableDraftProfile(profile);
     const candidate = this.candidateFromCreate(dto, schoolId, profile.academic_period_id);
     this.validateRuleCandidate(candidate);
     try {
@@ -338,7 +515,7 @@ export class RuleManagementService {
 
   async updateRule(schoolId: string, profileId: string, ruleId: string, dto: UpdateRuleDefinitionDto) {
     const profile = await this.getProfileRow(schoolId, profileId);
-    this.ensureDraftProfile(profile);
+    this.ensureEditableDraftProfile(profile);
     const current = await this.getRuleRow(schoolId, profileId, ruleId);
     const candidate: RuleCandidate = {
       code: dto.code ?? current.code,
@@ -390,7 +567,7 @@ export class RuleManagementService {
 
   async deleteRule(schoolId: string, profileId: string, ruleId: string) {
     const profile = await this.getProfileRow(schoolId, profileId);
-    this.ensureDraftProfile(profile);
+    this.ensureEditableDraftProfile(profile);
     const result = await this.pool.query<{ id: string }>(
       `DELETE FROM rule_definitions
         WHERE id = $1 AND rule_profile_id = $2 AND tenant_id = $3
@@ -477,9 +654,13 @@ export class RuleManagementService {
       });
     }
     const rules = await this.listRuleRows(schoolId, profileId, profile.tenant_id);
+    const configuredRules = rules
+      .map((rule) => this.toRuleDefinition(rule))
+      .filter((rule) => !rule.code.startsWith("RULE-TEACH-REDUCTION-HOMEROOM-"));
+    const derivedHomeroomRules = await this.listDerivedHomeroomRules(schoolId, profile.academic_period_id, profile);
     const snapshot = this.buildSnapshot(
       profile,
-      rules.map((rule) => this.toRuleDefinition(rule)),
+      this.mergeRuleDefinitions(configuredRules, derivedHomeroomRules),
       "PENDING_STAKEHOLDER",
       actorId,
     );
@@ -622,6 +803,134 @@ export class RuleManagementService {
     return approvedSnapshot;
   }
 
+  private async listDerivedHomeroomRules(
+    schoolId: string,
+    academicPeriodId: string,
+    profile: RuleProfileRow,
+  ): Promise<RuleDefinition[]> {
+    const result = await this.pool.query<HomeroomRuleSourceRow>(
+      `SELECT class.code AS class_code,
+              assignment.teacher_id::text,
+              assignment.weekly_reduction_periods,
+              assignment.rule_code
+         FROM class_homeroom_assignments assignment
+         JOIN classes class ON class.tenant_id = assignment.tenant_id AND class.id = assignment.class_id
+        WHERE assignment.school_id = $1 AND assignment.academic_period_id = $2
+        ORDER BY class.code, assignment.id`,
+      [schoolId, academicPeriodId],
+    );
+    const effectiveFrom = this.dateString(profile.effective_from);
+    if (!profile.source_url || !effectiveFrom) return [];
+    return result.rows.map((assignment) => {
+      const rule: RuleDefinition = {
+        code: `RULE-TEACH-REDUCTION-HOMEROOM-${assignment.class_code}`,
+        kind: "HARD",
+        weight: null,
+        sourceUrl: profile.source_url!,
+        sourceLocator: `${assignment.rule_code} · GVCN ${assignment.class_code}`,
+        effectiveFrom,
+        effectiveTo: this.dateString(profile.effective_to),
+        scope: {
+          schoolId,
+          academicPeriodId,
+          actorType: "TEACHER",
+          actorId: assignment.teacher_id,
+          resourceType: "TEACHER",
+          resourceIds: [assignment.teacher_id],
+        },
+        approvalState: "PENDING_STAKEHOLDER",
+        parameters: {
+          roleCode: "HOMEROOM_TEACHER",
+          reductionSessionsPerWeek: assignment.weekly_reduction_periods,
+        },
+      };
+      this.validateRuleCandidate({
+        code: rule.code,
+        kind: rule.kind,
+        weight: rule.weight,
+        sourceUrl: rule.sourceUrl,
+        sourceLocator: rule.sourceLocator,
+        effectiveFrom: rule.effectiveFrom,
+        effectiveTo: rule.effectiveTo,
+        scope: rule.scope,
+        parameters: rule.parameters,
+      });
+      return rule;
+    });
+  }
+
+  private mergeRuleDefinitions(configuredRules: RuleDefinition[], derivedRules: RuleDefinition[]) {
+    const merged = new Map<string, RuleDefinition>();
+    for (const rule of configuredRules) {
+      const identity = ruleDefinitionIdentity(rule);
+      merged.set(identity, rule);
+    }
+    for (const rule of derivedRules) {
+      // GVCN assignments are the source of truth for their derived reduction rules.
+      merged.set(ruleDefinitionIdentity(rule), rule);
+    }
+    return [...merged.values()].sort((left, right) => left.code.localeCompare(right.code));
+  }
+
+  private async isHomeroomSnapshotCurrent(schoolId: string, academicPeriodId: string, snapshot: RuleSetSnapshot) {
+    const derivedRules = await this.listDerivedHomeroomRulesForSnapshot(schoolId, academicPeriodId, snapshot);
+    const snapshotRules = snapshot.rules.filter((rule) => rule.code.startsWith("RULE-TEACH-REDUCTION-HOMEROOM-"));
+    return this.homeroomRuleFingerprint(snapshotRules) === this.homeroomRuleFingerprint(derivedRules);
+  }
+
+  private async listDerivedHomeroomRulesForSnapshot(
+    schoolId: string,
+    academicPeriodId: string,
+    snapshot: RuleSetSnapshot,
+  ): Promise<RuleDefinition[]> {
+    const result = await this.pool.query<HomeroomRuleSourceRow>(
+      `SELECT class.code AS class_code,
+              assignment.teacher_id::text,
+              assignment.weekly_reduction_periods,
+              assignment.rule_code
+         FROM class_homeroom_assignments assignment
+         JOIN classes class ON class.tenant_id = assignment.tenant_id AND class.id = assignment.class_id
+        WHERE assignment.school_id = $1 AND assignment.academic_period_id = $2
+        ORDER BY class.code, assignment.id`,
+      [schoolId, academicPeriodId],
+    );
+    return result.rows.map((assignment) => ({
+      code: `RULE-TEACH-REDUCTION-HOMEROOM-${assignment.class_code}`,
+      kind: "HARD",
+      weight: null,
+      sourceUrl: snapshot.sourceUrl,
+      sourceLocator: `${assignment.rule_code} · GVCN ${assignment.class_code}`,
+      effectiveFrom: snapshot.effectiveFrom,
+      effectiveTo: snapshot.effectiveTo ?? null,
+      scope: {
+        schoolId,
+        academicPeriodId,
+        actorType: "TEACHER",
+        actorId: assignment.teacher_id,
+        resourceType: "TEACHER",
+        resourceIds: [assignment.teacher_id],
+      },
+      approvalState: "APPROVED",
+      parameters: {
+        roleCode: "HOMEROOM_TEACHER",
+        reductionSessionsPerWeek: assignment.weekly_reduction_periods,
+      },
+    }));
+  }
+
+  private homeroomRuleFingerprint(rules: RuleDefinition[]) {
+    return JSON.stringify(
+      rules
+        .map((rule) => ({
+          code: rule.code,
+          teacherId: rule.scope.actorId ?? null,
+          resourceIds: [...(rule.scope.resourceIds ?? [])].sort(),
+          reductionSessionsPerWeek: rule.parameters.reductionSessionsPerWeek ?? null,
+        }))
+        .sort((left, right) => left.code.localeCompare(right.code)),
+    );
+  }
+
   async listSnapshots(schoolId: string, academicPeriodId: string) {
     await this.ensureAcademicPeriod(schoolId, academicPeriodId);
     const result = await this.pool.query<RuleSnapshotRow>(
@@ -656,7 +965,7 @@ export class RuleManagementService {
         schoolId: string;
         academicPeriodId: string;
         effectiveAsOf: string;
-        reason: "NO_APPROVED_SNAPSHOT";
+        reason: "NO_APPROVED_SNAPSHOT" | "SNAPSHOT_HOMEROOM_ASSIGNMENTS_STALE";
       }
   > {
     const period = await this.ensureAcademicPeriod(schoolId, academicPeriodId);
@@ -688,7 +997,17 @@ export class RuleManagementService {
         reason: "NO_APPROVED_SNAPSHOT" as const,
       };
     }
-    return { schoolId, academicPeriodId, effectiveAsOf, resolved: true as const, snapshot: this.toSnapshot(row) };
+    const snapshot = this.toSnapshot(row);
+    if (!(await this.isHomeroomSnapshotCurrent(schoolId, academicPeriodId, snapshot))) {
+      return {
+        schoolId,
+        academicPeriodId,
+        effectiveAsOf,
+        resolved: false as const,
+        reason: "SNAPSHOT_HOMEROOM_ASSIGNMENTS_STALE" as const,
+      };
+    }
+    return { schoolId, academicPeriodId, effectiveAsOf, resolved: true as const, snapshot };
   }
 
   async resolveForSolve(
@@ -725,6 +1044,15 @@ export class RuleManagementService {
       snapshot = this.toSnapshot(row);
       if (snapshot.approvalState !== "APPROVED") {
         return { schoolId, academicPeriodId, effectiveAsOf, resolved: false, reason: "SNAPSHOT_NOT_APPROVED" };
+      }
+      if (!(await this.isHomeroomSnapshotCurrent(schoolId, academicPeriodId, snapshot))) {
+        return {
+          schoolId,
+          academicPeriodId,
+          effectiveAsOf,
+          resolved: false,
+          reason: "SNAPSHOT_HOMEROOM_ASSIGNMENTS_STALE",
+        };
       }
       if (effectiveAsOf < snapshot.effectiveFrom || (snapshot.effectiveTo && effectiveAsOf > snapshot.effectiveTo)) {
         return {
@@ -1046,11 +1374,11 @@ export class RuleManagementService {
         message: `Scope ${resourceType} không hợp lệ cho rule ${entry.code}.`,
       });
     }
-    if (
+    const requiresSpecificTeacher =
       entry.targetResources.includes("TEACHER") &&
-      !scope.actorId &&
-      !(resourceType === "TEACHER" && scope.resourceIds?.length)
-    ) {
+      entry.code !== "RULE-TEACHER-MAX-WORKING-DAYS" &&
+      (resourceType === "TEACHER" || (!resourceType && entry.targetResources.length === 1));
+    if (requiresSpecificTeacher && !scope.actorId && !(resourceType === "TEACHER" && scope.resourceIds?.length)) {
       throw new BadRequestException({
         code: "RULE_TEACHER_SCOPE_REQUIRED",
         message: `Rule ${entry.code} phải giới hạn theo giáo viên.`,
@@ -1155,7 +1483,7 @@ export class RuleManagementService {
     };
   }
 
-  private ensureDraftProfile(profile: RuleProfileRow) {
+  private ensureEditableDraftProfile(profile: RuleProfileRow) {
     if (profile.status !== "DRAFT")
       throw new ConflictException({
         code: "RULE_PROFILE_NOT_DRAFT",

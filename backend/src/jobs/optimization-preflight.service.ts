@@ -24,6 +24,8 @@ export class OptimizationPreflightService {
       SNAPSHOT_NOT_APPROVED: "Rule snapshot được yêu cầu chưa được phê duyệt.",
       SNAPSHOT_PROFILE_NOT_ACTIVE: "Rule snapshot thuộc profile đã ngừng áp dụng.",
       SNAPSHOT_OUTSIDE_EFFECTIVE_WINDOW: "Rule snapshot không còn trong thời gian hiệu lực.",
+      SNAPSHOT_HOMEROOM_ASSIGNMENTS_STALE:
+        "Phân công GVCN đã thay đổi sau khi snapshot được phê duyệt; cần tạo snapshot mới.",
     };
     return {
       catalogVersion: CONFLICT_CATALOG_VERSION,

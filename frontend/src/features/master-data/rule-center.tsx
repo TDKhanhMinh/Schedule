@@ -87,7 +87,8 @@ export function RuleCenterPanel({
     enabled: Boolean(schoolId && periodId),
   });
   const profiles = profilesQuery.data ?? [];
-  const selectedProfile = profiles.find((profile) => profile.id === selectedProfileId) ?? profiles[0];
+  const preferredProfile = profiles.find((profile) => profile.status === "DRAFT") ?? profiles[0];
+  const selectedProfile = profiles.find((profile) => profile.id === selectedProfileId) ?? preferredProfile;
   const validationQuery = useQuery({
     queryKey: ["rule-validation", selectedProfile?.id],
     queryFn: ({ signal }) =>
@@ -147,11 +148,15 @@ export function RuleCenterPanel({
     () => (snapshotQuery.data ?? []).find((snapshot) => snapshot.approvalState === "PENDING_STAKEHOLDER"),
     [snapshotQuery.data],
   );
+  const homeroomSnapshotNeedsRefresh = activeSnapshotQuery.data?.reason === "SNAPSHOT_HOMEROOM_ASSIGNMENTS_STALE";
+  const canCreateSnapshot = Boolean(
+    validationQuery.data?.canCreateSnapshot && (selectedProfile?.status === "DRAFT" || homeroomSnapshotNeedsRefresh),
+  );
 
   useEffect(() => {
     if (selectedProfileId && profiles.some((profile) => profile.id === selectedProfileId)) return;
-    setSelectedProfileId(profiles[0]?.id ?? "");
-  }, [profiles, selectedProfileId]);
+    setSelectedProfileId(preferredProfile?.id ?? "");
+  }, [preferredProfile?.id, profiles, selectedProfileId]);
 
   if (!periodId) return <div className="master-empty-state">Chọn năm học/kỳ học để quản lý bộ quy tắc.</div>;
 
@@ -162,7 +167,8 @@ export function RuleCenterPanel({
           <span className="master-section-kicker">Quy tắc vận hành</span>
           <h2 id="rule-center-title">Rule Center</h2>
           <p>
-            Rule được nhập bằng biểu mẫu có cấu trúc. Chỉ snapshot đã phê duyệt mới được đưa vào xếp thời khóa biểu.
+            Rule được nhập bằng biểu mẫu có cấu trúc. GVCN được tự động chụp vào snapshot; chỉ snapshot đã phê duyệt mới
+            được đưa vào xếp thời khóa biểu.
           </p>
         </div>
         <Button type="button" onClick={() => setProfileDialogOpen(true)} disabled={!canWrite}>
@@ -182,7 +188,9 @@ export function RuleCenterPanel({
           detail={
             activeSnapshotQuery.data?.resolved
               ? (activeSnapshotQuery.data.snapshot?.snapshotHash.slice(0, 12) ?? "Snapshot hợp lệ")
-              : "Cần phê duyệt trước khi xếp TKB"
+              : homeroomSnapshotNeedsRefresh
+                ? "Phân công GVCN đã thay đổi, cần tạo lại"
+                : "Cần phê duyệt trước khi xếp TKB"
           }
         />
         <StatusCard
@@ -251,22 +259,30 @@ export function RuleCenterPanel({
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {selectedProfile.status === "DRAFT" ? (
+                  {selectedProfile.status === "DRAFT" || homeroomSnapshotNeedsRefresh ? (
                     <>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setRuleDialogOpen(true)}
-                        disabled={!canWrite || !catalogQuery.data?.ruleTypes.length}
-                      >
-                        <Plus aria-hidden="true" /> Thêm rule
-                      </Button>
+                      {selectedProfile.status === "DRAFT" ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setRuleDialogOpen(true)}
+                          disabled={!canWrite || !catalogQuery.data?.ruleTypes.length}
+                        >
+                          <Plus aria-hidden="true" /> Thêm rule
+                        </Button>
+                      ) : null}
                       <Button
                         type="button"
                         onClick={() => void snapshotMutation.mutateAsync()}
-                        disabled={!canWrite || !validationQuery.data?.canCreateSnapshot || snapshotMutation.isPending}
+                        disabled={
+                          !canWrite || !canCreateSnapshot || Boolean(pendingSnapshot) || snapshotMutation.isPending
+                        }
                       >
-                        {snapshotMutation.isPending ? "Đang tạo…" : "Tạo snapshot"}
+                        {snapshotMutation.isPending
+                          ? "Đang tạo…"
+                          : selectedProfile.status === "DRAFT"
+                            ? "Tạo snapshot"
+                            : "Tạo snapshot mới"}
                       </Button>
                     </>
                   ) : null}
@@ -279,6 +295,12 @@ export function RuleCenterPanel({
                 </div>
               </div>
               {validationQuery.data ? <ValidationSummary validation={validationQuery.data} /> : null}
+              {homeroomSnapshotNeedsRefresh ? (
+                <p className="master-dialog-error" role="alert">
+                  Phân công GVCN đã thay đổi sau snapshot đã duyệt. Hệ thống sẽ tự chụp lại phân công hiện tại khi bạn
+                  tạo snapshot mới.
+                </p>
+              ) : null}
               {selectedProfile.rules.length ? (
                 <div className="rule-definition-table-wrap">
                   <table className="rule-definition-table w-full min-w-[780px] text-sm">

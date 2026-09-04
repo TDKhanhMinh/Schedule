@@ -1,8 +1,16 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  Optional,
+} from "@nestjs/common";
 import type { Pool, QueryResultRow } from "pg";
 import { PG_POOL } from "../database/database.module";
 import { deriveSubjectCode } from "../contracts/subject-code";
 import type { Role } from "../auth/auth.constants";
+import { RuleManagementService } from "../rules/rule-management.service";
 import {
   AssignHomeroomTeacherDto,
   AssignTeacherSubjectGradeDto,
@@ -253,7 +261,10 @@ function deriveClassGrade(name: string) {
 
 @Injectable()
 export class MasterDataService {
-  constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
+  constructor(
+    @Inject(PG_POOL) private readonly pool: Pool,
+    @Optional() private readonly ruleManagement?: RuleManagementService,
+  ) {}
 
   async getWorkspaceContext(userId: string, schoolId: string, tenantId?: string, role?: Role) {
     let result =
@@ -481,6 +492,7 @@ export class MasterDataService {
   async createAcademicPeriod(schoolId: string, dto: CreateAcademicPeriodDto) {
     await this.ensureSchool(schoolId);
     this.validateDateRange(dto.startsOn, dto.endsOn);
+    let period: AcademicPeriodRow | undefined;
     try {
       const result = await this.pool.query<AcademicPeriodRow>(
         `INSERT INTO academic_periods
@@ -499,10 +511,13 @@ export class MasterDataService {
           dto.endsOn,
         ],
       );
-      return this.toAcademicPeriod(result.rows[0]);
+      period = result.rows[0];
     } catch (error) {
       throw this.translateDatabaseError(error, "Khung năm học đã tồn tại trong trường.");
     }
+    if (!period) throw this.notFound("ACADEMIC_PERIOD_NOT_FOUND", "Không thể tạo khung năm học.");
+    await this.ruleManagement?.provisionBaselineProfile(schoolId, period.id);
+    return this.toAcademicPeriod(period);
   }
 
   async updateAcademicPeriod(schoolId: string, periodId: string, dto: UpdateAcademicPeriodDto) {
