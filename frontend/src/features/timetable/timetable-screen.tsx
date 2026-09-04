@@ -169,7 +169,7 @@ export function TimetableScreen() {
         </Alert>
       ) : null}
 
-      <section className="timetable-workspace" aria-labelledby="timetable-title">
+      <section className="timetable-workspace" aria-labelledby="timetable-title" aria-busy={timetableQuery.isFetching}>
         <div className="timetable-workspace-heading">
           <div className="timetable-workspace-title">
             <span className="timetable-section-kicker">Phiên bản thời khóa biểu</span>
@@ -181,7 +181,7 @@ export function TimetableScreen() {
             </p>
           </div>
           <div className="timetable-workspace-status">
-            <Badge variant={data ? "default" : "secondary"}>
+            <Badge variant={data ? "default" : "secondary"} role="status" aria-live="polite">
               {data ? (statusLabels[data.snapshot.status] ?? data.snapshot.status) : "Chưa có dữ liệu"}
             </Badge>
             <span>{data ? `${data.assignments.length} phân công` : "Đang chờ dữ liệu"}</span>

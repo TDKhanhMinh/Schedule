@@ -243,12 +243,13 @@ function ImportPreviewSummary({ preview }: { preview: MasterDataImportPreview })
       ) : null}
       <div className="master-import-preview-table">
         <table>
+          <caption className="sr-only">Chi tiết kiểm tra từng dòng nhập Excel</caption>
           <thead>
             <tr>
-              <th>Dòng</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-              <th>Dữ liệu</th>
+              <th scope="col">Dòng</th>
+              <th scope="col">Trạng thái</th>
+              <th scope="col">Thao tác</th>
+              <th scope="col">Dữ liệu</th>
             </tr>
           </thead>
           <tbody>

@@ -15,7 +15,7 @@
 
 - Tổng quan: tình trạng hệ thống, nhập liệu, job và audit gần đây.
 - Dữ liệu danh mục: trường, năm học, khung tiết, giáo viên, lớp, môn, phòng và phân công.
-- Nhập dữ liệu: upload, preview, validate, confirm và error report.
+- Kiểm tra dữ liệu: upload, preview, validate, confirm và error report.
 - Thời khóa biểu: toàn trường, theo lớp, giáo viên, phòng, chỉnh sửa, phát hành và export.
 - Public schedule: read-only, print và PDF.
 
@@ -25,11 +25,11 @@ Route, label navigation, API contract và form field name được giữ nguyên
 
 | Area        | Finding                                                                      | Direction                                                    |
 | ----------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Shell       | App shell đã responsive nhưng còn nhiều style cũ song song với utility class | Giữ shell hiện tại, chuẩn hóa token và focus/keyboard state  |
+| Shell       | App shell đã responsive, có sidebar desktop và Sheet mobile                  | Giữ shell hiện tại, chuẩn hóa token và focus/keyboard state  |
 | Dashboard   | Có dữ liệu API và state cơ bản, nhưng hierarchy hành động còn dàn đều        | Đưa action chính lên trước, nhóm status theo công việc       |
 | Master data | `master-data-screen.tsx` còn khoảng 800 dòng sau khi tách module             | Tiếp tục tách presenter, form và table nếu cần               |
 | Timetable   | Có bốn góc nhìn và khung Excel-like                                          | Giữ layout, cải thiện divider, sticky context và empty state |
-| Import      | Có preview/validation nhưng còn dùng CSS legacy                              | Chuẩn hóa upload, error summary và action hierarchy          |
+| Import      | Có preview/validation và dialog riêng                                         | Giữ upload, chuẩn hóa error summary và action hierarchy     |
 | Release     | Có workflow card và dialog                                                   | Giữ contract, làm rõ quyền và trạng thái chuyển tiếp         |
 | Public view | Read-only flow tách riêng                                                    | Giữ hierarchy đơn giản, ưu tiên in và mobile                 |
 

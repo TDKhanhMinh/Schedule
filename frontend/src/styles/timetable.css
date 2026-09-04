@@ -369,6 +369,33 @@
   margin: 0;
 }
 
+.timetable-resource-frame table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+}
+
+.timetable-resource-frame th,
+.timetable-resource-frame td {
+  border-bottom: 1px solid var(--border);
+  padding: 9px 11px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.timetable-resource-frame th {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.timetable-resource-frame tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .timetable-table-frame th,
 .timetable-table-frame td {
   border-color: var(--border);

@@ -867,6 +867,7 @@ export function MasterDataScreen() {
     room: ["Mã", "Tên phòng", "Loại", "Sức chứa", "Trạng thái"],
     assignment: ["Lớp", "Môn", "Giáo viên", "Phòng", "Số tiết", "Trạng thái"],
   };
+  const activeTabId = activePanel === "catalog" ? `master-tab-${activeEntity}` : `master-tab-${activePanel}`;
 
   return (
     <div className="master-data-screen">
@@ -906,7 +907,9 @@ export function MasterDataScreen() {
                   variant={isActive ? "default" : "ghost"}
                   type="button"
                   role="tab"
+                  id={`master-tab-${entity}`}
                   aria-selected={isActive}
+                  aria-controls="master-data-panel"
                   key={entity}
                   onClick={() => selectEntity(entity)}
                 >
@@ -932,7 +935,9 @@ export function MasterDataScreen() {
               variant={activePanel === "teacher-load" ? "default" : "ghost"}
               type="button"
               role="tab"
+              id="master-tab-teacher-load"
               aria-selected={activePanel === "teacher-load"}
+              aria-controls="master-data-panel"
               onClick={() => {
                 setActivePanel("teacher-load");
                 setQuery("");
@@ -953,7 +958,9 @@ export function MasterDataScreen() {
               variant={activePanel === "grade-shifts" ? "default" : "ghost"}
               type="button"
               role="tab"
+              id="master-tab-grade-shifts"
               aria-selected={activePanel === "grade-shifts"}
+              aria-controls="master-data-panel"
               onClick={() => {
                 setActivePanel("grade-shifts");
                 setQuery("");
@@ -974,7 +981,9 @@ export function MasterDataScreen() {
               variant={activePanel === "rules" ? "default" : "ghost"}
               type="button"
               role="tab"
+              id="master-tab-rules"
               aria-selected={activePanel === "rules"}
+              aria-controls="master-data-panel"
               onClick={() => {
                 setActivePanel("rules");
                 setQuery("");
@@ -993,250 +1002,259 @@ export function MasterDataScreen() {
           </div>
         </div>
 
-        {activePanel === "teacher-load" ||
-        activePanel === "grade-shifts" ||
-        activePanel === "rules" ||
-        activeEntity === "slot" ||
-        activeEntity === "assignment" ||
-        activeEntity === "class" ? (
-          <label className="master-period-picker">
-            <span>Năm học/kỳ học</span>
-            <select
-              className="master-select"
-              name="academicPeriod"
-              value={selectedPeriodId}
-              onChange={(event) => {
-                setSelectedPeriodId(event.target.value);
-                setAcademicPeriodId(event.target.value);
-                resetEditor();
-              }}
-            >
-              <option value="">Chọn năm học/kỳ học</option>
-              {periods.map((period) => (
-                <option key={period.id} value={period.id}>
-                  {period.name} - {period.academicYear}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
+        <div id="master-data-panel" role="tabpanel" aria-labelledby={activeTabId}>
+          {activePanel === "teacher-load" ||
+          activePanel === "grade-shifts" ||
+          activePanel === "rules" ||
+          activeEntity === "slot" ||
+          activeEntity === "assignment" ||
+          activeEntity === "class" ? (
+            <label className="master-period-picker">
+              <span>Năm học/kỳ học</span>
+              <select
+                className="master-select"
+                name="academicPeriod"
+                value={selectedPeriodId}
+                onChange={(event) => {
+                  setSelectedPeriodId(event.target.value);
+                  setAcademicPeriodId(event.target.value);
+                  resetEditor();
+                }}
+              >
+                <option value="">Chọn năm học/kỳ học</option>
+                {periods.map((period) => (
+                  <option key={period.id} value={period.id}>
+                    {period.name} - {period.academicYear}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
 
-        {activePanel === "grade-shifts" ? (
-          <GradeShiftConfiguration schoolId={frontendConfig.schoolId} periodId={selectedPeriodId} canWrite={canWrite} />
-        ) : null}
-
-        {activePanel === "rules" ? (
-          <RuleCenterPanel
-            schoolId={frontendConfig.schoolId}
-            periodId={selectedPeriodId}
-            teachers={teachers}
-            canWrite={canWrite}
-            onSaved={(message) => {
-              setError("");
-              setNotice(message);
-            }}
-          />
-        ) : null}
-
-        {activePanel === "teacher-load" ? (
-          selectedPeriodId ? (
-            <TeacherLoadSummaryPanel
+          {activePanel === "grade-shifts" ? (
+            <GradeShiftConfiguration
+              schoolId={frontendConfig.schoolId}
               periodId={selectedPeriodId}
-              periodLabel={periods.find((period) => period.id === selectedPeriodId)?.name}
+              canWrite={canWrite}
             />
-          ) : (
-            <div className="master-empty-state">
-              <strong>Chưa chọn năm học</strong>
-              <p>Hãy chọn năm học/kỳ học ở phía trên để xem tổng hợp tải dạy.</p>
-            </div>
-          )
-        ) : null}
+          ) : null}
 
-        {activePanel === "catalog" ? (
-          <>
-            <section className="master-relation-imports" aria-labelledby="master-relation-imports-title">
-              <div className="master-relation-imports-heading">
-                <div>
-                  <span className="master-section-kicker">Nhập theo quan hệ</span>
-                  <h2 id="master-relation-imports-title">Phân công chuyên môn và chủ nhiệm</h2>
-                  <p>Hai loại phân công dùng file riêng. Phân công chuyên môn không gắn với lớp cụ thể.</p>
-                </div>
-              </div>
-              <div className="master-relation-import-grid">
-                <div className="master-relation-import-card">
-                  <div>
-                    <strong>Phân công chuyên môn</strong>
-                    <small>Giáo viên, môn, khối và năm học/kỳ học.</small>
-                  </div>
-                  <MasterDataImportActions
-                    entity="teacherSubjectGrade"
-                    canImport={canWrite}
-                    onImported={handleMasterDataImported}
-                  />
-                </div>
-                <div className="master-relation-import-card">
-                  <div>
-                    <strong>Phân công chủ nhiệm</strong>
-                    <small>Lớp cụ thể, giáo viên, năm học/kỳ học và số tiết giảm.</small>
-                  </div>
-                  <MasterDataImportActions
-                    entity="homeroom"
-                    canImport={canWrite}
-                    onImported={handleMasterDataImported}
-                  />
-                </div>
-              </div>
-            </section>
+          {activePanel === "rules" ? (
+            <RuleCenterPanel
+              schoolId={frontendConfig.schoolId}
+              periodId={selectedPeriodId}
+              teachers={teachers}
+              canWrite={canWrite}
+              onSaved={(message) => {
+                setError("");
+                setNotice(message);
+              }}
+            />
+          ) : null}
 
-            <div className="master-data-list">
-              <div className="master-list-header">
-                <div>
-                  <span className="master-section-kicker">Danh sách và kiểm tra</span>
-                  <h2>
-                    {entityLabels[activeEntity]} ({filteredRecords.length}/{records.length})
-                  </h2>
+          {activePanel === "teacher-load" ? (
+            selectedPeriodId ? (
+              <TeacherLoadSummaryPanel
+                periodId={selectedPeriodId}
+                periodLabel={periods.find((period) => period.id === selectedPeriodId)?.name}
+              />
+            ) : (
+              <div className="master-empty-state">
+                <strong>Chưa chọn năm học</strong>
+                <p>Hãy chọn năm học/kỳ học ở phía trên để xem tổng hợp tải dạy.</p>
+              </div>
+            )
+          ) : null}
+
+          {activePanel === "catalog" ? (
+            <>
+              <section className="master-relation-imports" aria-labelledby="master-relation-imports-title">
+                <div className="master-relation-imports-heading">
+                  <div>
+                    <span className="master-section-kicker">Nhập theo quan hệ</span>
+                    <h2 id="master-relation-imports-title">Phân công chuyên môn và chủ nhiệm</h2>
+                    <p>Hai loại phân công dùng file riêng. Phân công chuyên môn không gắn với lớp cụ thể.</p>
+                  </div>
                 </div>
-                <div className="master-list-actions">
-                  <Button
-                    type="button"
-                    onClick={(event) => {
-                      editorTriggerRef.current = event.currentTarget;
-                      resetEditor();
-                      setError("");
-                      setNotice("");
-                      setEditorOpen(true);
-                    }}
-                    disabled={
-                      !canWrite || ((activeEntity === "slot" || activeEntity === "assignment") && !selectedPeriodId)
-                    }
-                  >
-                    <Plus /> Thêm mới
-                  </Button>
-                  <Button
-                    variant="outline"
-                    type="button"
-                    onClick={validateBulk}
-                    disabled={loading || records.length === 0}
-                  >
-                    Kiểm tra dữ liệu
-                  </Button>
-                  <Button variant="outline" type="button" onClick={() => void loadBaseData()} disabled={loading}>
-                    Làm mới
-                  </Button>
-                  {activeEntity === "assignment" ? (
-                    <Button
-                      variant="outline"
-                      type="button"
-                      onClick={() => setTeacherAssignmentDialogOpen(true)}
-                      disabled={!canWrite || !selectedPeriodId}
-                    >
-                      <Sparkles /> Tự động phân công
-                    </Button>
-                  ) : null}
-                  {activeEntity === "class" ||
-                  activeEntity === "teacher" ||
-                  activeEntity === "subject" ||
-                  activeEntity === "room" ? (
+                <div className="master-relation-import-grid">
+                  <div className="master-relation-import-card">
+                    <div>
+                      <strong>Phân công chuyên môn</strong>
+                      <small>Giáo viên, môn, khối và năm học/kỳ học.</small>
+                    </div>
                     <MasterDataImportActions
-                      entity={activeEntity}
+                      entity="teacherSubjectGrade"
                       canImport={canWrite}
                       onImported={handleMasterDataImported}
                     />
-                  ) : null}
+                  </div>
+                  <div className="master-relation-import-card">
+                    <div>
+                      <strong>Phân công chủ nhiệm</strong>
+                      <small>Lớp cụ thể, giáo viên, năm học/kỳ học và số tiết giảm.</small>
+                    </div>
+                    <MasterDataImportActions
+                      entity="homeroom"
+                      canImport={canWrite}
+                      onImported={handleMasterDataImported}
+                    />
+                  </div>
                 </div>
-              </div>
-              <label className="master-search-field">
-                <span>Lọc nhanh</span>
-                <span className="master-search-input">
-                  <Search aria-hidden="true" />
-                  <Input
-                    name="masterDataSearch"
-                    autoComplete="off"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Mã, tên hoặc giá trị…"
-                  />
-                </span>
-              </label>
-              {bulkReport ? (
-                <div className="alert alert-success" role="status">
-                  {bulkReport}
+              </section>
+
+              <div className="master-data-list" aria-busy={loading}>
+                <div className="master-list-header">
+                  <div>
+                    <span className="master-section-kicker">Danh sách và kiểm tra</span>
+                    <h2>
+                      {entityLabels[activeEntity]} ({filteredRecords.length}/{records.length})
+                    </h2>
+                  </div>
+                  <div className="master-list-actions">
+                    <Button
+                      type="button"
+                      onClick={(event) => {
+                        editorTriggerRef.current = event.currentTarget;
+                        resetEditor();
+                        setError("");
+                        setNotice("");
+                        setEditorOpen(true);
+                      }}
+                      disabled={
+                        !canWrite || ((activeEntity === "slot" || activeEntity === "assignment") && !selectedPeriodId)
+                      }
+                    >
+                      <Plus /> Thêm mới
+                    </Button>
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={validateBulk}
+                      disabled={loading || records.length === 0}
+                    >
+                      Kiểm tra dữ liệu
+                    </Button>
+                    <Button variant="outline" type="button" onClick={() => void loadBaseData()} disabled={loading}>
+                      Làm mới
+                    </Button>
+                    {activeEntity === "assignment" ? (
+                      <Button
+                        variant="outline"
+                        type="button"
+                        onClick={() => setTeacherAssignmentDialogOpen(true)}
+                        disabled={!canWrite || !selectedPeriodId}
+                      >
+                        <Sparkles /> Tự động phân công
+                      </Button>
+                    ) : null}
+                    {activeEntity === "class" ||
+                    activeEntity === "teacher" ||
+                    activeEntity === "subject" ||
+                    activeEntity === "room" ? (
+                      <MasterDataImportActions
+                        entity={activeEntity}
+                        canImport={canWrite}
+                        onImported={handleMasterDataImported}
+                      />
+                    ) : null}
+                  </div>
                 </div>
-              ) : null}
-              {error ? (
-                <div className="alert alert-error" role="alert">
-                  <strong>Không thể cập nhật</strong>
-                  <span>{error}</span>
-                </div>
-              ) : null}
-              {notice ? (
-                <div className="alert alert-success" role="status">
-                  {notice}
-                </div>
-              ) : null}
-              {loading ? (
-                <div className="master-loading-state" role="status">
-                  <Skeleton className="h-5 w-48" />
-                  <Skeleton className="h-3 w-72" />
-                </div>
-              ) : filteredRecords.length === 0 ? (
-                <div className="master-empty-state">
-                  <strong>Chưa có dữ liệu phù hợp</strong>
-                  <p>Thử đổi bộ lọc hoặc bấm Thêm mới để tạo dòng đầu tiên.</p>
-                </div>
-              ) : (
-                <div
-                  className={
-                    activeEntity === "teacher" ? "master-table-frame teacher-table-frame" : "master-table-frame"
-                  }
-                >
-                  <table>
-                    <thead>
-                      <tr>
-                        {headers[activeEntity].map((header) => (
-                          <th key={header}>{header}</th>
-                        ))}
-                        <th>Thao tác</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredRecords.map((record) => (
-                        <tr key={recordId(record)}>
-                          {renderRecord(record)}
-                          <td className="row-actions">
-                            {renderTeacherAssignmentActions(record)}
-                            {renderHomeroomAction(record)}
-                            <Button
-                              className="table-action"
-                              variant="outline"
-                              type="button"
-                              onClick={(event) => {
-                                editorTriggerRef.current = event.currentTarget;
-                                editRecord(record);
-                              }}
-                              disabled={!canWrite}
-                            >
-                              Sửa
-                            </Button>
-                            <Button
-                              className="table-action danger"
-                              variant="outline"
-                              type="button"
-                              onClick={() => setPendingDelete(record)}
-                              disabled={!canWrite || saving}
-                            >
-                              Xóa
-                            </Button>
-                          </td>
+                <label className="master-search-field">
+                  <span>Lọc nhanh</span>
+                  <span className="master-search-input">
+                    <Search aria-hidden="true" />
+                    <Input
+                      name="masterDataSearch"
+                      autoComplete="off"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Mã, tên hoặc giá trị…"
+                    />
+                  </span>
+                </label>
+                {bulkReport ? (
+                  <div className="alert alert-success" role="status">
+                    {bulkReport}
+                  </div>
+                ) : null}
+                {error ? (
+                  <div className="alert alert-error" role="alert">
+                    <strong>Không thể cập nhật</strong>
+                    <span>{error}</span>
+                  </div>
+                ) : null}
+                {notice ? (
+                  <div className="alert alert-success" role="status">
+                    {notice}
+                  </div>
+                ) : null}
+                {loading ? (
+                  <div className="master-loading-state" role="status">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-3 w-72" />
+                  </div>
+                ) : filteredRecords.length === 0 ? (
+                  <div className="master-empty-state">
+                    <strong>Chưa có dữ liệu phù hợp</strong>
+                    <p>Thử đổi bộ lọc hoặc bấm Thêm mới để tạo dòng đầu tiên.</p>
+                  </div>
+                ) : (
+                  <div
+                    className={
+                      activeEntity === "teacher" ? "master-table-frame teacher-table-frame" : "master-table-frame"
+                    }
+                  >
+                    <table>
+                      <caption className="sr-only">Danh sách {entityLabels[activeEntity].toLowerCase()}</caption>
+                      <thead>
+                        <tr>
+                          {headers[activeEntity].map((header) => (
+                            <th key={header} scope="col">
+                              {header}
+                            </th>
+                          ))}
+                          <th scope="col">Thao tác</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </>
-        ) : null}
+                      </thead>
+                      <tbody>
+                        {filteredRecords.map((record) => (
+                          <tr key={recordId(record)}>
+                            {renderRecord(record)}
+                            <td className="row-actions">
+                              {renderTeacherAssignmentActions(record)}
+                              {renderHomeroomAction(record)}
+                              <Button
+                                className="table-action"
+                                variant="outline"
+                                type="button"
+                                onClick={(event) => {
+                                  editorTriggerRef.current = event.currentTarget;
+                                  editRecord(record);
+                                }}
+                                disabled={!canWrite}
+                              >
+                                Sửa
+                              </Button>
+                              <Button
+                                className="table-action danger"
+                                variant="outline"
+                                type="button"
+                                onClick={() => setPendingDelete(record)}
+                                disabled={!canWrite || saving}
+                              >
+                                Xóa
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : null}
+        </div>
       </section>
       {homeroomDialogClass && selectedPeriodId ? (
         <HomeroomAssignmentDialog

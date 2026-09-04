@@ -67,13 +67,13 @@ export function ReleasePanel({ versionId, status }: { versionId: string; status:
   const releaseWorkflow = releaseWorkflowState(normalizedStatus);
   return (
     <>
-      <Card className="mt-4">
+      <Card className="mt-4" aria-busy={transitionMutation.isPending}>
         <CardHeader className="flex-row items-start justify-between space-y-0">
           <div>
             <CardDescription>Phát hành phiên bản</CardDescription>
             <CardTitle>Kiểm tra trước khi công bố</CardTitle>
           </div>
-          <Badge variant={normalizedStatus === "PUBLISHED" ? "default" : "secondary"}>
+          <Badge variant={normalizedStatus === "PUBLISHED" ? "default" : "secondary"} role="status" aria-live="polite">
             {statusLabels[normalizedStatus] ?? status}
           </Badge>
         </CardHeader>
@@ -88,6 +88,7 @@ export function ReleasePanel({ versionId, status }: { versionId: string; status:
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
+                type="button"
                 disabled={!canPublish || normalizedStatus !== "IN_REVIEW"}
                 onClick={() => setTarget("APPROVED")}
               >
@@ -95,16 +96,30 @@ export function ReleasePanel({ versionId, status }: { versionId: string; status:
               </Button>
               <Button
                 variant="outline"
+                type="button"
                 disabled={normalizedStatus !== "APPROVED" || transitionMutation.isPending}
                 onClick={() => void transitionMutation.mutateAsync({ toStatus: "LOCKED" })}
               >
                 <Lock /> Khóa phiên bản
               </Button>
-              <Button disabled={!canPublish || normalizedStatus !== "LOCKED"} onClick={() => setTarget("PUBLISHED")}>
+              <Button
+                type="button"
+                disabled={!canPublish || normalizedStatus !== "LOCKED"}
+                onClick={() => setTarget("PUBLISHED")}
+              >
                 <Send /> Công bố
               </Button>
             </div>
           )}
+          {transitionMutation.error ? (
+            <Alert variant="destructive" role="alert">
+              <AlertDescription>
+                {transitionMutation.error instanceof Error
+                  ? transitionMutation.error.message
+                  : "Không thể cập nhật trạng thái phát hành."}
+              </AlertDescription>
+            </Alert>
+          ) : null}
           {transitionsQuery.data?.length ? (
             <div className="border-t pt-4">
               <p className="mb-2 text-xs font-medium text-muted-foreground">Lịch sử chuyển trạng thái</p>
@@ -112,7 +127,9 @@ export function ReleasePanel({ versionId, status }: { versionId: string; status:
                 {transitionsQuery.data.slice(0, 5).map((transition) => (
                   <div className="flex items-center justify-between text-sm" key={transition.id}>
                     <span>{transition.action}</span>
-                    <time className="text-xs text-muted-foreground">{transition.createdAt}</time>
+                    <time className="text-xs text-muted-foreground" dateTime={transition.createdAt}>
+                      {new Date(transition.createdAt).toLocaleString("vi-VN")}
+                    </time>
                   </div>
                 ))}
               </div>
@@ -140,7 +157,7 @@ export function ReleasePanel({ versionId, status }: { versionId: string; status:
             placeholder="Nhập lý do…"
           />
           <DialogFooter>
-            <Button className="dialog-cancel" variant="outline" onClick={() => setTarget(null)}>
+            <Button className="dialog-cancel" variant="outline" type="button" onClick={() => setTarget(null)}>
               Hủy
             </Button>
             <Button

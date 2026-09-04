@@ -420,14 +420,15 @@ export function TeacherAssignmentDialog({
               {proposals.length ? (
                 <div className="teacher-assignment-proposal-frame">
                   <table>
+                    <caption className="sr-only">Phương án phân công giáo viên theo nhu cầu lớp-môn</caption>
                     <thead>
                       <tr>
-                        <th>Lớp</th>
-                        <th>Môn</th>
-                        <th>Giáo viên đề xuất</th>
-                        <th>Tiết/tuần</th>
-                        <th>Tải sau</th>
-                        <th>Trạng thái</th>
+                        <th scope="col">Lớp</th>
+                        <th scope="col">Môn</th>
+                        <th scope="col">Giáo viên đề xuất</th>
+                        <th scope="col">Tiết/tuần</th>
+                        <th scope="col">Tải sau</th>
+                        <th scope="col">Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody>

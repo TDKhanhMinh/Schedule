@@ -73,18 +73,23 @@ export function TimetableGrid({
     return <ClassBoardsView assignments={visibleAssignments} classLabels={visibleClassLabels} />;
   }
   return (
-    <div className="timetable-table-frame timetable-resource-frame">
+    <div
+      className="timetable-table-frame timetable-resource-frame"
+      role="region"
+      tabIndex={0}
+      aria-label={`Lưới thời khóa biểu theo ${viewLabel(view).toLowerCase()}, có thể cuộn ngang và dọc`}
+    >
       <table>
         <caption className="sr-only">Thời khóa biểu theo {viewLabel(view).toLowerCase()}</caption>
         <thead>
           <tr>
-            <th>{viewLabel(view)}</th>
-            <th>Thứ</th>
-            <th>Tiết</th>
-            <th>Giờ</th>
-            <th>Môn</th>
-            <th>Giáo viên</th>
-            <th>Phòng</th>
+            <th scope="col">{viewLabel(view)}</th>
+            <th scope="col">Thứ</th>
+            <th scope="col">Tiết</th>
+            <th scope="col">Giờ</th>
+            <th scope="col">Môn</th>
+            <th scope="col">Giáo viên</th>
+            <th scope="col">Phòng</th>
           </tr>
         </thead>
         <tbody>
@@ -151,6 +156,7 @@ function SchoolOverviewView({
   return (
     <div
       className={`timetable-grid-view${isExpanded ? " timetable-grid-view-expanded" : ""}`}
+      role="region"
       aria-label="Thời khóa biểu tổng hợp toàn trường"
     >
       <div className="timetable-grid-summary">
@@ -182,7 +188,8 @@ function SchoolOverviewView({
             variant="outline"
             size="sm"
             className="timetable-grid-fullscreen-toggle"
-            aria-pressed={isExpanded}
+            aria-expanded={isExpanded}
+            aria-controls="timetable-school-overview"
             aria-label={isExpanded ? "Thu nhỏ thời khóa biểu toàn trường" : "Phóng to thời khóa biểu toàn trường"}
             title={isExpanded ? "Thu nhỏ (Esc)" : "Phóng to toàn màn hình"}
             onClick={() => setIsExpanded((expanded) => !expanded)}
@@ -193,6 +200,7 @@ function SchoolOverviewView({
         </div>
       </div>
       <div
+        id="timetable-school-overview"
         className="timetable-table-frame school-overview-wrap"
         role="region"
         aria-label="Lưới thời khóa biểu toàn trường, có thể cuộn ngang và dọc"
@@ -203,11 +211,13 @@ function SchoolOverviewView({
             <caption className="sr-only">Thời khóa biểu tổng hợp toàn trường theo thời gian</caption>
             <thead>
               <tr>
-                <th>Thứ</th>
-                <th>Buổi</th>
-                <th>Tiết</th>
+                <th scope="col">Thứ</th>
+                <th scope="col">Buổi</th>
+                <th scope="col">Tiết</th>
                 {classLabels.map((classLabel) => (
-                  <th key={classLabel}>{shortLabel(classLabel)}</th>
+                  <th scope="col" key={classLabel}>
+                    {shortLabel(classLabel)}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -342,22 +352,29 @@ function ClassBoardsView({ assignments, classLabels }: { assignments: TimetableA
   const days = SCHOOL_DAYS;
 
   return (
-    <div className="timetable-class-groups">
+    <div className="timetable-class-groups" role="region" aria-label="Thời khóa biểu toàn trường theo lớp">
       {groups.map(([classLabel, classAssignments], index) => (
         <section className="timetable-class-card" key={classLabel} aria-labelledby={`school-class-${index}`}>
           <div className="timetable-class-heading">
             <h3 id={`school-class-${index}`}>{shortLabel(classLabel)}</h3>
             <span>{classAssignments.length} tiết có dữ liệu</span>
           </div>
-          <div className="timetable-table-frame">
+          <div
+            className="timetable-table-frame"
+            role="region"
+            tabIndex={0}
+            aria-label={`Lưới thời khóa biểu lớp ${classLabel}, có thể cuộn ngang và dọc`}
+          >
             <table className="school-wide-table">
               <caption className="sr-only">Thời khóa biểu lớp {classLabel}</caption>
               <thead>
                 <tr>
-                  <th>Buổi</th>
-                  <th>Tiết</th>
+                  <th scope="col">Buổi</th>
+                  <th scope="col">Tiết</th>
                   {days.map((day) => (
-                    <th key={day}>{dayLabel(day)}</th>
+                    <th scope="col" key={day}>
+                      {dayLabel(day)}
+                    </th>
                   ))}
                 </tr>
               </thead>
