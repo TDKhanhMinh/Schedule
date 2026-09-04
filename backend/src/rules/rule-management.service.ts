@@ -264,7 +264,7 @@ export class RuleManagementService {
              (tenant_id, rule_profile_id, code, kind, weight, source_url, source_locator,
               effective_from, effective_to, scope, approval_state, parameters)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12::jsonb)
-           ON CONFLICT (rule_profile_id, code) DO NOTHING`,
+           ON CONFLICT (rule_profile_id, code, scope) DO NOTHING`,
           [
             period.tenant_id,
             profileId,
@@ -346,6 +346,51 @@ export class RuleManagementService {
     } catch (error) {
       await client.query("ROLLBACK");
       throw this.translateDatabaseError(error, "Không thể tạo profile DRAFT mới.");
+    } finally {
+      client.release();
+    }
+  }
+
+  async syncHomeroomRulesForPeriod(schoolId: string, academicPeriodId: string) {
+    const draftProfile = await this.ensureDraftProfileForPeriod(schoolId, academicPeriodId);
+    const profile = await this.getProfileRow(schoolId, draftProfile.id);
+    this.ensureEditableDraftProfile(profile);
+    const derivedRules = await this.listDerivedHomeroomRules(schoolId, academicPeriodId, profile);
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `DELETE FROM rule_definitions
+          WHERE rule_profile_id = $1
+            AND code LIKE 'RULE-TEACH-REDUCTION-HOMEROOM-%'`,
+        [profile.id],
+      );
+      for (const rule of derivedRules) {
+        await client.query(
+          `INSERT INTO rule_definitions
+             (tenant_id, rule_profile_id, code, kind, weight, source_url, source_locator,
+              effective_from, effective_to, scope, approval_state, parameters)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, 'PENDING_STAKEHOLDER', $11::jsonb)`,
+          [
+            profile.tenant_id,
+            profile.id,
+            rule.code,
+            rule.kind,
+            rule.weight,
+            rule.sourceUrl,
+            rule.sourceLocator ?? null,
+            rule.effectiveFrom,
+            rule.effectiveTo ?? null,
+            JSON.stringify(rule.scope),
+            JSON.stringify(rule.parameters),
+          ],
+        );
+      }
+      await client.query("COMMIT");
+      return { profileId: profile.id, profileVersion: profile.version, syncedRuleCount: derivedRules.length };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw this.translateDatabaseError(error, "Không thể đồng bộ rule GVCN vào bộ quy tắc.");
     } finally {
       client.release();
     }

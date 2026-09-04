@@ -1092,6 +1092,7 @@ export class MasterDataService {
         dto.ruleCode?.trim() || "TT_05_2025_D9_1",
       ],
     );
+    await this.ruleManagement?.syncHomeroomRulesForPeriod(schoolId, academicPeriodId);
     const assignments = await this.listHomeroomAssignments(schoolId, academicPeriodId);
     const assignment = assignments.find((item) => item.classId === classId);
     if (!assignment) throw this.notFound("HOMEROOM_ASSIGNMENT_NOT_FOUND", "Không thể đọc lại phân công GVCN vừa lưu.");
@@ -1106,6 +1107,9 @@ export class MasterDataService {
         RETURNING id::text`,
       [schoolId, academicPeriodId, classId],
     );
+    if (result.rows.length > 0) {
+      await this.ruleManagement?.syncHomeroomRulesForPeriod(schoolId, academicPeriodId);
+    }
     return { classId, deleted: result.rows.length > 0 };
   }
 

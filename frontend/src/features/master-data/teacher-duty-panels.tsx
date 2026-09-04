@@ -89,7 +89,9 @@ export function HomeroomAssignmentDialog({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["homeroom-assignments", frontendConfig.schoolId, periodId] });
       await queryClient.invalidateQueries({ queryKey: ["teacher-load-summary", frontendConfig.schoolId, periodId] });
-      onSaved("Đã lưu phân công GVCN; bảng tải dạy đã được cập nhật.");
+      await queryClient.invalidateQueries({ queryKey: ["rule-profiles", frontendConfig.schoolId, periodId] });
+      await queryClient.invalidateQueries({ queryKey: ["active-rule-snapshot", frontendConfig.schoolId, periodId] });
+      onSaved("Đã lưu phân công GVCN; bảng tải dạy và bộ quy tắc DRAFT đã được cập nhật.");
       onOpenChange(false);
     },
   });
@@ -104,8 +106,10 @@ export function HomeroomAssignmentDialog({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["homeroom-assignments", frontendConfig.schoolId, periodId] });
       await queryClient.invalidateQueries({ queryKey: ["teacher-load-summary", frontendConfig.schoolId, periodId] });
+      await queryClient.invalidateQueries({ queryKey: ["rule-profiles", frontendConfig.schoolId, periodId] });
+      await queryClient.invalidateQueries({ queryKey: ["active-rule-snapshot", frontendConfig.schoolId, periodId] });
       setTeacherId("");
-      onSaved("Đã bỏ phân công GVCN của lớp.");
+      onSaved("Đã bỏ phân công GVCN; bộ quy tắc DRAFT đã được cập nhật.");
       onOpenChange(false);
     },
   });
@@ -394,7 +398,9 @@ export function TeacherHomeroomAssignmentDialog({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["homeroom-assignments", frontendConfig.schoolId, periodId] });
       await queryClient.invalidateQueries({ queryKey: ["teacher-load-summary", frontendConfig.schoolId, periodId] });
-      onSaved("Đã lưu phân công GVCN; bảng tải dạy đã được cập nhật.");
+      await queryClient.invalidateQueries({ queryKey: ["rule-profiles", frontendConfig.schoolId, periodId] });
+      await queryClient.invalidateQueries({ queryKey: ["active-rule-snapshot", frontendConfig.schoolId, periodId] });
+      onSaved("Đã lưu phân công GVCN; bảng tải dạy và bộ quy tắc DRAFT đã được cập nhật.");
       onOpenChange(false);
     },
   });
@@ -407,7 +413,9 @@ export function TeacherHomeroomAssignmentDialog({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["homeroom-assignments", frontendConfig.schoolId, periodId] });
       await queryClient.invalidateQueries({ queryKey: ["teacher-load-summary", frontendConfig.schoolId, periodId] });
-      onSaved("Đã bỏ phân công GVCN; bảng tải dạy đã được cập nhật.");
+      await queryClient.invalidateQueries({ queryKey: ["rule-profiles", frontendConfig.schoolId, periodId] });
+      await queryClient.invalidateQueries({ queryKey: ["active-rule-snapshot", frontendConfig.schoolId, periodId] });
+      onSaved("Đã bỏ phân công GVCN; bộ quy tắc DRAFT đã được cập nhật.");
     },
   });
   const error = saveMutation.error ?? removeMutation.error;
