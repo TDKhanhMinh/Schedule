@@ -25,6 +25,8 @@ import {
   DoorOpen,
   GraduationCap,
   Plus,
+  Power,
+  PowerOff,
   Search,
   SlidersHorizontal,
   Sparkles,
@@ -205,6 +207,19 @@ export function MasterDataScreen() {
     mutationFn: (path: string) => request(path, { method: "DELETE" }),
     onSuccess: async () => {
       await Promise.all([baseDataQuery.refetch(), selectedPeriodId ? periodDataQuery.refetch() : Promise.resolve()]);
+    },
+  });
+  const periodStatusMutation = useMutation({
+    mutationFn: ({ periodId, status }: { periodId: string; status: "DRAFT" | "ACTIVE" }) =>
+      request(`/schools/${frontendConfig.schoolId}/academic-periods/${periodId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
+    onSuccess: async (_period, variables) => {
+      await Promise.all([
+        baseDataQuery.refetch(),
+        variables.periodId === selectedPeriodId ? periodDataQuery.refetch() : Promise.resolve(),
+      ]);
     },
   });
 
@@ -501,6 +516,26 @@ export function MasterDataScreen() {
     }
   }
 
+  async function toggleAcademicPeriodStatus(record: AcademicPeriod) {
+    if (!canWrite) {
+      setError("Vai trò hiện tại chỉ có quyền xem; không thể thay đổi trạng thái.");
+      return;
+    }
+    if (record.status === "ARCHIVED") return;
+    const nextStatus = record.status === "ACTIVE" ? "DRAFT" : "ACTIVE";
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      await periodStatusMutation.mutateAsync({ periodId: record.id, status: nextStatus });
+      setNotice(`${record.name} đã chuyển sang trạng thái ${nextStatus === "ACTIVE" ? "Đang hoạt động" : "Bản nháp"}.`);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Không thể thay đổi trạng thái khung năm học.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function validateBulk() {
     const invalidRecords = filteredRecords.filter((record) => {
       if (activeEntity === "school") return !(record as School).code || !(record as School).name;
@@ -615,6 +650,33 @@ export function MasterDataScreen() {
         ) : null}
         {errorMessage ? <small className="field-error">{errorMessage}</small> : null}
       </label>
+    );
+  }
+
+  function renderAcademicPeriodStatusAction(record: MasterRecord) {
+    if (activeEntity !== "period") return null;
+    const value = record as AcademicPeriod;
+    const archived = value.status === "ARCHIVED";
+    const nextStatus = value.status === "ACTIVE" ? "DRAFT" : "ACTIVE";
+    return (
+      <Button
+        className="table-action period-status-action"
+        variant="outline"
+        type="button"
+        onClick={() => void toggleAcademicPeriodStatus(value)}
+        disabled={!canWrite || archived || saving || periodStatusMutation.isPending}
+        aria-label={archived ? `${value.name} đã lưu trữ` : `${nextStatus === "ACTIVE" ? "Bật" : "Tắt"} ${value.name}`}
+        title={archived ? "Khung năm học đã lưu trữ" : undefined}
+      >
+        {archived ? (
+          <PowerOff aria-hidden="true" />
+        ) : value.status === "ACTIVE" ? (
+          <PowerOff aria-hidden="true" />
+        ) : (
+          <Power aria-hidden="true" />
+        )}
+        {archived ? "Đã lưu trữ" : value.status === "ACTIVE" ? "Tắt" : "Bật"}
+      </Button>
     );
   }
 
@@ -1222,6 +1284,7 @@ export function MasterDataScreen() {
                             {renderRecord(record)}
                             <td className="row-actions">
                               <div className="row-action-buttons">
+                                {renderAcademicPeriodStatusAction(record)}
                                 {renderTeacherAssignmentActions(record)}
                                 {renderHomeroomAction(record)}
                                 <Button

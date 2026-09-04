@@ -557,6 +557,31 @@ export class MasterDataService {
     }
   }
 
+  async updateAcademicPeriodStatus(schoolId: string, periodId: string, status: "DRAFT" | "ACTIVE") {
+    const current = await this.getAcademicPeriodRow(schoolId, periodId);
+    if (current.status === "ARCHIVED") {
+      throw new ConflictException({
+        code: "ACADEMIC_PERIOD_ARCHIVED",
+        message: "Không thể bật hoặc tắt khung năm học đã lưu trữ.",
+      });
+    }
+    if (current.status === status) return this.toAcademicPeriod(current);
+
+    const result = await this.pool.query<AcademicPeriodRow>(
+      `UPDATE academic_periods
+          SET status = $1, updated_at = now()
+        WHERE id = $2 AND school_id = $3 AND status <> 'ARCHIVED'
+      RETURNING id::text, school_id::text, academic_year, term_code, name,
+                starts_on, ends_on, status, created_at, updated_at`,
+      [status, periodId, schoolId],
+    );
+    const period = result.rows[0];
+    if (!period) {
+      throw this.notFound("ACADEMIC_PERIOD_NOT_FOUND", "Khung năm học không tồn tại trong phạm vi trường.");
+    }
+    return this.toAcademicPeriod(period);
+  }
+
   async archiveAcademicPeriod(schoolId: string, periodId: string) {
     const result = await this.pool.query<AcademicPeriodRow>(
       `UPDATE academic_periods
@@ -1581,14 +1606,15 @@ export class MasterDataService {
     try {
       const result = await this.pool.query<LessonRequirementRow>(
         `INSERT INTO lesson_requirements
-          (school_id, academic_period_id, class_id, subject_id, teacher_id, room_id, required_sessions,
+          (tenant_id, school_id, academic_period_id, class_id, subject_id, teacher_id, room_id, required_sessions,
            fixed_slot_id, activity_type, status, demand_id, assignment_source, assignment_locked)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'ACTIVE', $10, 'MANUAL', TRUE)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'ACTIVE', $11, 'MANUAL', TRUE)
          RETURNING id::text, school_id::text, academic_period_id::text, class_id::text,
                    subject_id::text, teacher_id::text, room_id::text, required_sessions,
                    fixed_slot_id::text, activity_type, status, demand_id::text, assignment_source,
                    assignment_locked, assignment_run_id::text, created_at, updated_at`,
         [
+          period.tenant_id,
           schoolId,
           periodId,
           classId,

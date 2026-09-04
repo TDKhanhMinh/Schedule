@@ -772,6 +772,10 @@
   min-width: 48px;
 }
 
+.period-status-action {
+  min-width: 82px;
+}
+
 .table-action.danger {
   color: var(--destructive);
 }

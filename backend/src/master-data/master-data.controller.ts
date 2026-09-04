@@ -14,6 +14,7 @@ import {
   CreateTimeSlotDto,
   UpsertGradeShiftConfigsDto,
   UpdateAcademicPeriodDto,
+  UpdateAcademicPeriodStatusDto,
   UpdateClassDto,
   UpdateLessonRequirementDto,
   UpdateRoomDto,
@@ -254,6 +255,15 @@ export class MasterDataController {
     @Body() dto: UpdateAcademicPeriodDto,
   ) {
     return this.masterData.updateAcademicPeriod(schoolId, periodId, dto);
+  }
+
+  @Patch(":schoolId/academic-periods/:periodId/status")
+  updateAcademicPeriodStatus(
+    @Param("schoolId") schoolId: string,
+    @Param("periodId") periodId: string,
+    @Body() dto: UpdateAcademicPeriodStatusDto,
+  ) {
+    return this.masterData.updateAcademicPeriodStatus(schoolId, periodId, dto.status);
   }
 
   @Delete(":schoolId/academic-periods/:periodId")

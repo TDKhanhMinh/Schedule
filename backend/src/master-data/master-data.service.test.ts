@@ -473,6 +473,31 @@ describe("MasterDataService", () => {
     expect(query).toHaveBeenCalledTimes(1);
   });
 
+  it("toggles a draft academic period to active", async () => {
+    query
+      .mockResolvedValueOnce({ rows: [periodRow] })
+      .mockResolvedValueOnce({ rows: [{ ...periodRow, status: "ACTIVE" as const }] });
+
+    await expect(service.updateAcademicPeriodStatus("school-001", "period-001", "ACTIVE")).resolves.toMatchObject({
+      id: "period-001",
+      status: "ACTIVE",
+    });
+    expect(query).toHaveBeenNthCalledWith(2, expect.stringContaining("SET status = $1"), [
+      "ACTIVE",
+      "period-001",
+      "school-001",
+    ]);
+  });
+
+  it("does not toggle an archived academic period", async () => {
+    query.mockResolvedValueOnce({ rows: [{ ...periodRow, status: "ARCHIVED" as const }] });
+
+    await expect(service.updateAcademicPeriodStatus("school-001", "period-001", "DRAFT")).rejects.toMatchObject({
+      response: { code: "ACADEMIC_PERIOD_ARCHIVED" },
+    });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
   it("blocks time-slot creation for an archived academic period", async () => {
     query.mockResolvedValueOnce({ rows: [{ ...periodRow, status: "ARCHIVED" }] });
 
@@ -522,6 +547,58 @@ describe("MasterDataService", () => {
       }),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(query).toHaveBeenCalledTimes(5);
+  });
+
+  it("writes the tenant scope when creating a lesson requirement", async () => {
+    const lessonRow = {
+      id: "lesson-001",
+      school_id: "school-001",
+      academic_period_id: "period-001",
+      class_id: "class-001",
+      subject_id: "subject-001",
+      teacher_id: "teacher-001",
+      room_id: null,
+      required_sessions: 4,
+      fixed_slot_id: null,
+      activity_type: "LESSON" as const,
+      status: "ACTIVE" as const,
+      demand_id: "demand-001",
+      assignment_source: "MANUAL" as const,
+      assignment_locked: true,
+      assignment_run_id: null,
+      created_at: timestamp,
+      updated_at: timestamp,
+    };
+    query
+      .mockResolvedValueOnce({ rows: [{ ...periodRow, tenant_id: "tenant-001" }] })
+      .mockResolvedValueOnce({ rows: [{ id: "class-001", status: "ACTIVE" }] })
+      .mockResolvedValueOnce({ rows: [{ id: "subject-001", status: "ACTIVE" }] })
+      .mockResolvedValueOnce({ rows: [teacherRow] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ id: "demand-001" }] })
+      .mockResolvedValueOnce({ rows: [lessonRow] });
+
+    await expect(
+      service.createLessonRequirement("school-001", "period-001", {
+        classId: "class-001",
+        subjectId: "subject-001",
+        teacherId: "teacher-001",
+        requiredSessions: 4,
+      }),
+    ).resolves.toMatchObject({ id: "lesson-001", demandId: "demand-001" });
+    expect(query).toHaveBeenNthCalledWith(7, expect.stringContaining("(tenant_id, school_id, academic_period_id"), [
+      "tenant-001",
+      "school-001",
+      "period-001",
+      "class-001",
+      "subject-001",
+      "teacher-001",
+      null,
+      4,
+      null,
+      "LESSON",
+      "demand-001",
+    ]);
   });
 
   it("deletes an unreferenced time slot inside the requested scope", async () => {

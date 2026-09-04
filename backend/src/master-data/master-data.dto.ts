@@ -91,6 +91,11 @@ export class UpdateAcademicPeriodDto {
   endsOn?: string;
 }
 
+export class UpdateAcademicPeriodStatusDto {
+  @IsIn(["DRAFT", "ACTIVE"])
+  status!: "DRAFT" | "ACTIVE";
+}
+
 export class CreateTimeSlotDto {
   @IsInt()
   @Min(1)
