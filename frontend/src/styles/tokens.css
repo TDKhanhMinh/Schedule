@@ -1,0 +1,214 @@
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans:
+    "Geist Variable", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-ink: var(--ink);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
+  --color-blue: var(--blue);
+  --color-blue-dark: var(--blue-dark);
+  --color-blue-soft: var(--blue-soft);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --color-red: var(--red);
+  --color-red-soft: var(--red-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: light;
+  font-family:
+    "Geist Variable",
+    Geist,
+    "Geist Fallback",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color: #172b4d;
+  background: #f5f7fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  /* Product Brand & Palette Tokens */
+  --ink: #172b4d;
+  --muted: #6b7a90;
+  --line: #e4e9f1;
+  --surface: #ffffff;
+  --surface-soft: #f8faff;
+  --blue: #315efb;
+  --blue-dark: #2346c5;
+  --blue-soft: #edf2ff;
+  --green: #12805c;
+  --green-soft: #e9f8f1;
+  --red: #b42318;
+  --red-soft: #fff2f0;
+  --amber: #a15c00;
+  --amber-soft: #fff5df;
+  --shadow: 0 18px 50px rgb(24 39 75 / 7%);
+  --control-height: 36px;
+  --control-height-compact: 32px;
+  --control-height-large: 40px;
+  --control-radius: 10px;
+
+  /* shadcn / Tailwind Semantic Theme Tokens */
+  --background: oklch(0.985 0.006 250);
+  --foreground: oklch(0.24 0.04 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.04 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.04 250);
+  --primary: oklch(0.55 0.2 260);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.96 0.012 250);
+  --secondary-foreground: oklch(0.28 0.05 250);
+  --muted-foreground: oklch(0.5 0.035 250);
+  --accent: oklch(0.95 0.03 260);
+  --accent-foreground: oklch(0.28 0.08 260);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0.02 250);
+  --input: oklch(0.9 0.02 250);
+  --ring: oklch(0.55 0.2 260);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.55 0.2 260);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.9 0.02 250);
+  --sidebar-ring: oklch(0.55 0.2 260);
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Product Brand & Palette Tokens (Dark overrides) */
+  --ink: #e8eef8;
+  --muted: #9aa9bf;
+  --line: rgb(148 163 184 / 18%);
+  --surface: #111827;
+  --surface-soft: #182235;
+  --green: #4ade80;
+  --blue-soft: rgb(49 94 251 / 18%);
+  --green-soft: rgb(18 128 92 / 18%);
+  --red: #f87171;
+  --red-soft: rgb(180 35 24 / 18%);
+  --amber: #fbbf24;
+  --amber-soft: rgb(161 92 0 / 18%);
+  --shadow: 0 18px 50px rgb(0 0 0 / 24%);
+
+  /* shadcn / Tailwind Semantic Theme Tokens (Dark overrides) */
+  --background: oklch(0.17 0.025 250);
+  --foreground: oklch(0.94 0.015 250);
+  --card: oklch(0.215 0.03 250);
+  --card-foreground: oklch(0.94 0.015 250);
+  --popover: oklch(0.215 0.03 250);
+  --popover-foreground: oklch(0.94 0.015 250);
+  --primary: oklch(0.72 0.16 260);
+  --primary-foreground: oklch(0.18 0.03 250);
+  --secondary: oklch(0.27 0.035 250);
+  --secondary-foreground: oklch(0.94 0.015 250);
+  --muted-foreground: oklch(0.72 0.03 250);
+  --accent: oklch(0.29 0.055 260);
+  --accent-foreground: oklch(0.93 0.02 250);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0.02 250 / 14%);
+  --input: oklch(1 0.02 250 / 18%);
+  --ring: oklch(0.72 0.16 260);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.72 0.16 260);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0.02 250 / 14%);
+  --sidebar-ring: oklch(0.72 0.16 260);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    min-width: 320px;
+  }
+  html {
+    @apply font-sans;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}

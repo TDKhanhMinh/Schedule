@@ -94,7 +94,20 @@
 }
 
 .teacher-load-table-frame table {
+  width: 100%;
   min-width: 1120px;
+  border-collapse: collapse;
+}
+
+.teacher-load-table-frame th,
+.teacher-load-table-frame td {
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.teacher-load-table-frame tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .teacher-load-table-frame thead th {

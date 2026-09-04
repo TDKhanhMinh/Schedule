@@ -315,6 +315,56 @@
   scrollbar-color: color-mix(in oklch, var(--primary) 42%, var(--border)) transparent;
 }
 
+.school-overview-wrap {
+  height: min(68dvh, 720px);
+  max-height: min(68dvh, 720px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable both-edges;
+}
+
+.school-wide-table {
+  width: 100%;
+  min-width: 760px;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.school-wide-table th,
+.school-wide-table td {
+  padding: 9px 11px;
+  border-inline-end: 1px solid var(--border);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.school-wide-table th:last-child,
+.school-wide-table td:last-child {
+  border-inline-end: 0;
+}
+
+.school-overview-table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+.school-overview-table th,
+.school-overview-table td {
+  padding: 8px 9px;
+  border-inline-end: 1px solid var(--border);
+  text-align: center;
+  vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.school-overview-table th:last-child,
+.school-overview-table td:last-child {
+  border-inline-end: 0;
+}
+
 .timetable-table-frame table {
   margin: 0;
 }
@@ -539,6 +589,61 @@
 
 .timetable-history-heading {
   align-items: flex-start;
+}
+
+.history-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 0 8px;
+}
+
+.history-item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.history-item strong,
+.history-item p {
+  display: block;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.history-item strong {
+  color: var(--foreground);
+  font-size: 0.75rem;
+}
+
+.history-item p {
+  margin-top: 3px;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+}
+
+.history-kind {
+  justify-self: start;
+  border: 1px solid color-mix(in oklch, var(--primary) 24%, var(--border));
+  border-radius: 999px;
+  padding: 4px 7px;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .timetable-history-empty {

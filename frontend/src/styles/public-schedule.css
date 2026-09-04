@@ -1,0 +1,316 @@
+/* Public Schedule View and Print Stylesheet */
+.public-view-shell {
+  min-height: 100dvh;
+  padding: 34px clamp(18px, 5vw, 72px) 56px;
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.public-view-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 26px;
+  max-width: 1180px;
+  margin: 0 auto 24px;
+}
+
+.public-view-header h1 {
+  margin: 4px 0 7px;
+  color: var(--foreground);
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.public-view-meta {
+  margin: 8px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lead {
+  max-width: 650px;
+  margin: 10px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.public-view-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.button-secondary,
+.native-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+  padding: 0 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.button-secondary {
+  border-color: color-mix(in oklch, var(--primary) 24%, var(--border));
+  color: var(--primary);
+  background: var(--blue-soft);
+}
+
+.native-button {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+  cursor: pointer;
+}
+
+.button-secondary:hover,
+.native-button:hover:not(:disabled) {
+  border-color: var(--blue-dark);
+  color: var(--primary-foreground);
+  background: var(--blue-dark);
+}
+
+.button-secondary:active,
+.native-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.native-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.view-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  background: var(--secondary);
+}
+
+.view-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: var(--muted-foreground);
+  background: transparent;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.view-tab:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--accent);
+}
+
+.view-tab:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.view-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.public-view-panel {
+  display: grid;
+  gap: 15px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--card);
+  box-shadow: 0 14px 36px rgb(0 0 0 / 6%);
+}
+
+.public-view-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.public-view-toolbar h2 {
+  margin: 3px 0 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.public-version-badge,
+.public-watermark {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--green);
+  background: var(--green-soft);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.public-view-filters {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 3px;
+}
+
+.public-resource-picker {
+  display: grid;
+  min-width: 240px;
+  gap: 5px;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.public-resource-picker select {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--input);
+  border-radius: 8px;
+  color: var(--foreground);
+  background: var(--card);
+}
+
+.public-read-only-notice {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--blue);
+  background: var(--blue-soft);
+  font-size: 0.72rem;
+}
+
+.public-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.public-schedule-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+}
+
+.public-schedule-table th {
+  padding: 10px;
+  color: #ffffff;
+  background: #334155;
+  font-size: 0.68rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.public-schedule-table td {
+  padding: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--foreground);
+  vertical-align: top;
+}
+
+.public-schedule-table tbody tr:nth-child(even) {
+  background: var(--surface-soft);
+}
+
+.public-schedule-table td small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted-foreground);
+  font-size: 0.64rem;
+}
+
+.public-empty-row {
+  padding: 34px !important;
+  color: var(--muted-foreground) !important;
+  text-align: center;
+}
+
+.public-view-state {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.public-view-state h1,
+.public-view-state p {
+  margin: 0;
+}
+
+.public-view-state p {
+  color: var(--muted-foreground);
+}
+
+@media print {
+  .public-view-shell {
+    padding: 0;
+    background: #ffffff;
+    color: #000000;
+  }
+  .public-view-actions,
+  .public-view-filters,
+  .public-read-only-notice {
+    display: none;
+  }
+  .public-view-header,
+  .public-view-panel {
+    max-width: none;
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+  }
+  .public-view-panel {
+    padding: 0;
+  }
+  .public-table-wrap {
+    overflow: visible;
+    border: 0;
+  }
+  .public-schedule-table {
+    min-width: 0;
+  }
+}

@@ -37,6 +37,7 @@
 .app-brand {
   min-width: 0;
   color: var(--foreground);
+  text-decoration: none;
 }
 
 .app-brand-mark {
@@ -598,10 +599,6 @@
   .app-sidebar.is-collapsed .app-sidebar-footer {
     justify-content: initial;
     padding: 12px;
-  }
-
-  .mobile-nav-backdrop {
-    display: block;
   }
 
   .app-main {

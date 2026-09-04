@@ -210,8 +210,9 @@ export function OptimizationJobPanel({
         {status ? <span className="solve-status">{stateLabels[status.state] ?? status.state}</span> : null}
       </div>
       <WorkflowStepper activeStep={solveComplete ? "review" : "solve"} completedSteps={completedWorkflowSteps} />
-      <div className="optimization-job-controls">
+      <div className="optimization-job-controls flex flex-wrap lg:grid items-end gap-2.5">
         <Button
+          className="min-h-[38px] sm:min-h-[36px]"
           type="button"
           onClick={() => void solveMutation.mutateAsync()}
           disabled={!solveInput || solveMutation.isPending || status?.state === "QUEUED" || status?.state === "RUNNING"}

@@ -1,20 +1,45 @@
-/* Product UI overrides: shared shell, context controls and responsive navigation. */
-.dark {
-  --ink: #e8eef8;
-  --muted: #9aa9bf;
-  --line: rgb(148 163 184 / 18%);
-  --surface: #111827;
-  --surface-soft: #182235;
-  --blue-soft: rgb(49 94 251 / 18%);
-  --green-soft: rgb(18 128 92 / 18%);
-  --red-soft: rgb(180 35 24 / 18%);
-  --amber-soft: rgb(161 92 0 / 18%);
-  --shadow: 0 18px 50px rgb(0 0 0 / 24%);
-}
-
+/* Product UI overrides: shared shell, feedback and responsive navigation. */
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+.alert {
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--foreground);
+  background: var(--card);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.alert-error {
+  border-color: color-mix(in oklch, var(--destructive) 36%, var(--border));
+  color: var(--destructive);
+  background: color-mix(in oklch, var(--destructive) 10%, var(--card));
+}
+
+.alert-success {
+  border-color: color-mix(in oklch, var(--green) 34%, var(--border));
+  color: var(--green);
+  background: color-mix(in oklch, var(--green) 10%, var(--card));
+}
+
+.small-note {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.field-error {
+  margin: 0;
+  color: var(--destructive);
+  font-size: 0.72rem;
+  line-height: 1.4;
 }
 
 /* A selected control always uses the product blue with white text. */
@@ -82,24 +107,6 @@ body {
   display: none;
 }
 
-.mobile-nav-backdrop {
-  position: fixed;
-  z-index: 19;
-  inset: 0;
-  display: none;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  color: inherit;
-  background: rgb(15 23 42 / 24%);
-  cursor: default;
-}
-
-.dark .topbar,
-.dark .panel,
-.dark .import-panel,
-.dark .master-panel,
-.dark .timetable-shell,
 .dark .optimization-job-panel,
 .dark .optimization-rule-summary,
 .dark .public-view-shell,
@@ -109,12 +116,9 @@ body {
   color: var(--ink);
 }
 
-.dark .topbar,
 .dark .public-view-header,
 .dark .public-view-toolbar,
-.dark .timetable-controls,
 .dark .master-tabs,
-.dark .master-list,
 .dark .optimization-job-controls {
   background: var(--surface-soft);
 }
@@ -125,10 +129,6 @@ body {
   background: var(--surface-soft);
 }
 
-.dark .panel h1,
-.dark .panel h2,
-.dark .panel h3,
-.dark .master-header h1,
 .dark .public-view-header h1,
 .dark .public-view-panel h2 {
   color: var(--ink);
@@ -143,9 +143,7 @@ body {
 
 .dark table td,
 .dark table th,
-.dark .table-wrap,
 .dark .public-table-wrap,
-.dark .school-wide-class,
 .dark input,
 .dark select {
   border-color: var(--line);
@@ -162,25 +160,6 @@ body {
   color: var(--muted);
 }
 
-.workspace-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
-.workspace-controls [data-slot="select-trigger"] {
-  min-width: 150px;
-  min-height: 40px;
-  border-color: var(--line);
-  background: var(--surface);
-  color: var(--ink);
-}
-
-.content > * {
-  min-width: 0;
-}
-
 h1,
 h2,
 h3,
@@ -189,83 +168,14 @@ p {
 }
 
 th,
-td,
-.stat-card strong,
-.ops-card strong,
-.history-count {
+td {
   font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 720px) {
-  .topbar {
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px 16px;
-  }
-
+@media (max-width: 767px) {
   .mobile-menu-button {
     display: inline-flex;
     flex: 0 0 auto;
-  }
-
-  .mobile-nav-backdrop {
-    display: block;
-  }
-
-  .workspace-controls {
-    order: 4;
-    flex-basis: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    margin-left: 0;
-  }
-
-  .workspace-controls [data-slot="select-trigger"] {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .sidebar {
-    position: fixed;
-    top: 118px;
-    left: 12px;
-    right: 12px;
-    z-index: 20;
-    display: none;
-    max-height: calc(100vh - 130px);
-    overflow-y: auto;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    box-shadow: var(--shadow);
-  }
-
-  .sidebar.mobile-open {
-    display: block;
-  }
-
-  .sidebar:not(.mobile-open) nav,
-  .sidebar:not(.mobile-open) .sidebar-label,
-  .sidebar:not(.mobile-open) .sidebar-footer {
-    display: none;
-  }
-
-  .sidebar.mobile-open::after {
-    content: "";
-    position: fixed;
-    inset: 118px 0 0;
-    z-index: -1;
-    background: rgb(15 23 42 / 22%);
-    pointer-events: none;
-  }
-
-  .sidebar nav {
-    display: grid;
-    gap: 6px;
-  }
-
-  .nav-link {
-    width: 100%;
-    padding: 12px;
   }
 }
 

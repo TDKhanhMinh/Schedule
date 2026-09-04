@@ -350,7 +350,9 @@ export function TeacherAssignmentDialog({
                 Đã khóa thủ công{" "}
                 <b>{preflight?.lockedAssignmentCount ?? rows.filter((row) => row.currentAssignmentLocked).length}</b>
               </span>
-              <span className={`teacher-assignment-summary-item is-candidate${preflight ? " is-checked" : " is-pending"}`}>
+              <span
+                className={`teacher-assignment-summary-item is-candidate${preflight ? " is-checked" : " is-pending"}`}
+              >
                 Candidate <b>{preflight?.candidatePairCount ?? "Chưa kiểm tra"}</b>
               </span>
               <span className="teacher-assignment-summary-item is-limit">
